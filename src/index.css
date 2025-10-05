@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Fundo principal branco e texto escuro (foreground) */
+    --background: 0 0% 100%; /* HSL para #FFFFFF (Branco) */
+    --foreground: 206 24% 16%; /* Um cinza-azulado escuro para textos */
+
+    /* Cor Primária (Azul Escuro) */
+    --primary: 206 100% 16%; /* HSL para #003151 */
+    --primary-foreground: 0 0% 100%; /* Texto branco para contrastar com a cor primária */
+
+    /* Cor Secundária (Ciano/Teal) */
+    --secondary: 193 85% 29%; /* HSL para #0b6f88 */
+    --secondary-foreground: 0 0% 100%; /* Texto branco para contrastar com a cor secundária */
+
+    /* Demais cores do tema (padrão shadcn/ui) */
+    --card: 0 0% 100%;
+    --card-foreground: 206 24% 16%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 193 85% 29%; /* Anel de foco usa a cor secundária */
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    /* Aplica o fundo branco e a cor de texto padrão */
+    @apply bg-background text-foreground;
+  }
+}
