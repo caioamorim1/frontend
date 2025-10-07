@@ -1,4 +1,4 @@
-import { NavLink, useParams } from "react-router-dom";
+import { NavLink, useNavigate, useParams } from "react-router-dom";
 import {
   Building,
   Users,
@@ -6,6 +6,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   Bed,
+  ArrowLeft,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getHospitalById, Hospital } from "@/lib/api";
@@ -24,10 +25,9 @@ const NavItem = ({
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${
-          isActive
-            ? "bg-secondary/10 text-secondary font-semibold"
-            : "text-gray-200 hover:bg-white/10"
+        `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${isActive
+          ? "bg-secondary/10 text-secondary font-semibold"
+          : "text-gray-200 hover:bg-white/10"
         }`
       }
     >
@@ -40,6 +40,7 @@ const NavItem = ({
 export default function HospitalAdminSidebar() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const [hospital, setHospital] = useState<Hospital | null>(null);
+  const navigate = useNavigate();
 
   const navItems = [
     {
@@ -87,7 +88,15 @@ export default function HospitalAdminSidebar() {
 
   return (
     <aside className="w-72 bg-primary text-primary-foreground flex flex-col flex-shrink-0">
-      <div className="h-16 flex items-center justify-center border-b border-white/20 px-4">
+      <div className="h-16 flex items-center border-b border-white/20 px-4 gap-x-3">
+        {/* --- BOTÃO DE VOLTAR ADICIONADO --- */}
+        <button
+          onClick={() => navigate(-1)} // Ação de voltar para a página anterior
+          className="p-2 rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
+          aria-label="Voltar"
+        >
+          <ArrowLeft className="h-5 w-5 text-white" />
+        </button>
         <h1
           className="text-xl font-bold text-white truncate"
           title={hospital?.nome}
