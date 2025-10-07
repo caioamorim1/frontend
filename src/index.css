@@ -5,16 +5,25 @@
 @layer base {
   :root {
     /* Fundo principal branco e texto escuro (foreground) */
-    --background: 0 0% 100%; /* HSL para #FFFFFF (Branco) */
-    --foreground: 206 24% 16%; /* Um cinza-azulado escuro para textos */
+    --background: 0 0% 100%;
+    /* HSL para #FFFFFF (Branco) */
+    --foreground: 206 24% 16%;
+    /* Um cinza-azulado escuro para textos */
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
 
     /* Cor Primária (Azul Escuro) */
-    --primary: 206 100% 16%; /* HSL para #003151 */
-    --primary-foreground: 0 0% 100%; /* Texto branco para contrastar com a cor primária */
+    --primary: 206 100% 16%;
+    /* HSL para #003151 */
+    --primary-foreground: 0 0% 100%;
+    /* Texto branco para contrastar com a cor primária */
 
     /* Cor Secundária (Ciano/Teal) */
-    --secondary: 193 85% 29%; /* HSL para #0b6f88 */
-    --secondary-foreground: 0 0% 100%; /* Texto branco para contrastar com a cor secundária */
+    --secondary: 193 85% 29%;
+    /* HSL para #0b6f88 */
+    --secondary-foreground: 0 0% 100%;
+    /* Texto branco para contrastar com a cor secundária */
 
     /* Demais cores do tema (padrão shadcn/ui) */
     --card: 0 0% 100%;
@@ -31,7 +40,8 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 193 85% 29%; /* Anel de foco usa a cor secundária */
+    --ring: 193 85% 29%;
+    /* Anel de foco usa a cor secundária */
 
     --radius: 0.5rem;
   }
@@ -41,6 +51,7 @@
   * {
     @apply border-border;
   }
+
   body {
     /* Aplica o fundo branco e a cor de texto padrão */
     @apply bg-background text-foreground;
