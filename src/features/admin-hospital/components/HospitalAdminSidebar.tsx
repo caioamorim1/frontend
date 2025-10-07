@@ -91,7 +91,7 @@ export default function HospitalAdminSidebar() {
       <div className="h-16 flex items-center border-b border-white/20 px-4 gap-x-3">
         {/* --- BOTÃO DE VOLTAR ADICIONADO --- */}
         <button
-          onClick={() => navigate(-1)} // Ação de voltar para a página anterior
+          onClick={() => navigate("/admin/hospitais")} // Ação de voltar para a página anterior
           className="p-2 rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
           aria-label="Voltar"
         >

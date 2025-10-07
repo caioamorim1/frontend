@@ -48,7 +48,7 @@ export default function SetorDetailPage() {
         setActiveTab("analise-financeira");
         // CORREÇÃO: Busca os sítios funcionais com todos os detalhes de alocação
         const sitiosDetalhados = await getSitiosFuncionaisByUnidadeId(setorId);
-        
+
         // Combina os dados base com os detalhes de alocação
         const unidadeCompleta = {
           ...unidadeData,
@@ -92,16 +92,20 @@ export default function SetorDetailPage() {
   const tabs =
     unidade.tipo === "internacao"
       ? [
-          { id: "dimensionamento", label: "Dimensionamento" },
-          { id: "leitos", label: "Leitos" },
-          { id: "funcionarios", label: "Funcionários" },
-          { id: "parametros", label: "Parâmetros" },
-        ]
+        { id: "dimensionamento", label: "Dimensionamento" },
+        { id: "leitos", label: "Leitos" },
+        { id: "funcionarios", label: "Funcionários" },
+        { id: "parametros", label: "Parâmetros" },
+      ]
       : [
-          { id: "analise-financeira", label: "Análise Financeira" },
-          { id: "sitios", label: "Sítios Funcionais" },
-          { id: "funcionarios", label: "Funcionários" },
-        ];
+        { id: "analise-financeira", label: "Análise Financeira" },
+        { id: "sitios", label: "Sítios Funcionais" },
+        { id: "funcionarios", label: "Funcionários" },
+      ];
+
+  tabs.push({ id: "baseline", label: "Baseline" });
+  tabs.push({ id: "atual", label: "Atual" });
+  tabs.push({ id: "projetado", label: "Projetado" });
 
   return (
     <div className="space-y-6">
@@ -159,6 +163,10 @@ export default function SetorDetailPage() {
       {activeTab === "funcionarios" && (
         <QuadroCargos cargos={cargosFormatados} />
       )}
+
+      {activeTab === "funcionarios" && (
+        <QuadroCargos cargos={cargosFormatados} />
+      )}
     </div>
   );
 }
@@ -166,11 +174,10 @@ export default function SetorDetailPage() {
 const TabButton = ({ id, activeTab, setActiveTab, label }: any) => (
   <button
     onClick={() => setActiveTab(id)}
-    className={`py-4 px-1 border-b-2 font-medium text-sm ${
-      activeTab === id
+    className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === id
         ? "border-secondary text-secondary"
         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-    }`}
+      }`}
   >
     {label}
   </button>
