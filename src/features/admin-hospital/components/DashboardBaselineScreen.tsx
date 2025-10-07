@@ -232,46 +232,48 @@ const TabContentInternacao: React.FC<{
         : [];
 
 
-    // Objeto para armazenar a soma das quantidades por função.
-    // Ex: { 'Enfermeiro': 50, 'Médico': 20 }
-    const staffTotals = {};
+    const staffBySectorMap: Record<string, number> = {};
 
-    // Passo 1: Iterar por todos os setores e somar as quantidades de cada função.
-    for (const sector of detailedData) {
-        if (sector.staff) {
-            for (const staffMember of sector.staff) {
-                const { role, quantity } = staffMember;
+    // Soma os colaboradores por setor
+    detailedData.forEach((sector) => {
+        let totalInSector = 0;
 
-                // Se a função (role) já foi adicionada, soma a quantidade.
-                // Se não, inicializa com a quantidade atual.
-                staffTotals[role] = (staffTotals[role] || 0) + quantity;
-            }
-        }
-    }
+        sector.staff.forEach((staffMember) => {
+            totalInSector += staffMember.quantity;
+        });
 
-    // Passo 2: Transformar o objeto de totais no formato que o gráfico precisa.
-    const chartDataGeral: ChartData[] = Object.entries(staffTotals).map(
-        ([role, totalQuantity], index) => ({
-            key: role, // A própria função pode ser a chave
-            name: role,
-            value: totalQuantity as number,
+        staffBySectorMap[sector.name] = totalInSector;
+    });
+
+    // Transforma em dados para gráfico
+    const chartDataColaboradoresPorSetor: ChartData[] = Object.entries(staffBySectorMap).map(
+        ([sectorName, totalQuantity], index) => ({
+            key: sectorName,
+            name: sectorName,
+            value: totalQuantity,
             color: COLORS[index % COLORS.length],
         })
     );
 
-    const chartDataGeralAgrupado: ChartData[] = Object.entries(staffTotals).map(
+
+    const staffByRoleMap: Record<string, number> = {};
+
+    detailedData.forEach((sector) => {
+        sector.staff.forEach((staffMember) => {
+            const { role, quantity } = staffMember;
+            staffByRoleMap[role] = (staffByRoleMap[role] || 0) + quantity;
+        });
+    });
+
+    const chartDataColaboradoresPorFuncao: ChartData[] = Object.entries(staffByRoleMap).map(
         ([role, totalQuantity], index) => ({
             key: role,
-            name: role,          // O nome da fatia do gráfico é a própria função
-            value: totalQuantity as number, // O valor da fatia é a soma total daquela função
+            name: role,
+            value: totalQuantity,
             color: COLORS[index % COLORS.length],
         })
     );
 
-    // Agora você pode usar a variável 'chartDataGeral' nos seus gráficos.
-    // As duas variáveis que você tinha podem receber o mesmo dado.
-    let chartDataNumColaboradores = chartDataGeral;
-    let chartDataNumColaboradoresByFuncao = chartDataGeralAgrupado;
 
 
     return (
@@ -302,8 +304,8 @@ const TabContentInternacao: React.FC<{
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <PieChartComp data={chartDataCareLevels} title='Níveis de Cuidado' />
                 <PieChartComp data={chartDataBedStates} title='Estados dos Leitos' />
-                <PieChartComp data={chartDataNumColaboradores} title='Números de Colaboradores' labelType='value' />
-                <PieChartComp data={chartDataNumColaboradoresByFuncao} title='Números de Colaboradores por Função' labelType='value' />
+                <PieChartComp data={chartDataColaboradoresPorSetor} title='Números de Colaboradores' labelType='value' />
+                <PieChartComp data={chartDataColaboradoresPorFuncao} title='Números de Colaboradores por Função' labelType='value' />
             </div>
             <BargraphicChart data={chartDataAtual} title='Análise de Custo por Setor' />
             <RadarChartComponent data={radarData} title='Análise de Desempenho' description='Comparativo entre o desempenho atual e projetado' />
@@ -319,22 +321,6 @@ const TabContentNoInternacao: React.FC<{ sourceData: SectorAssistance[], radarDa
     const amountTotal = detailedData.reduce((acc, sector) => acc + sector.costAmount, 0);
 
 
-
-    const staffTotals = {};
-
-    // Passo 1: Iterar por todos os setores e somar as quantidades de cada função.
-    for (const sector of detailedData) {
-        if (sector.staff) {
-            for (const staffMember of sector.staff) {
-                const { role, quantity } = staffMember;
-
-                // Se a função (role) já foi adicionada, soma a quantidade.
-                // Se não, inicializa com a quantidade atual.
-                staffTotals[role] = (staffTotals[role] || 0) + quantity;
-            }
-        }
-    }
-
     const chartDataAtual: ChartData[] = detailedData
         ? detailedData
             .map(item => ({
@@ -347,29 +333,47 @@ const TabContentNoInternacao: React.FC<{ sourceData: SectorAssistance[], radarDa
         : [];
 
 
-    // Passo 2: Transformar o objeto de totais no formato que o gráfico precisa.
-    const chartDataGeral: ChartData[] = Object.entries(staffTotals).map(
-        ([role, totalQuantity], index) => ({
-            key: role, // A própria função pode ser a chave
-            name: role,
-            value: totalQuantity as number,
+    // Passo 1: Calcular o total de funcionários por função em todos os setores filtrados.
+    const staffBySectorMap: Record<string, number> = {};
+
+    // Soma os colaboradores por setor
+    detailedData.forEach((sector) => {
+        let totalInSector = 0;
+
+        sector.staff.forEach((staffMember) => {
+            totalInSector += staffMember.quantity;
+        });
+
+        staffBySectorMap[sector.name] = totalInSector;
+    });
+
+    // Transforma em dados para gráfico
+    const chartDataColaboradoresPorSetor: ChartData[] = Object.entries(staffBySectorMap).map(
+        ([sectorName, totalQuantity], index) => ({
+            key: sectorName,
+            name: sectorName,
+            value: totalQuantity,
             color: COLORS[index % COLORS.length],
         })
     );
 
-    const chartDataGeralAgrupado: ChartData[] = Object.entries(staffTotals).map(
+    const staffByRoleMap: Record<string, number> = {};
+
+    detailedData.forEach((sector) => {
+        sector.staff.forEach((staffMember) => {
+            const { role, quantity } = staffMember;
+            staffByRoleMap[role] = (staffByRoleMap[role] || 0) + quantity;
+        });
+    });
+
+    const chartDataColaboradoresPorFuncao: ChartData[] = Object.entries(staffByRoleMap).map(
         ([role, totalQuantity], index) => ({
             key: role,
-            name: role,          // O nome da fatia do gráfico é a própria função
-            value: totalQuantity as number, // O valor da fatia é a soma total daquela função
+            name: role,
+            value: totalQuantity,
             color: COLORS[index % COLORS.length],
         })
     );
-
-    // Agora você pode usar a variável 'chartDataGeral' nos seus gráficos.
-    // As duas variáveis que você tinha podem receber o mesmo dado.
-    let chartDataNumColaboradores = chartDataGeral;
-    let chartDataNumColaboradoresByFuncao = chartDataGeralAgrupado;
 
 
     return (
@@ -395,8 +399,8 @@ const TabContentNoInternacao: React.FC<{ sourceData: SectorAssistance[], radarDa
 
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <PieChartComp data={chartDataNumColaboradores} title='Números de Colaboradores' labelType='value' />
-                <PieChartComp data={chartDataNumColaboradoresByFuncao} title='Números de Colaboradores por Função' labelType='value' />
+                <PieChartComp data={chartDataColaboradoresPorSetor} title='Números de Colaboradores por Setor' labelType='value' />
+                <PieChartComp data={chartDataColaboradoresPorFuncao} title='Números de Colaboradores por Função' labelType='value' />
             </div>
             <BargraphicChart data={chartDataAtual} title='Análise de Custo por Setor' />
             <RadarChartComponent data={radarData} title='Análise de Desempenho' description='Comparativo entre o desempenho atual e projetado' />
