@@ -1,0 +1,10 @@
+dist
+./dist
+node_modules
+./node_modules
+.env
+./.env
+frontend.tar.
+./frontend.tar
+
+frontend.tar
