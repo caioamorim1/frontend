@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import {
   getUnidadeById,
   getSessoesAtivasByUnidadeId,
-  getSitiosFuncionaisByUnidadeId, 
+  getSitiosFuncionaisByUnidadeId,
   UnidadeInternacao,
   UnidadeNaoInternacao,
   SessaoAtiva,
@@ -18,7 +18,8 @@ import SitiosFuncionaisAdminPage from "./SitiosFuncionaisAdminPage";
 
 import DimensionamentoTab from "../components/DimensionamentoTab";
 import AnaliseNaoInternacaoTab from "../components/AnaliseNaoInternacao";
-import ProjetadoTab from "../components/ProjetadoTab"; 
+import ProjetadoTab from "../components/ProjetadoTab";
+import AtualTab from "../components/AtualTab"; // Importa o novo componente
 
 export default function SetorDetailPage() {
   const { hospitalId, setorId } = useParams<{
@@ -46,7 +47,10 @@ export default function SetorDetailPage() {
       } else {
         setActiveTab("analise-financeira");
         const sitiosDetalhados = await getSitiosFuncionaisByUnidadeId(setorId);
-        const unidadeCompleta = { ...unidadeData, sitiosFuncionais: sitiosDetalhados };
+        const unidadeCompleta = {
+          ...unidadeData,
+          sitiosFuncionais: sitiosDetalhados,
+        };
         setUnidade(unidadeCompleta);
       }
     } catch (err) {
@@ -74,7 +78,6 @@ export default function SetorDetailPage() {
     }));
   }, [unidade]);
 
-
   if (loading) return <p>A carregar detalhes do setor...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
   if (!unidade) return <p>Setor não encontrado.</p>;
@@ -82,22 +85,22 @@ export default function SetorDetailPage() {
   const tabs =
     unidade.tipo === "internacao"
       ? [
-        { id: "dimensionamento", label: "Dimensionamento" },
-        { id: "leitos", label: "Leitos" },
-        { id: "funcionarios", label: "Funcionários" },
-        { id: "parametros", label: "Parâmetros" },
-        { id: "baseline", label: "Baseline" },
-        { id: "atual", label: "Atual" },
-        { id: "projetado", label: "Projetado" },
-      ]
+          { id: "dimensionamento", label: "Dimensionamento" },
+          { id: "leitos", label: "Leitos" },
+          { id: "funcionarios", label: "Funcionários" },
+          { id: "parametros", label: "Parâmetros" },
+          { id: "baseline", label: "Baseline" },
+          { id: "atual", label: "Atual" },
+          { id: "projetado", label: "Projetado" },
+        ]
       : [
-        { id: "analise-financeira", label: "Análise Financeira" },
-        { id: "sitios", label: "Sítios Funcionais" },
-        { id: "funcionarios", label: "Funcionários" },
-        { id: "baseline", label: "Baseline" },
-        { id: "atual", label: "Atual" },
-        { id: "projetado", label: "Projetado" },
-      ];
+          { id: "analise-financeira", label: "Análise Financeira" },
+          { id: "sitios", label: "Sítios Funcionais" },
+          { id: "funcionarios", label: "Funcionários" },
+          { id: "baseline", label: "Baseline" },
+          { id: "atual", label: "Atual" },
+          { id: "projetado", label: "Projetado" },
+        ];
 
   return (
     <div className="space-y-6">
@@ -127,6 +130,10 @@ export default function SetorDetailPage() {
         </nav>
       </div>
 
+      {activeTab === "atual" && hospitalId && (
+        <AtualTab unidade={unidade} hospitalId={hospitalId} onUpdate={fetchData} />
+      )}
+
       {unidade.tipo === "internacao" && (
         <>
           {activeTab === "dimensionamento" && (
@@ -151,11 +158,14 @@ export default function SetorDetailPage() {
               unidade={unidade as UnidadeNaoInternacao}
             />
           )}
-           {activeTab === "projetado" && (
+          {activeTab === "projetado" && (
             <div className="text-center text-gray-500 py-8">
-              <p>Funcionalidade de ajuste projetado para unidades de não-internação em desenvolvimento.</p>
+              <p>
+                Funcionalidade de ajuste projetado para unidades de
+                não-internação em desenvolvimento.
+              </p>
             </div>
-           )}
+          )}
         </>
       )}
 
@@ -169,10 +179,11 @@ export default function SetorDetailPage() {
 const TabButton = ({ id, activeTab, setActiveTab, label }: any) => (
   <button
     onClick={() => setActiveTab(id)}
-    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === id
+    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+      activeTab === id
         ? "border-secondary text-secondary"
         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-      }`}
+    }`}
   >
     {label}
   </button>

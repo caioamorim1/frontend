@@ -10,16 +10,15 @@ import {
   deleteUnidadeInternacao,
   deleteUnidadeNaoInternacao,
   getScpMetodos,
-  getCargosByHospitalId,
   Unidade,
   ScpMetodo,
-  Cargo,
 } from "@/lib/api";
-import { Trash2, Edit, Hospital, Building2, PlusCircle } from "lucide-react";
+import { Trash2, Edit, Hospital, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label"; // Importando o Label
 import {
   Select,
   SelectContent,
@@ -36,17 +35,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-interface CargoUnidadeParaCriacao {
-  cargoId: string;
-  quantidade_funcionarios: number;
-  nome?: string; // Usado apenas para exibição no frontend
-}
-
 export default function SetoresPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [scpMetodos, setScpMetodos] = useState<ScpMetodo[]>([]);
-  const [cargosHospital, setCargosHospital] = useState<Cargo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,29 +55,20 @@ export default function SetoresPage() {
   const [descricao, setDescricao] = useState("");
   const [horas_extra_reais, setHorasExtraReais] = useState("");
   const [horas_extra_projetadas, setHorasExtraProjetadas] = useState("");
-  const [cargos_unidade, setCargosUnidade] = useState<
-    CargoUnidadeParaCriacao[]
-  >([]);
-
-  // Estados para adicionar novo cargo
-  const [selectedCargoId, setSelectedCargoId] = useState("");
-  const [quantidadeFuncionarios, setQuantidadeFuncionarios] = useState(1);
 
   const fetchData = async () => {
     if (!hospitalId) return;
     setLoading(true);
     setError(null);
     try {
-      const [internacaoData, naoInternacaoData, scpData, cargosData] =
+      const [internacaoData, naoInternacaoData, scpData] =
         await Promise.all([
           getUnidadesInternacao(hospitalId),
           getUnidadesNaoInternacao(hospitalId),
           getScpMetodos(),
-          getCargosByHospitalId(hospitalId),
         ]);
       setUnidades([...internacaoData, ...naoInternacaoData]);
       setScpMetodos(scpData);
-      setCargosHospital(cargosData);
     } catch (err) {
       setError("Falha ao carregar os setores.");
     } finally {
@@ -104,12 +87,9 @@ export default function SetoresPage() {
     setDescricao("");
     setHorasExtraReais("");
     setHorasExtraProjetadas("");
-    setCargosUnidade([]);
     setTipoUnidade(null);
     setIsFormVisible(false);
     setEditingUnidade(null);
-    setSelectedCargoId("");
-    setQuantidadeFuncionarios(1);
   };
 
   const handleAddNew = () => {
@@ -119,25 +99,11 @@ export default function SetoresPage() {
 
   const handleEdit = (unidade: Unidade) => {
     resetForm();
-
     setEditingUnidade(unidade);
-    console.log("Unidade :", unidade);
     setTipoUnidade(unidade.tipo);
     setNome(unidade.nome);
     setHorasExtraReais(unidade.horas_extra_reais || "");
     setHorasExtraProjetadas(unidade.horas_extra_projetadas || "");
-
-    const cargosFormatados = (unidade.cargos_unidade || []).map((cu) => {
-      const cargoInfo = cargosHospital.find(
-        (c) => c.id === (cu.cargoId || cu.cargoId)
-      );
-      return {
-        cargoId: cu.cargoId || cu.cargoId,
-        quantidade_funcionarios: cu.quantidade_funcionarios,
-        nome: cargoInfo?.nome || "Cargo desconhecido",
-      };
-    });
-    setCargosUnidade(cargosFormatados);
 
     if (unidade.tipo === "internacao") {
       setNumeroLeitos(unidade.leitos?.length || 0);
@@ -149,66 +115,28 @@ export default function SetoresPage() {
     setIsFormVisible(true);
   };
 
-  const handleAddCargo = () => {
-    console.log("ANTES DE ADICIONAR. Estado atual:", cargos_unidade);
-    if (!selectedCargoId || quantidadeFuncionarios <= 0) {
-      alert("Selecione um cargo e informe uma quantidade válida.");
-      return;
-    }
-    if (cargos_unidade.find((c) => c.cargoId === selectedCargoId)) {
-      alert("Este cargo já foi adicionado.");
-      return;
-    }
-    const cargoSelecionado = cargosHospital.find(
-      (c) => c.id === selectedCargoId
-    );
-
-    setCargosUnidade([
-      ...cargos_unidade,
-      {
-        cargoId: selectedCargoId,
-        quantidade_funcionarios: quantidadeFuncionarios,
-        nome: cargoSelecionado?.nome || "Cargo desconhecido",
-      },
-    ]);
-    setSelectedCargoId("");
-    setQuantidadeFuncionarios(1);
-  };
-
-  const handleRemoveCargo = (cargoId: string) => {
-    setCargosUnidade(cargos_unidade.filter((c) => c.cargoId !== cargoId));
-  };
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!hospitalId || !tipoUnidade) return;
 
     try {
-      const isEditing = !!editingUnidade;
-      // Prepara o payload dos cargos, removendo a propriedade 'nome' que é só para o frontend
-      const payloadCargos = cargos_unidade.map(({ nome, ...resto }) => resto);
-      console.log("Payload Cargos:", payloadCargos);
-      if (isEditing) {
-        // LÓGICA DE ATUALIZAÇÃO (já estava correta)
+      if (editingUnidade) {
         if (tipoUnidade === "internacao") {
-          await updateUnidadeInternacao(editingUnidade!.id, {
+          await updateUnidadeInternacao(editingUnidade.id, {
             nome,
             scpMetodoId,
             horas_extra_reais,
             horas_extra_projetadas,
-            cargos_unidade: payloadCargos,
           });
         } else {
-          await updateUnidadeNaoInternacao(editingUnidade!.id, {
+          await updateUnidadeNaoInternacao(editingUnidade.id, {
             nome,
             descricao,
             horas_extra_reais,
             horas_extra_projetadas,
-            cargos_unidade: payloadCargos,
           });
         }
       } else {
-        // [CORRIGIDO] LÓGICA DE CRIAÇÃO (agora em uma única etapa)
         if (tipoUnidade === "internacao") {
           await createUnidadeInternacao({
             hospitalId,
@@ -217,8 +145,7 @@ export default function SetoresPage() {
             scpMetodoId,
             horas_extra_reais,
             horas_extra_projetadas,
-            // Envia o payload de cargos diretamente na criação
-            cargos_unidade: payloadCargos,
+            cargos_unidade: [], // Inicia sem cargos
           });
         } else {
           await createUnidadeNaoInternacao({
@@ -227,8 +154,7 @@ export default function SetoresPage() {
             descricao,
             horas_extra_reais,
             horas_extra_projetadas,
-            // Envia o payload de cargos diretamente na criação
-            cargos_unidade: payloadCargos,
+            cargos_unidade: [], // Inicia sem cargos
           });
         }
       }
@@ -237,11 +163,7 @@ export default function SetoresPage() {
       fetchData();
     } catch (err) {
       const action = editingUnidade ? "atualizar" : "criar";
-      setError(
-        `Falha ao ${action} o setor. Detalhes: ${
-          err instanceof Error ? err.message : String(err)
-        }`
-      );
+      setError(`Falha ao ${action} o setor.`);
     }
   };
 
@@ -283,18 +205,10 @@ export default function SetoresPage() {
           <CardHeader>
             <CardTitle>
               {editingUnidade
-                ? `Editando Unidade de ${
-                    tipoUnidade === "internacao"
-                      ? "Internação"
-                      : "Não Internação"
-                  }`
+                ? `Editando Setor`
                 : !tipoUnidade
                 ? "Qual tipo de setor deseja criar?"
-                : `Adicionar Nova Unidade de ${
-                    tipoUnidade === "internacao"
-                      ? "Internação"
-                      : "Não Internação"
-                  }`}
+                : `Adicionar Novo Setor`}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -319,130 +233,99 @@ export default function SetoresPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                <Input
-                  name="nome"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  placeholder="Nome do Setor"
-                  required
-                />
+                <div>
+                  <Label htmlFor="nome">Nome do Setor</Label>
+                  <Input
+                    id="nome"
+                    name="nome"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    placeholder="Nome do Setor"
+                    required
+                    className="mt-1"
+                  />
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    name="horas_extra_reais"
-                    value={horas_extra_reais}
-                    onChange={(e) => setHorasExtraReais(e.target.value)}
-                    placeholder="Horas Extra (R$)"
-                  />
-                  <Input
-                    name="horas_extra_projetadas"
-                    value={horas_extra_projetadas}
-                    onChange={(e) => setHorasExtraProjetadas(e.target.value)}
-                    placeholder="Horas Extra Projetadas (horas)"
-                  />
+                  <div>
+                    <Label htmlFor="horas_extra_reais">Horas Extra (R$)</Label>
+                    <Input
+                      id="horas_extra_reais"
+                      name="horas_extra_reais"
+                      value={horas_extra_reais}
+                      onChange={(e) => setHorasExtraReais(e.target.value)}
+                      placeholder="Ex: 1500.00"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="horas_extra_projetadas">Horas Extra Projetadas (horas)</Label>
+                    <Input
+                      id="horas_extra_projetadas"
+                      name="horas_extra_projetadas"
+                      value={horas_extra_projetadas}
+                      onChange={(e) => setHorasExtraProjetadas(e.target.value)}
+                      placeholder="Ex: 100"
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
 
                 {tipoUnidade === "internacao" && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                      name="numeroLeitos"
-                      type="number"
-                      value={numeroLeitos}
-                      onChange={(e) => setNumeroLeitos(Number(e.target.value))}
-                      placeholder="Número de Leitos"
-                      required
-                      disabled={!!editingUnidade}
-                    />
-                    <Select onValueChange={setScpMetodoId} value={scpMetodoId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um método SCP (opcional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {scpMetodos.map((metodo) => (
-                          <SelectItem key={metodo.id} value={metodo.id}>
-                            {metodo.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div>
+                      <Label htmlFor="numeroLeitos">Número de Leitos</Label>
+                      <Input
+                        id="numeroLeitos"
+                        name="numeroLeitos"
+                        type="number"
+                        value={numeroLeitos}
+                        onChange={(e) => setNumeroLeitos(Number(e.target.value))}
+                        placeholder="0"
+                        required
+                        disabled={!!editingUnidade}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="scpMetodoId">Método SCP (Opcional)</Label>
+                      <Select onValueChange={setScpMetodoId} value={scpMetodoId}>
+                        <SelectTrigger id="scpMetodoId" className="mt-1">
+                          <SelectValue placeholder="Selecione um método" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {scpMetodos.map((metodo) => (
+                            <SelectItem key={metodo.id} value={metodo.id}>
+                              {metodo.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 )}
                 {editingUnidade && tipoUnidade === "internacao" && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 -mt-2">
                     O número de leitos não pode ser alterado na edição.
                   </p>
                 )}
 
                 {tipoUnidade === "nao-internacao" && (
-                  <Textarea
-                    name="descricao"
-                    value={descricao}
-                    onChange={(e) => setDescricao(e.target.value)}
-                    placeholder="Descrição (opcional)"
-                    rows={3}
-                  />
+                  <div>
+                    <Label htmlFor="descricao">Descrição (Opcional)</Label>
+                    <Textarea
+                      id="descricao"
+                      name="descricao"
+                      value={descricao}
+                      onChange={(e) => setDescricao(e.target.value)}
+                      placeholder="Descreva brevemente o setor..."
+                      rows={3}
+                      className="mt-1"
+                    />
+                  </div>
                 )}
 
-                <div className="space-y-3 pt-4">
-                  <h3 className="font-semibold text-lg text-primary">
-                    Adicionar Cargos na Unidade
-                  </h3>
-                  <div className="flex items-center gap-4">
-                    <Select
-                      onValueChange={setSelectedCargoId}
-                      value={selectedCargoId}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um cargo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cargosHospital.map((cargo) => (
-                          <SelectItem key={cargo.id} value={cargo.id}>
-                            {cargo.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      type="number"
-                      value={quantidadeFuncionarios}
-                      onChange={(e) =>
-                        setQuantidadeFuncionarios(Number(e.target.value))
-                      }
-                      min="1"
-                      className="w-24"
-                      placeholder="Qtd."
-                    />
-                    <Button type="button" onClick={handleAddCargo} size="icon">
-                      <PlusCircle className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {cargos_unidade.length > 0 && (
-                    <div className="space-y-2 mt-2">
-                      {cargos_unidade.map((cargo) => (
-                        <div
-                          key={cargo.cargoId}
-                          className="flex justify-between items-center p-2 bg-gray-50 rounded-md"
-                        >
-                          <span>
-                            {cargo.nome} (Qtd: {cargo.quantidade_funcionarios})
-                          </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRemoveCargo(cargo.cargoId)}
-                            className="text-red-500 hover:text-red-700 h-6 w-6"
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-end gap-4">
+                <div className="flex justify-end gap-4 pt-4 border-t">
                   <Button type="button" variant="ghost" onClick={resetForm}>
                     {editingUnidade ? "Cancelar Edição" : "Voltar"}
                   </Button>
