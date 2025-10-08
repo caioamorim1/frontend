@@ -154,6 +154,11 @@ export default function AnaliseFinanceira({
           })}
         </TableCell>
         <TableCell className="bg-blue-50">
+          <div className="text-center font-bold">
+            {linha.quantidadeProjetada}
+          </div>
+        </TableCell>
+        {/* <TableCell className="bg-blue-50">
           {tipo === "internacao" && linha.isScpCargo ? (
             <div className="text-center font-bold">
               {linha.quantidadeProjetada}
@@ -172,7 +177,7 @@ export default function AnaliseFinanceira({
               className="w-20 text-center mx-auto"
             />
           )}
-        </TableCell>
+        </TableCell> */}
         <TableCell className="bg-blue-50 font-semibold">
           {custoTotalProjetado.toLocaleString("pt-BR", {
             style: "currency",
@@ -323,7 +328,9 @@ export default function AnaliseFinanceira({
                 })}
               </TableCell>
               <TableCell className="bg-blue-200">
-                {totaisGerais.quantidadeProjetada}
+                <div className="text-center font-bold">
+                  {totaisGerais.quantidadeProjetada}
+                </div>
               </TableCell>
               <TableCell className="bg-blue-200">
                 {totaisGerais.custoTotalProjetado.toLocaleString("pt-BR", {
