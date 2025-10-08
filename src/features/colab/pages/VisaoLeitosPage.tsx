@@ -216,9 +216,11 @@ export default function VisaoLeitosPage() {
       return;
     }
     try {
-      const novaSessao = await admitirPaciente({ unidadeId, leitoId, prontuario, colaboradorId: user.id, scp: unidade.scpMetodoKey });
+      
       toast({ title: "Sucesso", description: "Paciente admitido. Redirecionando para avaliação." });
-      navigate(`/unidade/${unidadeId}/sessao/${novaSessao.id}/avaliar`);
+      navigate(`/unidade/${unidadeId}/sessao/avaliar`, {state:{
+        lid: leitoId, pront: prontuario, mscp:  unidade.scpMetodoKey 
+      }});
     } catch (error) {
       toast({ title: "Erro", description: "Não foi possível iniciar a avaliação.", variant: "destructive" });
     }
