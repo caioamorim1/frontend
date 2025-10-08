@@ -258,3 +258,57 @@ export const allInternationSectors: SectorInternation[] = [
     unit7,
     unit8
 ];
+
+
+
+/*
+
+SELECT 
+    uni.id AS "id",
+    uni.nome AS "name",
+    uni.descricao AS "descr",
+    SUM(
+        (
+            (COALESCE(REPLACE(c.salario, ',', '.')::numeric, 0) + 
+             COALESCE(REPLACE(c.adicionais_tributos, ',', '.')::numeric, 0) +
+             COALESCE(REPLACE(uni.horas_extra_reais, ',', '.')::numeric, 0)
+             )
+            * COALESCE(cuni.quantidade_funcionarios, 0)
+        )
+    ) AS "costAmount",
+    COALESCE(ls.bed_count, 0) AS "bedCount",
+    JSON_BUILD_OBJECT(
+        'minimumCare',      COALESCE(ls.minimum_care, 0),
+        'intermediateCare', COALESCE(ls.intermediate_care, 0),
+        'highDependency',   COALESCE(ls.high_dependency, 0),
+        'semiIntensive',    COALESCE(ls.semi_intensive, 0),
+        'intensive',        COALESCE(ls.intensive, 0)
+    ) AS "CareLevel",
+    JSON_BUILD_OBJECT(
+        'evaluated', COALESCE(ls.evaluated, 0),
+        'vacant',    COALESCE(ls.vacant, 0),
+        'inactive',  COALESCE(ls.inactive, 0)
+    ) AS "bedStatus",
+    JSON_AGG(
+        JSON_BUILD_OBJECT(
+            'id', c.id,
+            'role', c.nome,
+            'quantity', cuni.quantidade_funcionarios
+        )
+    ) AS "staff"
+FROM public.cargos_unidade cuni
+LEFT JOIN cargo c 
+    ON c.id = cuni.cargo_id
+LEFT JOIN unidades_internacao uni 
+    ON uni.id = cuni.unidade_id
+LEFT JOIN leitos_status ls
+    ON ls.unidade_id = uni.id
+WHERE cuni.unidade_id IS NOT NULL
+GROUP BY 
+    uni.id, uni.nome, uni.descricao,
+    ls.bed_count, ls.minimum_care, ls.intermediate_care,
+    ls.high_dependency, ls.semi_intensive, ls.intensive,
+    ls.evaluated, ls.vacant, ls.inactive
+ORDER BY uni.id;
+
+*/

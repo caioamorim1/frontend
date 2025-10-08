@@ -134,3 +134,36 @@ export const allAssistanceSectors: SectorAssistance[] = [
     sector4,
     sector5
 ];
+
+
+/*
+SELECT 
+    uni.id AS "id",
+    uni.nome AS "name",
+    uni.descricao AS "descr",
+    SUM(
+        (
+            (COALESCE(REPLACE(c.salario, ',', '.')::numeric, 0) + 
+             COALESCE(REPLACE(c.adicionais_tributos, ',', '.')::numeric, 0) +
+             COALESCE(REPLACE(uni.horas_extra_reais, ',', '.')::numeric, 0)
+             )
+            * COALESCE(cuni.quantidade_funcionarios, 0)
+        )
+    ) AS "costAmount",
+    JSON_AGG(
+        JSON_BUILD_OBJECT(
+            'id', c.id,
+            'role', c.nome,
+            'quantity', cuni.quantidade_funcionarios
+        )
+    ) AS "staff"
+FROM public.cargos_unidade cuni
+LEFT JOIN cargo c 
+    ON c.id = cuni.cargo_id
+LEFT JOIN unidades_nao_internacao uni 
+    ON uni.id = cuni.unidade_nao_internacao_id
+WHERE cuni.unidade_nao_internacao_id IS NOT NULL
+GROUP BY 
+    uni.id, uni.nome, uni.descricao
+ORDER BY uni.id;
+*/
