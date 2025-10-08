@@ -34,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 export default function SetoresPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
@@ -55,6 +56,13 @@ export default function SetoresPage() {
   const [descricao, setDescricao] = useState("");
   const [horas_extra_reais, setHorasExtraReais] = useState("");
   const [horas_extra_projetadas, setHorasExtraProjetadas] = useState("");
+  const [isModalOpen, setModalOpen] = useState(false);
+
+
+  const handleConfirm = () => {
+    alert('Ação confirmada!');
+    setModalOpen(false);
+  };
 
   const fetchData = async () => {
     if (!hospitalId) return;
@@ -192,12 +200,21 @@ export default function SetoresPage() {
         <h1 className="text-3xl font-bold text-primary">
           Gerenciamento de Setores
         </h1>
-        <Button
-          onClick={isFormVisible ? resetForm : handleAddNew}
-          variant={isFormVisible ? "outline" : "default"}
-        >
-          {isFormVisible ? "Cancelar" : "+ Novo Setor"}
-        </Button>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <Button
+            onClick={isFormVisible ? resetForm : handleAddNew}
+            variant={isFormVisible ? "outline" : "default"}
+          >
+            {isFormVisible ? "Cancelar" : "+ Novo Setor"}
+          </Button>
+          <Button
+            onClick={() => setModalOpen(true)}
+            variant={"default"}
+          >
+            {"Gerar Baseline"}
+          </Button>
+        </div>
+
       </div>
 
       {isFormVisible && (
@@ -207,8 +224,8 @@ export default function SetoresPage() {
               {editingUnidade
                 ? `Editando Setor`
                 : !tipoUnidade
-                ? "Qual tipo de setor deseja criar?"
-                : `Adicionar Novo Setor`}
+                  ? "Qual tipo de setor deseja criar?"
+                  : `Adicionar Novo Setor`}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -366,11 +383,10 @@ export default function SetoresPage() {
                       </TableCell>
                       <TableCell>
                         <span
-                          className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                            unidade.tipo === "internacao"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-purple-100 text-purple-800"
-                          }`}
+                          className={`px-2 py-1 text-xs font-semibold rounded-full ${unidade.tipo === "internacao"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-purple-100 text-purple-800"
+                            }`}
                         >
                           {unidade.tipo === "internacao"
                             ? "Internação"
@@ -411,6 +427,12 @@ export default function SetoresPage() {
           )}
         </CardContent>
       </Card>
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        onClose={() => setModalOpen(false)}
+        onConfirm={handleConfirm}
+        title="Confirmar Nova Baseline"
+        description="Deseja gerar a baseline com os dados atuais do hospital? Atenção: esta ação irá sobrescrever qualquer versão salva anteriormente." />
     </div>
   );
 }
