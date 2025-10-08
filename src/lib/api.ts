@@ -217,7 +217,12 @@ export interface ScpSchema {
 }
 export interface UpdateSessaoDTO {
   itens: Record<string, number>;
+  leitoId: string;
+  unidadeId: string;
+  prontuario: string;
   colaboradorId: string;
+  scp: string;
+
 }
 export interface ScpMetodo {
   id: string;
@@ -718,9 +723,30 @@ export const getSessoesAtivasByUnidadeId = async (
 export const admitirPaciente = async (
   data: AdmitirPacienteDTO
 ): Promise<SessaoAtiva> => {
-  const payload = { ...data, itens: {} };
-  const response = await api.post("/avaliacoes/sessao", payload);
-  return response.data;
+  // Validação dos campos obrigatórios
+  if (!data.leitoId || !data.unidadeId || !data.prontuario || !data.colaboradorId || !data.scp) {
+    throw new Error("Campos obrigatórios faltando");
+  }
+
+  const payload = {
+    leito_id: data.leitoId,
+    unidade_id: data.unidadeId,
+    prontuario: data.prontuario,
+    colaborador_id: data.colaboradorId,
+    scp: data.scp,
+    itens: {}
+  };
+
+  try {
+    const response = await api.post("/avaliacoes/sessao", payload);
+    return response.data;
+  } catch (error: any) {
+    console.error("Erro na requisição admitirPaciente:", {
+      payload,
+      error: error.response?.data || error.message
+    });
+    throw error;
+  }
 };
 export const getScpSchema = async (scpKey: string): Promise<ScpSchema> => {
   const response = await api.get("/avaliacoes/schema", {
@@ -728,11 +754,11 @@ export const getScpSchema = async (scpKey: string): Promise<ScpSchema> => {
   });
   return response.data;
 };
-export const updateSessao = async (
-  sessaoId: string,
+export const createSessao = async (
+  
   data: UpdateSessaoDTO
 ): Promise<SessaoAtiva> => {
-  const response = await api.put(`/avaliacoes/sessao/${sessaoId}`, data);
+  const response = await api.post(`/avaliacoes/sessao`, data);
   return response.data;
 };
 export const liberarSessao = async (sessaoId: string): Promise<void> => {

@@ -3,9 +3,9 @@ import { useParams, useNavigate, useBeforeUnload } from "react-router-dom";
 import {
   getUnidadeById,
   getScpSchema,
-  updateSessao,
   UnidadeInternacao,
   ScpSchema,
+  createSessao,
 } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -13,7 +13,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocation } from "react-router-dom";
 
+
+interface StateType{
+  lid: string;
+  pront: string;
+  mscp: string;
+}
 // Componente para a Barra de Progresso
 const ProgressBar: React.FC<{ value: number; max: number }> = ({ value, max }) => {
   const percentage = max > 0 ? (value / max) * 100 : 0;
@@ -29,8 +36,14 @@ const ProgressBar: React.FC<{ value: number; max: number }> = ({ value, max }) =
 
 // Componente Principal da Página
 export default function AvaliacaoScpPage() {
-  const { unidadeId, sessaoId } = useParams<{ unidadeId: string; sessaoId: string }>();
+  const { unidadeId } = useParams<{ unidadeId: string; }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state as StateType;
+ const [leitoId, setLeitoId] = useState<string | null>(() => state?.lid ?? null);
+  const [pront, setPront] = useState<string | null>(() => state?.pront ?? null);
+  const [mscp, setMscp] = useState<string | null>(() => state?.mscp ?? null);
+
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -40,6 +53,13 @@ export default function AvaliacaoScpPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [avaliationCompleted, setAvaliationCompleted] = useState(false);
+  useEffect(() => {
+    if (!state) return;
+    setLeitoId((prev) => prev ?? state.lid ?? null);
+    setPront((prev) => prev ?? state.pront ?? null);
+    setMscp((prev) => prev ?? state.mscp ?? null);
+  }, [state]);
+
 
   // Aviso ao tentar sair da página (fecha aba/navega para outro site)
   useBeforeUnload(
@@ -82,7 +102,7 @@ export default function AvaliacaoScpPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!isFormComplete || !sessaoId || !user?.id) {
+    if (!isFormComplete || !user?.id) {
       toast({
         title: "Atenção",
         description: "Por favor, responda todas as perguntas para continuar.",
@@ -91,7 +111,7 @@ export default function AvaliacaoScpPage() {
       return;
     }
     try {
-      await updateSessao(sessaoId, { colaboradorId: user.id, itens: respostas });
+      await createSessao( {unidadeId: unidade.id, prontuario: pront, scp: mscp, leitoId,colaboradorId: user.id, itens: respostas,  });
       setAvaliationCompleted(true); // Marca como concluída antes de navegar
       toast({ title: "Sucesso!", description: "Avaliação salva com sucesso." });
       navigate(`/unidade/${unidadeId}/leitos`);
@@ -99,6 +119,7 @@ export default function AvaliacaoScpPage() {
       toast({ title: "Erro", description: "Não foi possível salvar a avaliação.", variant: "destructive" });
     }
   };
+  
 
   if (loading) return <p className="text-center p-10">Carregando formulário de avaliação...</p>;
   if (error) return <p className="text-red-500 bg-red-50 p-4 rounded-md">{error}</p>;

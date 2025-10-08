@@ -77,7 +77,7 @@ function App() {
             element={<VisaoLeitosPage />}
           />
           <Route
-            path="/unidade/:unidadeId/sessao/:sessaoId/avaliar"
+            path="/unidade/:unidadeId/sessao/avaliar"
             element={<AvaliacaoScpPage />}
           />
 
