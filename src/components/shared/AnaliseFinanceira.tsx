@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export interface LinhaAnalise {
   cargoId: string;
   cargoNome: string;
-  isScpCargo: boolean; 
+  isScpCargo: boolean;
   salario: number;
   adicionais: number;
   valorHorasExtras: number;
@@ -27,14 +27,14 @@ export interface LinhaAnalise {
 }
 
 export interface GrupoDeCargos {
-  id: string; 
-  nome: string; 
+  id: string;
+  nome: string;
   cargos: LinhaAnalise[];
 }
 
 interface AnaliseFinanceiraProps {
   tipo: "internacao" | "nao-internacao";
-  dados: LinhaAnalise[] | GrupoDeCargos[]; 
+  dados: LinhaAnalise[] | GrupoDeCargos[];
   horasExtrasProjetadas?: number;
   onQuantidadeChange?: (
     cargoId: string,
