@@ -1,5 +1,9 @@
 import React from 'react';
+<<<<<<< HEAD
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Line } from 'recharts';
+=======
+import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+>>>>>>> d6c0715 (salvando alterações locais antes de trocar de branch)
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 interface ParetoData {
@@ -16,10 +20,19 @@ interface ParetoChartProps {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
+<<<<<<< HEAD
     console.log(payload);
     const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
     const acumuladoPercent = payload[1]?.value ?? 0;
     const custo = payload[0]?.value ?? 0;
+=======
+    const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    
+    // Procura os dados corretos no payload
+    const custo = payload.find(p => p.dataKey === 'custo')?.value ?? 0;
+    const acumuladoPercent = payload.find(p => p.dataKey === 'acumuladoPercent')?.value ?? 0;
+
+>>>>>>> d6c0715 (salvando alterações locais antes de trocar de branch)
     return (
       <div className="bg-background border p-3 rounded-lg shadow-lg text-sm">
         <p className="font-bold text-foreground mb-2">{label}</p>
@@ -46,6 +59,7 @@ const ParetoChart: React.FC<ParetoChartProps> = ({ data, total }) => {
   return (
     <Card>
       <CardHeader>
+<<<<<<< HEAD
         <CardTitle>Análise de Pareto de Custos por Setor</CardTitle>
         <CardDescription>Distribuição de custos e seu impacto acumulado no total de R$ {total.toLocaleString('pt-BR')}</CardDescription>
       </CardHeader>
@@ -60,6 +74,41 @@ const ParetoChart: React.FC<ParetoChartProps> = ({ data, total }) => {
             <Bar yAxisId="left" dataKey="custo" fill="#8884d8" name="Custo por Setor" />
             <Line yAxisId="right" type="monotone" dataKey="acumuladoPercent" stroke="#ff7300" strokeWidth={2} name="% Acumulada" dot={{ r: 4 }} />
           </BarChart>
+=======
+        <CardTitle>Análise de Pareto - Custos por Setor</CardTitle>
+        <CardDescription>Distribuição de custos e seu impacto acumulado no total de {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={400}>
+          <ComposedChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+            <XAxis dataKey="nome" angle={-45} textAnchor="end" interval={0} height={100} style={{ fontSize: '12px' }} />
+            
+            <YAxis yAxisId="left" orientation="left" stroke="#8884d8" tickFormatter={formatCurrency} style={{ fontSize: '12px' }} />
+            
+            <YAxis 
+              yAxisId="right" 
+              orientation="right" 
+              stroke="#ff7300" 
+              domain={[0, 100]} 
+              ticks={[0, 20, 40, 60, 80, 100]}
+              tickFormatter={(tick) => `${tick}%`} 
+              style={{ fontSize: '12px' }} 
+            />
+
+            <Tooltip content={<CustomTooltip />} />
+            <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '20px' }} />
+            <Bar yAxisId="left" dataKey="custo" fill="#8884d8" name="Custo por Setor" />
+            <Line 
+              yAxisId="right" 
+              type="monotone" 
+              dataKey="acumuladoPercent" 
+              stroke="#ff7300" 
+              strokeWidth={2} 
+              name="% Acumulada" 
+              dot={{ r: 4 }} 
+            />
+          </ComposedChart>
+>>>>>>> d6c0715 (salvando alterações locais antes de trocar de branch)
         </ResponsiveContainer>
       </CardContent>
     </Card>
