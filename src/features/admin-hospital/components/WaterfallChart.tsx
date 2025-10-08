@@ -141,7 +141,7 @@ const GlobalTabContent: React.FC<{ global: WaterfallDataItem[], vsInternacao: Wa
                     <SelectContent>
                         <SelectItem value="global">Global Consolidado</SelectItem>
                         <SelectItem value="vs-internacao">Global vs Setores de Internação</SelectItem>
-                        <SelectItem value="vs-nao-internacao">Global vs Setores Assistenciais</SelectItem>
+                        <SelectItem value="vs-nao-internacao">Global vs Unidades de Não Internação</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -191,7 +191,7 @@ export const WaterfallChart: React.FC<WaterfallChartProps> = (props) => {
                     <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="global">Global</TabsTrigger>
                         <TabsTrigger value="internacao">Unid. de Internação</TabsTrigger>
-                        <TabsTrigger value="nao-internacao">Setores Assistenciais</TabsTrigger>
+                        <TabsTrigger value="nao-internacao">Unidades de Não Internação</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="global" className="mt-4">

@@ -7,8 +7,18 @@ import { DashboardBaselineScreen } from "@/features/admin-hospital/components/Da
 import { DashboardProjetadoScreen } from "@/features/admin-hospital/components/DashboardProjetadoScreen";
 // ✅ NOVO IMPORT
 import { DashboardComparativoScreen } from "@/features/admin-hospital/components/DashboardComparativoScreen";
+import { useEffect } from "react";
+import { clearSectorsCache } from "@/mocks/functionSectores";
 
 export default function HospitalDashboardPage() {
+
+
+  useEffect(() => {
+    console.log("Dashboard Hospitalar - Colab");
+    clearSectorsCache();
+  }, []);
+
+
   return (
     <div className="space-y-8 pb-10">
       <div>

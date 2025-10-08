@@ -237,7 +237,7 @@ export const DashboardComparativoScreen: React.FC<{ title: string }> = ({
             <TabsTrigger value="global">Global</TabsTrigger>
             <TabsTrigger value="internacao">Unid. de Internação</TabsTrigger>
             <TabsTrigger value="nao-internacao">
-              Setores Assistenciais
+              Unidades de Não Internação
             </TabsTrigger>
           </TabsList>
           <TabsContent value="global" className="mt-6">

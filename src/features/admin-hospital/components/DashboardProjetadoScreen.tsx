@@ -135,8 +135,8 @@ const GlobalTabContent: React.FC<{
       />
       <RadarChartComponent
         data={radarData}
-        title="Análise de Desempenho"
-        description="Comparativo entre o desempenho atual e projetado"
+        title="Análise de Qualitativa"
+        description=""
       />
     </div>
   );
@@ -172,19 +172,19 @@ const TabContentInternacao: React.FC<{
 
   const chartDataProjetado: ChartData[] = detailedData
     ? detailedData
-        .map((item) => ({
-          key: item.id,
-          name: item.name,
-          value: item.costAmount * costReductionFactor,
-          color: generateMultiColorScale(
-            item.costAmount * costReductionFactor,
-            0,
-            Math.max(
-              ...detailedData.map((i) => i.costAmount * costReductionFactor)
-            )
-          ),
-        }))
-        .sort((a, b) => b.value - a.value)
+      .map((item) => ({
+        key: item.id,
+        name: item.name,
+        value: item.costAmount * costReductionFactor,
+        color: generateMultiColorScale(
+          item.costAmount * costReductionFactor,
+          0,
+          Math.max(
+            ...detailedData.map((i) => i.costAmount * costReductionFactor)
+          )
+        ),
+      }))
+      .sort((a, b) => b.value - a.value)
     : [];
 
   const staffBySectorMap: Record<string, number> = {};
@@ -284,8 +284,8 @@ const TabContentInternacao: React.FC<{
       />
       <RadarChartComponent
         data={radarData}
-        title="Análise de Desempenho"
-        description="Comparativo entre o desempenho atual e projetado"
+        title="Análise Qualitativa"
+        description=""
       />
     </div>
   );
@@ -317,19 +317,19 @@ const TabContentNoInternacao: React.FC<{
 
   const chartDataProjetado: ChartData[] = detailedData
     ? detailedData
-        .map((item) => ({
-          key: item.id,
-          name: item.name,
-          value: item.costAmount * costReductionFactor,
-          color: generateMultiColorScale(
-            item.costAmount * costReductionFactor,
-            0,
-            Math.max(
-              ...detailedData.map((i) => i.costAmount * costReductionFactor)
-            )
-          ),
-        }))
-        .sort((a, b) => b.value - a.value)
+      .map((item) => ({
+        key: item.id,
+        name: item.name,
+        value: item.costAmount * costReductionFactor,
+        color: generateMultiColorScale(
+          item.costAmount * costReductionFactor,
+          0,
+          Math.max(
+            ...detailedData.map((i) => i.costAmount * costReductionFactor)
+          )
+        ),
+      }))
+      .sort((a, b) => b.value - a.value)
     : [];
 
   const staffBySectorMap: Record<string, number> = {};
@@ -423,8 +423,8 @@ const TabContentNoInternacao: React.FC<{
       />
       <RadarChartComponent
         data={radarData}
-        title="Análise de Desempenho"
-        description="Comparativo entre o desempenho atual e projetado"
+        title="Análise Qualitativa"
+        description=""
       />
     </div>
   );
@@ -518,7 +518,7 @@ export const DashboardProjetadoScreen: React.FC<
                   Unid. de Internação
                 </TabsTrigger>
                 <TabsTrigger value="nao-internacao">
-                  Setores Assistenciais
+                  Unidades de Não Internação
                 </TabsTrigger>
               </TabsList>
 

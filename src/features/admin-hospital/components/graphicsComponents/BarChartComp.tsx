@@ -17,7 +17,6 @@ interface BargraphicChartProps {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-        console.log(payload);
         const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
         const custo = payload[0]?.value ?? 0;
         return (

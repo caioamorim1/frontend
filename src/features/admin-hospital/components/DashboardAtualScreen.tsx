@@ -176,7 +176,7 @@ const GlobalTabContent: React.FC<{ sourceData: HospitalSector, radarData: ChartD
                 <InfoCard title="Custo Total" value={formatAmountBRL(amountTotal)} icon={<CircleDollarSign size={24} />} />
             </div>
             <BargraphicChart data={chartDataAtual} title='Análise de Custo por Setor' />
-            <RadarChartComponent data={radarData} title='Análise de Desempenho' description='Comparativo entre o desempenho atual e projetado' />
+            <RadarChartComponent data={radarData} title='Análise Qualitativa' description='' />
         </div>
     );
 };
@@ -303,11 +303,11 @@ const TabContentInternacao: React.FC<{
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <PieChartComp data={chartDataCareLevels} title='Níveis de Cuidado' />
                 <PieChartComp data={chartDataBedStates} title='Estados dos Leitos' />
-                <PieChartComp data={chartDataColaboradoresPorSetor} title='Números de Colaboradores por unidade' labelType='value' />
-                <PieChartComp data={chartDataColaboradoresPorFuncao} title='Números de Colaboradores por Função' labelType='value' />
+                <PieChartComp data={chartDataColaboradoresPorSetor} title='Nº de colaboradores por unidade' labelType='value' />
+                <PieChartComp data={chartDataColaboradoresPorFuncao} title='Nº de colaboradores por função' labelType='value' />
             </div>
-            <BargraphicChart data={chartDataAtual} title='Análise de Custo por Setor' />
-            <RadarChartComponent data={radarData} title='Análise de Desempenho' description='Comparativo entre o desempenho atual e projetado' />
+            {selectedSector === 'all' && <BargraphicChart data={chartDataAtual} title='Análise de Custo por Setor' />}
+            <RadarChartComponent data={radarData} title='Análise Qualitativa' description='' />
         </div>
     );
 };
@@ -398,11 +398,11 @@ const TabContentNoInternacao: React.FC<{ sourceData: SectorAssistance[], radarDa
 
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <PieChartComp data={chartDataColaboradoresPorSetor} title='Números de Colaboradores' labelType='value' />
-                <PieChartComp data={chartDataColaboradoresPorFuncao} title='Números de Colaboradores por Função' labelType='value' />
+                <PieChartComp data={chartDataColaboradoresPorSetor} title='Nº de colaboradores' labelType='value' />
+                <PieChartComp data={chartDataColaboradoresPorFuncao} title='Nº de colaboradores por função' labelType='value' />
             </div>
-            <BargraphicChart data={chartDataAtual} title='Análise de Custo por Setor' />
-            <RadarChartComponent data={radarData} title='Análise de Desempenho' description='Comparativo entre o desempenho atual e projetado' />
+            {selectedSector === 'all' && <BargraphicChart data={chartDataAtual} title='Análise de Custo por Setor' />}
+            <RadarChartComponent data={radarData} title='Análise Qualitativa' description='' />
         </div>
     );
 };
@@ -459,7 +459,7 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (props)
                             <TabsList className="grid w-full grid-cols-3">
                                 <TabsTrigger value="global">Global</TabsTrigger>
                                 <TabsTrigger value="internacao">Unid. de Internação</TabsTrigger>
-                                <TabsTrigger value="nao-internacao">Setores Assistenciais</TabsTrigger>
+                                <TabsTrigger value="nao-internacao">Unidades de Não Internação</TabsTrigger>
                             </TabsList>
 
                             {/* O conteúdo das abas permanece o mesmo */}

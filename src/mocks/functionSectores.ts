@@ -94,6 +94,7 @@ export async function getAllHospitalSectors(
 
 // Função para limpar o cache (útil ao trocar de hospital)
 export const clearSectorsCache = () => {
+  console.log("🔍 Limpar cache de setores");
   cachedData = null;
   cachedHospitalId = null;
 };

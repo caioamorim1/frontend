@@ -138,10 +138,10 @@ const CustomTooltip = ({ active, payload, label, isCurrency }: any) => {
       data.name === payload[0].payload.name[payload[0].payload.name.length - 1];
     const displayValue = isCurrency
       ? data.value.toLocaleString("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-          minimumFractionDigits: 0,
-        })
+        style: "currency",
+        currency: "BRL",
+        minimumFractionDigits: 0,
+      })
       : data.value;
     return (
       <div className="bg-background border p-3 rounded-lg shadow-lg text-sm">
@@ -254,28 +254,28 @@ const GlobalTabContent: React.FC<{
 
   const chartDataInternation: ChartData[] = internation
     ? internation.map((item) => ({
-        key: item.id,
-        name: item.name,
-        value: item.costAmount,
-        color: generateMultiColorScale(
-          item.costAmount,
-          0,
-          Math.max(...internation.map((i) => i.costAmount))
-        ),
-      }))
+      key: item.id,
+      name: item.name,
+      value: item.costAmount,
+      color: generateMultiColorScale(
+        item.costAmount,
+        0,
+        Math.max(...internation.map((i) => i.costAmount))
+      ),
+    }))
     : [];
 
   const chartDataAssistance: ChartData[] = assistance
     ? assistance.map((item) => ({
-        key: item.id,
-        name: item.name,
-        value: item.costAmount,
-        color: generateMultiColorScale(
-          item.costAmount,
-          0,
-          Math.max(...assistance.map((i) => i.costAmount))
-        ),
-      }))
+      key: item.id,
+      name: item.name,
+      value: item.costAmount,
+      color: generateMultiColorScale(
+        item.costAmount,
+        0,
+        Math.max(...assistance.map((i) => i.costAmount))
+      ),
+    }))
     : [];
 
   const chartDataAtual: ChartData[] = [
@@ -303,8 +303,8 @@ const GlobalTabContent: React.FC<{
       />
       <RadarChartComponent
         data={radarData}
-        title="Análise de Desempenho"
-        description="Comparativo entre o desempenho atual e projetado"
+        title="Análise Qualitativa"
+        description=""
       />
     </div>
   );
@@ -392,17 +392,17 @@ const TabContentInternacao: React.FC<{
 
   const chartDataAtual: ChartData[] = detailedData
     ? detailedData
-        .map((item) => ({
-          key: item.id,
-          name: item.name,
-          value: item.costAmount,
-          color: generateMultiColorScale(
-            item.costAmount,
-            0,
-            Math.max(...detailedData.map((i) => i.costAmount))
-          ),
-        }))
-        .sort((a, b) => b.value - a.value) // <--- Adicionado aqui para ordenar
+      .map((item) => ({
+        key: item.id,
+        name: item.name,
+        value: item.costAmount,
+        color: generateMultiColorScale(
+          item.costAmount,
+          0,
+          Math.max(...detailedData.map((i) => i.costAmount))
+        ),
+      }))
+      .sort((a, b) => b.value - a.value) // <--- Adicionado aqui para ordenar
     : [];
 
   const staffBySectorMap: Record<string, number> = {};
@@ -496,23 +496,23 @@ const TabContentInternacao: React.FC<{
         <PieChartComp data={chartDataBedStates} title="Estados dos Leitos" />
         <PieChartComp
           data={chartDataColaboradoresPorSetor}
-          title="Números de Colaboradores"
+          title="Nº de colaboradores"
           labelType="value"
         />
         <PieChartComp
           data={chartDataColaboradoresPorFuncao}
-          title="Números de Colaboradores por Função"
+          title="Nº de colaboradores por função"
           labelType="value"
         />
       </div>
-      <BargraphicChart
+      {selectedSector === 'all' && <BargraphicChart
         data={chartDataAtual}
         title="Análise de Custo por Setor"
-      />
+      />}
       <RadarChartComponent
         data={radarData}
-        title="Análise de Desempenho"
-        description="Comparativo entre o desempenho atual e projetado"
+        title="Análise Qualitativa"
+        description=""
       />
     </div>
   );
@@ -539,17 +539,17 @@ const TabContentNoInternacao: React.FC<{
 
   const chartDataAtual: ChartData[] = detailedData
     ? detailedData
-        .map((item) => ({
-          key: item.id,
-          name: item.name,
-          value: item.costAmount,
-          color: generateMultiColorScale(
-            item.costAmount,
-            0,
-            Math.max(...detailedData.map((i) => i.costAmount))
-          ),
-        }))
-        .sort((a, b) => b.value - a.value) // <--- Adicionado aqui para ordenar
+      .map((item) => ({
+        key: item.id,
+        name: item.name,
+        value: item.costAmount,
+        color: generateMultiColorScale(
+          item.costAmount,
+          0,
+          Math.max(...detailedData.map((i) => i.costAmount))
+        ),
+      }))
+      .sort((a, b) => b.value - a.value) // <--- Adicionado aqui para ordenar
     : [];
 
   // Passo 1: Calcular o total de funcionários por função em todos os setores filtrados.
@@ -631,23 +631,23 @@ const TabContentNoInternacao: React.FC<{
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <PieChartComp
           data={chartDataColaboradoresPorSetor}
-          title="Números de Colaboradores por Setor"
+          title="Nº de colaboradores por Setor"
           labelType="value"
         />
         <PieChartComp
           data={chartDataColaboradoresPorFuncao}
-          title="Números de Colaboradores por Função"
+          title="Nº de colaboradores por função"
           labelType="value"
         />
       </div>
-      <BargraphicChart
+      {selectedSector === 'all' && <BargraphicChart
         data={chartDataAtual}
         title="Análise de Custo por Setor"
-      />
+      />}
       <RadarChartComponent
         data={radarData}
-        title="Análise de Desempenho"
-        description="Comparativo entre o desempenho atual e projetado"
+        title="Análise Qualitativa"
+        description=""
       />
     </div>
   );
@@ -739,7 +739,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
                   Unid. de Internação
                 </TabsTrigger>
                 <TabsTrigger value="nao-internacao">
-                  Setores Assistenciais
+                  Unidades de Não Internação
                 </TabsTrigger>
               </TabsList>
 
