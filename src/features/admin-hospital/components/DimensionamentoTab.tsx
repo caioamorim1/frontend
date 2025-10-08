@@ -4,27 +4,16 @@ import {
   SessaoAtiva,
   getAnaliseInternacao,
   AnaliseInternacaoResponse,
+  LinhaAnalise,
 } from "@/lib/api";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import AnaliseFinanceira, {
-  LinhaAnalise,
-} from "@/components/shared/AnaliseFinanceira";
+import AnaliseFinanceira from "@/components/shared/AnaliseFinanceira";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/hooks/use-toast";
 
-// Mapeamento para nomes mais amigáveis
-const classificationMap: { [key: string]: string } = {
-  PCM: "Cuidado Mínimo",
-  PCI: "Cuidado Intermediário",
-  PADC: "Alta Dependência",
-  PCSI: "Semi-Intensivo",
-  PCIt: "Intensivo",
-};
-
-// Props que este componente espera receber
 interface DimensionamentoTabProps {
   unidade: UnidadeInternacao;
   sessoes: SessaoAtiva[];
-  onDataChange: () => void;
 }
 
 export default function DimensionamentoTab({
@@ -38,56 +27,33 @@ export default function DimensionamentoTab({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let mounted = true; // previne setState após unmount
     const buscarDadosAnalise = async () => {
-      console.log(
-        "[DimensionamentoTab] Iniciando busca de análise para unidade:",
-        unidade.id
-      );
-      if (!mounted) return;
       setLoading(true);
       setError(null);
       try {
         const data = await getAnaliseInternacao(unidade.id);
-        console.log("[DimensionamentoTab] Dados recebidos da API:", data);
-        console.log("[DimensionamentoTab] Tabela extraída:", data?.tabela);
-        if (!mounted) return;
         setAnaliseData(data);
-        setTabelaData(data?.tabela ?? []); // fallback seguro
+        console.log(data);
+        setTabelaData(data?.tabela ?? []);
       } catch (err: any) {
-        console.error("[DimensionamentoTab] Erro ao buscar dados:", err);
-        console.log(
-          "[DimensionamentoTab] Status do erro:",
-          err?.response?.status
-        );
-        console.log("[DimensionamentoTab] Mensagem do erro:", err?.message);
-        if (!mounted) return;
-        // trata 404 / não encontrado como "sem dados" em vez de erro
         const isNotFound =
           err?.response?.status === 404 ||
           /not\s*found/i.test(err?.message ?? "");
         if (isNotFound) {
-          console.log("[DimensionamentoTab] Erro 404 - sem dados disponíveis");
           setAnaliseData(null);
           setTabelaData([]);
         } else {
-          console.log(
-            "[DimensionamentoTab] Erro real - exibindo mensagem de erro"
-          );
           setError("Falha ao carregar os dados da análise de dimensionamento.");
         }
       } finally {
-        if (mounted) setLoading(false);
-        console.log("[DimensionamentoTab] Loading finalizado");
+        setLoading(false);
       }
     };
-
     buscarDadosAnalise();
-    return () => {
-      mounted = false;
-    };
   }, [unidade.id]);
 
+  // A função de handle change é necessária para o componente AnaliseFinanceira,
+  // mesmo que não seja usada ativamente para edição nesta aba.
   const handleQuantidadeChange = (cargoId: string, novaQuantidade: number) => {
     setTabelaData((prev) =>
       prev.map((linha) =>
@@ -99,7 +65,6 @@ export default function DimensionamentoTab({
   };
 
   if (loading) {
-    console.log("[DimensionamentoTab] Renderizando skeleton (loading)");
     return (
       <div className="space-y-4">
         <Skeleton className="h-32 w-full" />
@@ -109,18 +74,10 @@ export default function DimensionamentoTab({
   }
 
   if (error) {
-    console.log("[DimensionamentoTab] Renderizando erro:", error);
     return <p className="text-red-500 text-center">{error}</p>;
   }
 
-  // se não houver dados (ex.: 404 tratado), exibe mensagem amigável
   if (!analiseData || tabelaData.length === 0) {
-    console.log(
-      "[DimensionamentoTab] Sem dados - analiseData:",
-      analiseData,
-      "tabelaData:",
-      tabelaData
-    );
     return (
       <div className="text-center text-gray-500 py-8">
         <p>Nenhum dado de análise disponível para esta unidade.</p>
@@ -131,17 +88,6 @@ export default function DimensionamentoTab({
   const totalLeitos = unidade.leitos?.length || 0;
   const taxaOcupacaoAtual =
     totalLeitos > 0 ? (sessoes.length / totalLeitos) * 100 : 0;
-
-  console.log("[DimensionamentoTab] Renderizando componente principal");
-  console.log(
-    "[DimensionamentoTab] tabelaData para AnaliseFinanceira:",
-    tabelaData
-  );
-  console.log(
-    "[DimensionamentoTab] unidade.horas_extra_projetadas:",
-    unidade.horas_extra_projetadas
-  );
-  console.log("[DimensionamentoTab] analiseData completo:", analiseData);
 
   return (
     <div className="space-y-6 animate-fade-in-down">
@@ -171,6 +117,11 @@ export default function DimensionamentoTab({
                 <strong>Taxa de Ocupação Atual:</strong>{" "}
                 {taxaOcupacaoAtual.toFixed(2)}%
               </p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-1">
+                Informações Adicionais:
+              </h4>
               <p>
                 <strong>Taxa de Ocupação Média (Mês):</strong>{" "}
                 {(
@@ -178,11 +129,6 @@ export default function DimensionamentoTab({
                 ).toFixed(2)}
                 %
               </p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-700 mb-1">
-                Informações Adicionais:
-              </h4>
               <p>
                 <strong>Total Leitos-Dia:</strong>{" "}
                 {analiseData?.agregados?.totalLeitosDia ?? 0}
