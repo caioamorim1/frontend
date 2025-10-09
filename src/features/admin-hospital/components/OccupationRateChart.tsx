@@ -76,7 +76,7 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="h-[400px] w-full">
-          {/* <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
               <XAxis dataKey="name" tick={axisTick} />
@@ -90,8 +90,8 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
               <Bar dataKey="Ociosidade" fill={barConfig[2].color} barSize={view === 'global' ? 60 : 35} stackId="ociosidade" radius={[4, 4, 0, 0]} />
 
             </ComposedChart>
-          </ResponsiveContainer> */}
-          <GraficoOcupacao />
+          </ResponsiveContainer>
+          {/* <GraficoOcupacao /> */}
         </div>
 
         <div className="pt-4">
