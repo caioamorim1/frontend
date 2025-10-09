@@ -20,6 +20,7 @@ import DimensionamentoTab from "../components/DimensionamentoTab";
 import AnaliseNaoInternacaoTab from "../components/AnaliseNaoInternacao";
 import ProjetadoTab from "../components/ProjetadoTab";
 import AtualTab from "../components/AtualTab"; // Importa o novo componente
+import QuadroFuncionariosResumo from "../components/BaselineTab";
 
 export default function SetorDetailPage() {
   const { hospitalId, setorId } = useParams<{
@@ -171,6 +172,9 @@ export default function SetorDetailPage() {
 
       {activeTab === "funcionarios" && (
         <QuadroCargos cargos={cargosFormatados} />
+      )}
+      {activeTab === "baseline" && (
+        <QuadroFuncionariosResumo cargos={cargosFormatados} />
       )}
     </div>
   );

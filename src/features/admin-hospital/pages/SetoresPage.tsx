@@ -12,6 +12,7 @@ import {
   getScpMetodos,
   Unidade,
   ScpMetodo,
+  createSnapshotHospitalSectors,
 } from "@/lib/api";
 import { Trash2, Edit, Hospital, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -59,8 +60,20 @@ export default function SetoresPage() {
   const [isModalOpen, setModalOpen] = useState(false);
 
 
-  const handleConfirm = () => {
-    alert('Ação confirmada!');
+  const handleConfirm = async () => {
+   if(!hospitalId) return;
+   setLoading(true);
+    setError(null);
+    try {
+      return  await createSnapshotHospitalSectors(hospitalId);
+      
+      
+    } catch (error) {
+      console.log("deu erro")
+      return false;
+    }
+    
+       
     setModalOpen(false);
   };
 

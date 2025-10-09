@@ -473,6 +473,23 @@ export const getHospitalSectors = async (
   return response.data;
 };
 
+
+export const getSnapshotHospitalSectors = async (
+  hospitalId: string
+): Promise<HospitalSectorsData> => {
+  const response = await api.get(`/snapshot/hospital/${hospitalId}`);
+  return response.data;
+}
+
+export const createSnapshotHospitalSectors = async (
+  hospitalId: string
+): Promise<Boolean> => {
+  const response = await api.post(`/snapshot/hospital/${hospitalId}`);
+  console.log(response.data)
+  
+  return true;
+}
+
 // REDES, GRUPOS, REGIOES
 export const getRedes = async (): Promise<Rede[]> => {
   const response = await api.get("/redes");
