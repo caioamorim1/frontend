@@ -30,8 +30,8 @@ import {
 import medicalTeamImage from "@/assets/medical-team-topview.jpg";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@admin.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -42,6 +42,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
+
     } catch (err) {
       const errorMsg = "Credenciais inválidas. Verifique seu e-mail e senha.";
       setError(errorMsg);
