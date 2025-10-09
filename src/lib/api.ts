@@ -272,12 +272,27 @@ export interface HospitalStats {
   }>;
 }
 
+// Interface para distribuição ENF/TEC por turno
+export interface SitioDistribuicao {
+  id?: string;
+  categoria: "ENF" | "TEC";
+  segSexManha: number;
+  segSexTarde: number;
+  segSexNoite1: number;
+  segSexNoite2: number;
+  sabDomManha: number;
+  sabDomTarde: number;
+  sabDomNoite1: number;
+  sabDomNoite2: number;
+}
+
 export interface SitioFuncional {
   id: string;
   nome: string;
   descricao?: string;
   // Adição para que a entidade possa carregar os cargos já associados
   cargosSitio?: CargoSitio[];
+  distribuicoes?: SitioDistribuicao[];
 }
 
 export interface CreateSitioFuncionalDTO {
@@ -285,6 +300,7 @@ export interface CreateSitioFuncionalDTO {
   nome: string;
   descricao?: string;
   cargos?: { cargoId: string; quantidade_funcionarios: number }[];
+  distribuicoes?: SitioDistribuicao[];
 }
 
 export interface CreateParametrosDTO {
@@ -295,6 +311,21 @@ export interface CreateParametrosDTO {
   diasSemana?: number;
 }
 export type ParametrosUnidade = CreateParametrosDTO & { id: string };
+
+// Interface para parâmetros de NÃO-INTERNAÇÃO
+export interface CreateParametrosNaoInternacaoDTO {
+  nome_enfermeiro?: string;
+  numero_coren?: string;
+  jornadaSemanalEnfermeiro?: number;
+  jornadaSemanalTecnico?: number;
+  indiceSegurancaTecnica?: number;
+  equipeComRestricao?: boolean;
+  diasFuncionamentoMensal?: number;
+  diasSemana?: number;
+}
+export type ParametrosNaoInternacao = CreateParametrosNaoInternacaoDTO & {
+  id: string;
+};
 
 // Interfaces para Questionários e Coletas
 export interface Pergunta {
@@ -419,9 +450,47 @@ export interface GrupoCargosNaoInternacao {
   cargos: LinhaAnaliseFinanceira[];
 }
 
+export interface ResumoDistribuicaoNaoInternacao {
+  porSitio: Array<{
+    sitioId: string;
+    sitioNome?: string;
+    categoria: "ENF" | "TEC";
+    totalSemana: number;
+    totalFimSemana: number;
+    total: number;
+  }>;
+  totais: {
+    enfermeiro: number;
+    tecnico: number;
+  };
+}
+
+export interface ResumoDimensionamentoNaoInternacao {
+  periodoTrabalho: number;
+  kmEnfermeiro: number;
+  kmTecnico: number;
+  totalSitiosEnfermeiro: number;
+  totalSitiosTecnico: number;
+  pessoalEnfermeiro: number;
+  pessoalTecnico: number;
+  pessoalEnfermeiroArredondado: number;
+  pessoalTecnicoArredondado: number;
+}
+
 export interface AnaliseNaoInternacaoResponse {
   tabela: GrupoCargosNaoInternacao[];
   horasExtrasProjetadas: number;
+  parametros?: {
+    jornadaSemanalEnfermeiro?: number;
+    jornadaSemanalTecnico?: number;
+    indiceSegurancaTecnica: number;
+    equipeComRestricao: boolean;
+    diasFuncionamentoMensal: number;
+    diasSemana: number;
+    periodoTrabalho: number;
+  };
+  distribuicao?: ResumoDistribuicaoNaoInternacao;
+  dimensionamento?: ResumoDimensionamentoNaoInternacao;
 }
 
 // --- FUNÇÕES DA API ---
@@ -867,6 +936,7 @@ export const deleteLeito = async (leitoId: string): Promise<void> => {
 };
 
 // PARAMETROS (Admin)
+// Para unidades de INTERNAÇÃO (leitos)
 export const getParametros = async (
   unidadeId: string
 ): Promise<ParametrosUnidade> => {
@@ -879,6 +949,32 @@ export const saveParametros = async (
 ): Promise<ParametrosUnidade> => {
   const response = await api.post(`/parametros/unidade/${unidadeId}`, data);
   return response.data;
+};
+export const deleteParametros = async (unidadeId: string): Promise<void> => {
+  await api.delete(`/parametros/unidade/${unidadeId}`);
+};
+
+// Para unidades de NÃO-INTERNAÇÃO (sítios funcionais)
+export const getParametrosNaoInternacao = async (
+  unidadeId: string
+): Promise<ParametrosNaoInternacao> => {
+  const response = await api.get(`/parametros/nao-internacao/${unidadeId}`);
+  return response.data;
+};
+export const saveParametrosNaoInternacao = async (
+  unidadeId: string,
+  data: CreateParametrosNaoInternacaoDTO
+): Promise<ParametrosNaoInternacao> => {
+  const response = await api.post(
+    `/parametros/nao-internacao/${unidadeId}`,
+    data
+  );
+  return response.data;
+};
+export const deleteParametrosNaoInternacao = async (
+  unidadeId: string
+): Promise<void> => {
+  await api.delete(`/parametros/nao-internacao/${unidadeId}`);
 };
 
 // SÍTIOS FUNCIONAIS (Admin)

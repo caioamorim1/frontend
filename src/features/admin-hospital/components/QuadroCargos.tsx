@@ -28,12 +28,32 @@ const formatCurrency = (value: string | number) => {
 };
 
 export default function QuadroCargos({ cargos }: QuadroCargosProps) {
-  const totalFuncionarios = useMemo(() => {
-    if (!cargos) return 0;
-    return cargos.reduce((sum, item) => sum + item.quantidade_funcionarios, 0);
+  // Remove duplicatas baseado no nome do cargo
+  const cargosSemDuplicatas = useMemo(() => {
+    if (!cargos) return [];
+
+    console.log("📊 Cargos brutos recebidos:", cargos);
+
+    // Remove duplicatas mantendo apenas a primeira ocorrência de cada nome de cargo
+    const cargosFiltrados = cargos.filter(
+      (cargo, index, self) =>
+        index === self.findIndex((c) => c.cargo.nome === cargo.cargo.nome)
+    );
+
+    console.log("✅ Cargos sem duplicatas:", cargosFiltrados);
+
+    return cargosFiltrados;
   }, [cargos]);
 
-  if (!cargos || cargos.length === 0) {
+  const totalFuncionarios = useMemo(() => {
+    if (!cargosSemDuplicatas || cargosSemDuplicatas.length === 0) return 0;
+    return cargosSemDuplicatas.reduce(
+      (sum, item) => sum + item.quantidade_funcionarios,
+      0
+    );
+  }, [cargosSemDuplicatas]);
+
+  if (!cargosSemDuplicatas || cargosSemDuplicatas.length === 0) {
     return (
       <div className="bg-white p-6 rounded-lg border">
         <h2 className="text-xl font-semibold text-primary mb-4">
@@ -83,7 +103,7 @@ export default function QuadroCargos({ cargos }: QuadroCargosProps) {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {cargos.map((item) => (
+            {cargosSemDuplicatas.map((item) => (
               <tr key={item.cargo.id} className="bg-white hover:bg-slate-50">
                 <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap flex items-center gap-2">
                   <Briefcase className="text-gray-400" size={16} />

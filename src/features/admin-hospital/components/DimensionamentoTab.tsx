@@ -4,8 +4,8 @@ import {
   SessaoAtiva,
   getAnaliseInternacao,
   AnaliseInternacaoResponse,
-  } from "@/lib/api";
-  type LinhaAnalise = AnaliseInternacaoResponse["tabela"][number];
+} from "@/lib/api";
+type LinhaAnalise = AnaliseInternacaoResponse["tabela"][number];
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import AnaliseFinanceira from "@/components/shared/AnaliseFinanceira";
 import { Skeleton } from "@/components/ui/skeleton";

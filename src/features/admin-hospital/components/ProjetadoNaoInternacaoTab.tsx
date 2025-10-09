@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import {
-  UnidadeInternacao,
-  LinhaAnaliseFinanceira,
-  getAnaliseInternacao,
-  getAjustesQualitativos,
-  saveAjustesQualitativos,
+  UnidadeNaoInternacao,
+  getAnaliseNaoInternacao,
   AjustesPayload,
 } from "@/lib/api";
 import {
@@ -20,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { MinusCircle, PlusCircle } from "lucide-react";
-import { LinhaAnalise } from "@/components/shared/AnaliseFinanceira";
+import { GrupoDeCargos } from "@/components/shared/AnaliseFinanceira";
 
 // Componente para o input de ajuste
 const AjusteInput = ({
@@ -51,31 +48,35 @@ const AjusteInput = ({
   </div>
 );
 
-interface ProjetadoTabProps {
-  unidade: UnidadeInternacao;
+interface ProjetadoNaoInternacaoTabProps {
+  unidade: UnidadeNaoInternacao;
 }
 
-export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
+export default function ProjetadoNaoInternacaoTab({
+  unidade,
+}: ProjetadoNaoInternacaoTabProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [analiseBase, setAnaliseBase] = useState<LinhaAnaliseFinanceira[]>([]);
+  const [analiseBase, setAnaliseBase] = useState<GrupoDeCargos[]>([]);
   const [ajustes, setAjustes] = useState<AjustesPayload>({});
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [analiseData, ajustesSalvos] = await Promise.all([
-          getAnaliseInternacao(unidade.id),
-          getAjustesQualitativos(unidade.id),
-        ]);
+        const analiseData = await getAnaliseNaoInternacao(unidade.id);
 
         if (analiseData && analiseData.tabela) {
           setAnaliseBase(analiseData.tabela);
         }
-        if (ajustesSalvos) {
-          setAjustes(ajustesSalvos);
+
+        // Buscar ajustes salvos do localStorage
+        const mockAjustes = localStorage.getItem(
+          `ajustes_nao_internacao_${unidade.id}`
+        );
+        if (mockAjustes) {
+          setAjustes(JSON.parse(mockAjustes));
         }
       } catch (error) {
         toast({
@@ -98,7 +99,11 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await saveAjustesQualitativos(unidade.id, ajustes);
+      // Salvar no localStorage (simulação)
+      localStorage.setItem(
+        `ajustes_nao_internacao_${unidade.id}`,
+        JSON.stringify(ajustes)
+      );
       toast({
         title: "Sucesso!",
         description: "Ajustes qualitativos salvos com sucesso.",
@@ -117,6 +122,15 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
   if (loading) {
     return <Skeleton className="h-96 w-full" />;
   }
+
+  // Agrupar todos os cargos de todos os grupos em uma lista única
+  const todasAsLinhas = analiseBase.flatMap((grupo) =>
+    grupo.cargos.map((cargo) => ({
+      cargoId: cargo.cargoId,
+      cargoNome: cargo.cargoNome,
+      quantidadeProjetada: cargo.quantidadeProjetada,
+    }))
+  );
 
   return (
     <Card className="animate-fade-in-down">
@@ -139,7 +153,7 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {analiseBase.map((linha) => {
+              {todasAsLinhas.map((linha) => {
                 const ajusteAtual = ajustes[linha.cargoId] || 0;
                 const projetadoFinal = linha.quantidadeProjetada + ajusteAtual;
                 return (
