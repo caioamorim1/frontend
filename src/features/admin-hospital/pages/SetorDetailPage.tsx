@@ -132,7 +132,11 @@ export default function SetorDetailPage() {
       </div>
 
       {activeTab === "atual" && hospitalId && (
-        <AtualTab unidade={unidade} hospitalId={hospitalId} onUpdate={fetchData} />
+        <AtualTab
+          unidade={unidade}
+          hospitalId={hospitalId}
+          onUpdate={fetchData}
+        />
       )}
 
       {unidade.tipo === "internacao" && (
@@ -173,8 +177,8 @@ export default function SetorDetailPage() {
       {activeTab === "funcionarios" && (
         <QuadroCargos cargos={cargosFormatados} />
       )}
-      {activeTab === "baseline" && (
-        <QuadroFuncionariosResumo cargos={cargosFormatados} />
+      {activeTab === "baseline" && hospitalId && setorId && (
+        <QuadroFuncionariosResumo hospitalId={hospitalId} setorId={setorId} />
       )}
     </div>
   );

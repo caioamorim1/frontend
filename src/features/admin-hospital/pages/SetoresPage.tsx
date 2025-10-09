@@ -59,22 +59,28 @@ export default function SetoresPage() {
   const [horas_extra_projetadas, setHorasExtraProjetadas] = useState("");
   const [isModalOpen, setModalOpen] = useState(false);
 
-
   const handleConfirm = async () => {
-   if(!hospitalId) return;
-   setLoading(true);
+    if (!hospitalId) return;
+    setLoading(true);
     setError(null);
     try {
-      return  await createSnapshotHospitalSectors(hospitalId);
-      
-      
-    } catch (error) {
-      console.log("deu erro")
+      await createSnapshotHospitalSectors(hospitalId);
+      console.log("✅ Snapshot criado com sucesso");
+      // Opcional: recarregar os dados após criar o snapshot
+      await fetchData();
+      return true;
+    } catch (error: any) {
+      console.error("❌ Erro ao criar snapshot:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Erro ao criar snapshot";
+      setError(errorMessage);
       return false;
+    } finally {
+      setLoading(false);
+      setModalOpen(false);
     }
-    
-       
-    setModalOpen(false);
   };
 
   const fetchData = async () => {
@@ -82,12 +88,11 @@ export default function SetoresPage() {
     setLoading(true);
     setError(null);
     try {
-      const [internacaoData, naoInternacaoData, scpData] =
-        await Promise.all([
-          getUnidadesInternacao(hospitalId),
-          getUnidadesNaoInternacao(hospitalId),
-          getScpMetodos(),
-        ]);
+      const [internacaoData, naoInternacaoData, scpData] = await Promise.all([
+        getUnidadesInternacao(hospitalId),
+        getUnidadesNaoInternacao(hospitalId),
+        getScpMetodos(),
+      ]);
       setUnidades([...internacaoData, ...naoInternacaoData]);
       setScpMetodos(scpData);
     } catch (err) {
@@ -220,14 +225,10 @@ export default function SetoresPage() {
           >
             {isFormVisible ? "Cancelar" : "+ Novo Setor"}
           </Button>
-          <Button
-            onClick={() => setModalOpen(true)}
-            variant={"default"}
-          >
+          <Button onClick={() => setModalOpen(true)} variant={"default"}>
             {"Gerar Baseline"}
           </Button>
         </div>
-
       </div>
 
       {isFormVisible && (
@@ -237,8 +238,8 @@ export default function SetoresPage() {
               {editingUnidade
                 ? `Editando Setor`
                 : !tipoUnidade
-                  ? "Qual tipo de setor deseja criar?"
-                  : `Adicionar Novo Setor`}
+                ? "Qual tipo de setor deseja criar?"
+                : `Adicionar Novo Setor`}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -289,7 +290,9 @@ export default function SetoresPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="horas_extra_projetadas">Horas Extra Projetadas (horas)</Label>
+                    <Label htmlFor="horas_extra_projetadas">
+                      Horas Extra Projetadas (horas)
+                    </Label>
                     <Input
                       id="horas_extra_projetadas"
                       name="horas_extra_projetadas"
@@ -310,7 +313,9 @@ export default function SetoresPage() {
                         name="numeroLeitos"
                         type="number"
                         value={numeroLeitos}
-                        onChange={(e) => setNumeroLeitos(Number(e.target.value))}
+                        onChange={(e) =>
+                          setNumeroLeitos(Number(e.target.value))
+                        }
                         placeholder="0"
                         required
                         disabled={!!editingUnidade}
@@ -319,7 +324,10 @@ export default function SetoresPage() {
                     </div>
                     <div>
                       <Label htmlFor="scpMetodoId">Método SCP (Opcional)</Label>
-                      <Select onValueChange={setScpMetodoId} value={scpMetodoId}>
+                      <Select
+                        onValueChange={setScpMetodoId}
+                        value={scpMetodoId}
+                      >
                         <SelectTrigger id="scpMetodoId" className="mt-1">
                           <SelectValue placeholder="Selecione um método" />
                         </SelectTrigger>
@@ -396,10 +404,11 @@ export default function SetoresPage() {
                       </TableCell>
                       <TableCell>
                         <span
-                          className={`px-2 py-1 text-xs font-semibold rounded-full ${unidade.tipo === "internacao"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-purple-100 text-purple-800"
-                            }`}
+                          className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                            unidade.tipo === "internacao"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-purple-100 text-purple-800"
+                          }`}
                         >
                           {unidade.tipo === "internacao"
                             ? "Internação"
@@ -445,7 +454,8 @@ export default function SetoresPage() {
         onClose={() => setModalOpen(false)}
         onConfirm={handleConfirm}
         title="Confirmar Nova Baseline"
-        description="Deseja gerar a baseline com os dados atuais do hospital? Atenção: esta ação irá sobrescrever qualquer versão salva anteriormente." />
+        description="Deseja gerar a baseline com os dados atuais do hospital? Atenção: esta ação irá sobrescrever qualquer versão salva anteriormente."
+      />
     </div>
   );
 }
