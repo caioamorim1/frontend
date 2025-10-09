@@ -1,7 +1,7 @@
 import axios from "axios";
 
-export const API_BASE_URL = "http://localhost:3110";
-/*export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/api";*/
+/*export const API_BASE_URL = "http://localhost:3110";*/
+export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/api";
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
