@@ -34,51 +34,67 @@ export async function getAllHospitalSectors(
     const apiData: HospitalSectorsData = await getHospitalSectors(hospitalId);
     console.log("✅ Dados recebidos da API:", apiData);
 
+    const { id, internation, assistance } = apiData;
     // Transforma os dados da API para o formato esperado pelos componentes
-    const transformedData: HospitalSector = {
-      id: apiData.id,
-      internation: apiData.internation.map((sector) => ({
-        id: sector.id,
-        name: sector.name,
-        descr: sector.descr,
-        costAmount: parseFloat(sector.costAmount),
-        bedCount: sector.bedCount,
+
+    const internationTransformed = [];
+
+    for (const sector of internation) {
+      const { id, name, descr, costAmount, bedCount, careLevel, bedStatus, staff } = sector;
+      const staffData = staff || [];
+      internationTransformed.push({
+        id,
+        name,
+        descr,
+        costAmount: parseFloat(costAmount),
+        bedCount,
         CareLevel: {
-          minimumCare: sector.careLevel.minimumCare,
-          intermediateCare: sector.careLevel.intermediateCare,
-          highDependency: sector.careLevel.highDependency,
-          semiIntensive: sector.careLevel.semiIntensive,
-          intensive: sector.careLevel.intensive,
+          minimumCare: careLevel.minimumCare,
+          intermediateCare: careLevel.intermediateCare,
+          highDependency: careLevel.highDependency,
+          semiIntensive: careLevel.semiIntensive,
+          intensive: careLevel.intensive,
         },
         bedStatus: {
-          evaluated: sector.bedStatus.evaluated,
-          vacant: sector.bedStatus.vacant,
-          inactive: sector.bedStatus.inactive,
+          evaluated: bedStatus.evaluated,
+          vacant: bedStatus.vacant,
+          inactive: bedStatus.inactive,
         },
-        staff: sector.staff.map((member) => ({
+        staff: staffData.map((member) => ({
           id: member.id,
           role: member.role,
           quantity: member.quantity,
         })),
-      })),
-      assistance: apiData.assistance.map((sector) => ({
-        id: sector.id,
-        name: sector.name,
-        descr: sector.descr || "",
-        costAmount: parseFloat(sector.costAmount),
-        siteCount: sector.staff.reduce((sum, s) => sum + s.quantity, 0), // Total de staff como proxy para siteCount
+      });
+    }
+
+    const assistanceTransformed = assistance.map((sector) => {
+      const { id, name, descr, costAmount, staff } = sector;
+      const staffData = staff || [];
+      return {
+        id,
+        name,
+        descr,
+        costAmount: parseFloat(costAmount),
+        siteCount: staffData.reduce((sum, s) => sum + s.quantity, 0),
         areas: [
           {
             name: "Principal",
-            quantity: sector.staff.reduce((sum, s) => sum + s.quantity, 0),
+            quantity: staffData.reduce((sum, s) => sum + s.quantity, 0),
           },
-        ], // Área padrão
-        staff: sector.staff.map((member) => ({
+        ],
+        staff: staffData.map((member) => ({
           id: member.id,
           role: member.role,
           quantity: member.quantity,
         })),
-      })),
+      };
+    });
+
+    const transformedData: HospitalSector = {
+      id,
+      internation: internationTransformed,
+      assistance: assistanceTransformed,
     };
 
     // Atualiza cache
