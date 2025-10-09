@@ -3,9 +3,9 @@ import { SectorAssistance } from "./noInternationDatabase";
 import { getHospitalSectors, type HospitalSectorsData } from "@/lib/api";
 
 export type HospitalSector = {
-  id: string;
-  internation: SectorInternation[];
-  assistance: SectorAssistance[];
+  id: string;
+  internation: SectorInternation[];
+  assistance: SectorAssistance[];
 };
 
 // Cache simples para evitar múltiplas chamadas
@@ -13,88 +13,116 @@ let cachedData: HospitalSector | null = null;
 let cachedHospitalId: string | null = null;
 
 /**
- * Retorna uma lista de setores hospitalares da API real.
- * @param hospitalId O ID do hospital para buscar os setores.
- * @returns Um objeto contendo os setores de internação e assistência.
- */
+ * Retorna uma lista de setores hospitalares da API real, com tratamento robusto de dados.
+ * @param hospitalId O ID do hospital para buscar os setores.
+ * @returns Um objeto contendo os setores de internação e assistência.
+ */
 export async function getAllHospitalSectors(
-  hospitalId: string
+  hospitalId: string
 ): Promise<HospitalSector> {
-  console.log("🔍 getAllHospitalSectors chamado com hospitalId:", hospitalId);
+  console.log("🔍 getAllHospitalSectors chamado com hospitalId:", hospitalId);
 
-  // Retorna cache se for o mesmo hospital
-  if (cachedData && cachedHospitalId === hospitalId) {
-    console.log("✅ Retornando dados do cache");
-    return cachedData;
-  }
+  if (cachedData && cachedHospitalId === hospitalId) {
+    console.log("✅ Retornando dados do cache");
+    return cachedData;
+  }
 
-  try {
-    console.log("📡 Buscando dados da API...");
-    // Busca dados reais da API
-    const apiData: HospitalSectorsData = await getHospitalSectors(hospitalId);
-    console.log("✅ Dados recebidos da API:", apiData);
+  try {
+    console.log("📡 Buscando dados da API...");
+    const apiData: HospitalSectorsData = await getHospitalSectors(hospitalId);
+    console.log("✅ Dados recebidos da API:", apiData);
 
-    // Transforma os dados da API para o formato esperado pelos componentes
-    const transformedData: HospitalSector = {
-      id: apiData.id,
-      internation: apiData.internation.map((sector) => ({
-        id: sector.id,
-        name: sector.name,
-        descr: sector.descr,
-        costAmount: parseFloat(sector.costAmount),
-        bedCount: sector.bedCount,
-        CareLevel: {
-          minimumCare: sector.careLevel.minimumCare,
-          intermediateCare: sector.careLevel.intermediateCare,
-          highDependency: sector.careLevel.highDependency,
-          semiIntensive: sector.careLevel.semiIntensive,
-          intensive: sector.careLevel.intensive,
-        },
-        bedStatus: {
-          evaluated: sector.bedStatus.evaluated,
-          vacant: sector.bedStatus.vacant,
-          inactive: sector.bedStatus.inactive,
-        },
-        staff: sector.staff.map((member) => ({
-          id: member.id,
-          role: member.role,
-          quantity: member.quantity,
-        })),
-      })),
-      assistance: apiData.assistance.map((sector) => ({
-        id: sector.id,
-        name: sector.name,
-        descr: sector.descr || "",
-        costAmount: parseFloat(sector.costAmount),
-        siteCount: sector.staff.reduce((sum, s) => sum + s.quantity, 0), // Total de staff como proxy para siteCount
-        areas: [
-          {
-            name: "Principal",
-            quantity: sector.staff.reduce((sum, s) => sum + s.quantity, 0),
-          },
-        ], // Área padrão
-        staff: sector.staff.map((member) => ({
-          id: member.id,
-          role: member.role,
-          quantity: member.quantity,
-        })),
-      })),
+    // Estrutura de fallback caso os dados da API venham vazios ou nulos
+    const fallbackData: HospitalSector = {
+        id: hospitalId,
+        internation: [],
+        assistance: [],
     };
 
-    // Atualiza cache
-    cachedData = transformedData;
-    cachedHospitalId = hospitalId;
+    if (!apiData) {
+        console.warn("⚠️ API não retornou dados. Usando estrutura de fallback.");
+        return fallbackData;
+    }
 
-    return transformedData;
-  } catch (error) {
-    console.error("Erro ao buscar setores hospitalares:", error);
-    throw error;
-  }
+    // Mapeamento seguro para setores de internação
+    const internationSectors = Array.isArray(apiData.internation) 
+      ? apiData.internation.map((sector) => {
+          const costAmount = parseFloat(sector.costAmount) || 0;
+          const staff = Array.isArray(sector.staff) ? sector.staff : [];
+          
+          return {
+            id: sector.id || `internation-${Math.random()}`,
+            name: sector.name || "Setor sem nome",
+            descr: sector.descr || "",
+            costAmount: costAmount,
+            bedCount: sector.bedCount || 0,
+            CareLevel: {
+              minimumCare: sector.careLevel?.minimumCare || 0,
+              intermediateCare: sector.careLevel?.intermediateCare || 0,
+              highDependency: sector.careLevel?.highDependency || 0,
+              semiIntensive: sector.careLevel?.semiIntensive || 0,
+              intensive: sector.careLevel?.intensive || 0,
+            },
+            bedStatus: {
+              evaluated: sector.bedStatus?.evaluated || 0,
+              vacant: sector.bedStatus?.vacant || 0,
+              inactive: sector.bedStatus?.inactive || 0,
+            },
+            staff: staff.map((member) => ({
+              id: member.id || `staff-${Math.random()}`,
+              role: member.role || "Cargo desconhecido",
+              quantity: member.quantity || 0,
+            })),
+          };
+      }) 
+      : [];
+
+    // Mapeamento seguro para setores de assistência
+    const assistanceSectors = Array.isArray(apiData.assistance)
+      ? apiData.assistance.map((sector) => {
+          const costAmount = parseFloat(sector.costAmount) || 0;
+          const staff = Array.isArray(sector.staff) ? sector.staff : [];
+          const totalStaff = staff.reduce((sum, s) => sum + (s.quantity || 0), 0);
+
+          return {
+            id: sector.id || `assistance-${Math.random()}`,
+            name: sector.name || "Setor sem nome",
+            descr: sector.descr || "",
+            costAmount: costAmount,
+            siteCount: totalStaff, 
+            areas: [{ name: "Principal", quantity: totalStaff }],
+            staff: staff.map((member) => ({
+              id: member.id || `staff-${Math.random()}`,
+              role: member.role || "Cargo desconhecido",
+              quantity: member.quantity || 0,
+            })),
+          };
+      })
+      : [];
+      
+    const transformedData: HospitalSector = {
+      id: apiData.id || hospitalId,
+      internation: internationSectors,
+      assistance: assistanceSectors,
+    };
+
+    cachedData = transformedData;
+    cachedHospitalId = hospitalId;
+
+    return transformedData;
+  } catch (error) {
+    console.error("❌ Erro ao buscar ou processar setores hospitalares:", error);
+    // Em caso de erro, retorna uma estrutura vazia para não quebrar a UI
+    return {
+        id: hospitalId,
+        internation: [],
+        assistance: [],
+    };
+  }
 }
 
-// Função para limpar o cache (útil ao trocar de hospital)
 export const clearSectorsCache = () => {
-  console.log("🔍 Limpar cache de setores");
-  cachedData = null;
-  cachedHospitalId = null;
+  console.log("🧹 Limpando cache de setores");
+  cachedData = null;
+  cachedHospitalId = null;
 };
