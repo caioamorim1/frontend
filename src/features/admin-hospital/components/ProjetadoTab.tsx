@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { MinusCircle, PlusCircle } from "lucide-react";
+import { LinhaAnalise } from "@/components/shared/AnaliseFinanceira";
 
 // Componente para o input de ajuste
 const AjusteInput = ({
