@@ -171,7 +171,7 @@ export default function AnaliseFinanceira({
               className="w-20 text-center mx-auto"
             />
           )}
-        </TableCell> */}
+        </TableCell>
         <TableCell className="bg-blue-50 font-semibold">
           {custoTotalProjetado.toLocaleString("pt-BR", {
             style: "currency",
