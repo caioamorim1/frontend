@@ -43,12 +43,12 @@ import BargraphicChart from "./graphicsComponents/BarChartComp";
 import { COLORS, generateMultiColorScale } from "@/lib/generateMultiColorScale";
 import { formatAmountBRL } from "@/lib/utils";
 import {
-  getAllHospitalSectors,
   HospitalSector,
 } from "@/mocks/functionSectores";
 import { SectorInternation } from "@/mocks/internationDatabase";
 import { SectorAssistance } from "@/mocks/noInternationDatabase";
-
+  
+import { getAllSnapshotHospitalSectors } from "@/mocks/snapshotSectores"
 // --- ESTRUTURA DE DADOS APROFUNDADA ---
 export interface WaterfallDataItem {
   name: string;
@@ -676,7 +676,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     try {
       console.log("🚀 Iniciando carregamento para hospital:", hospitalId);
       setLoading(true);
-      const dashboardData = await getAllHospitalSectors(hospitalId); // Usa hospitalId da URL
+      const dashboardData = await getAllSnapshotHospitalSectors(hospitalId); // Usa hospitalId da URL
       const tipo = activeTab === "internacao" ? "Internacao" : "NaoInternacao";
       const chartData =
         activeTab === "global"

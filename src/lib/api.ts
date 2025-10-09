@@ -222,7 +222,6 @@ export interface UpdateSessaoDTO {
   prontuario: string;
   colaboradorId: string;
   scp: string;
-
 }
 export interface ScpMetodo {
   id: string;
@@ -471,6 +470,29 @@ export const getHospitalSectors = async (
 ): Promise<HospitalSectorsData> => {
   const response = await api.get(`/hospital-sectors/${hospitalId}`);
   return response.data;
+};
+
+export const getSnapshotHospitalSectors = async (
+  hospitalId: string
+): Promise<HospitalSectorsData> => {
+  const response = await api.get(`/snapshot/hospital/${hospitalId}/ultimo`);
+  return response.data;
+};
+
+export const createSnapshotHospitalSectors = async (
+  hospitalId: string
+): Promise<Boolean> => {
+  console.log("Criando snapshot para hospital:", hospitalId);
+  try {
+    const response = await api.post(`/snapshot/hospital/${hospitalId}`, {});
+    console.log("✅ Snapshot criado com sucesso:", response.data);
+    return true;
+  } catch (error: any) {
+    console.error("❌ Erro ao criar snapshot:", error);
+    console.error("Detalhes do erro:", error.response?.data);
+    console.error("Status:", error.response?.status);
+    throw error;
+  }
 };
 
 // REDES, GRUPOS, REGIOES
@@ -724,7 +746,13 @@ export const admitirPaciente = async (
   data: AdmitirPacienteDTO
 ): Promise<SessaoAtiva> => {
   // Validação dos campos obrigatórios
-  if (!data.leitoId || !data.unidadeId || !data.prontuario || !data.colaboradorId || !data.scp) {
+  if (
+    !data.leitoId ||
+    !data.unidadeId ||
+    !data.prontuario ||
+    !data.colaboradorId ||
+    !data.scp
+  ) {
     throw new Error("Campos obrigatórios faltando");
   }
 
@@ -734,7 +762,7 @@ export const admitirPaciente = async (
     prontuario: data.prontuario,
     colaborador_id: data.colaboradorId,
     scp: data.scp,
-    itens: {}
+    itens: {},
   };
 
   try {
@@ -743,7 +771,7 @@ export const admitirPaciente = async (
   } catch (error: any) {
     console.error("Erro na requisição admitirPaciente:", {
       payload,
-      error: error.response?.data || error.message
+      error: error.response?.data || error.message,
     });
     throw error;
   }
@@ -755,7 +783,6 @@ export const getScpSchema = async (scpKey: string): Promise<ScpSchema> => {
   return response.data;
 };
 export const createSessao = async (
-  
   data: UpdateSessaoDTO
 ): Promise<SessaoAtiva> => {
   const response = await api.post(`/avaliacoes/sessao`, data);
@@ -985,4 +1012,3 @@ export const saveAjustesQualitativos = async (
   return Promise.resolve();
 };
 export default api;
-
