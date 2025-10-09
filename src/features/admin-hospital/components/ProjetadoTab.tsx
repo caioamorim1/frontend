@@ -1,21 +1,22 @@
 import { useState, useEffect } from "react";
-import { UnidadeInternacao, LinhaAnalise, getAnaliseInternacao, getAjustesQualitativos, saveAjustesQualitativos, AjustesPayload } from "@/lib/api";
+import { UnidadeInternacao, getAnaliseInternacao, getAjustesQualitativos, saveAjustesQualitativos, AjustesPayload } from "@/lib/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { MinusCircle, PlusCircle } from "lucide-react";
+import { LinhaAnalise } from "@/components/shared/AnaliseFinanceira";
 
 // Componente para o input de ajuste
 const AjusteInput = ({ value, onChange }: { value: number, onChange: (newValue: number) => void }) => (
     <div className="flex items-center justify-center gap-2">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onChange(value - 1)}>
-            <MinusCircle className="h-5 w-5 text-red-500"/>
+            <MinusCircle className="h-5 w-5 text-red-500" />
         </Button>
         <span className="font-bold text-lg w-8 text-center">{value}</span>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onChange(value + 1)}>
-            <PlusCircle className="h-5 w-5 text-green-500"/>
+            <PlusCircle className="h-5 w-5 text-green-500" />
         </Button>
     </div>
 );
@@ -58,7 +59,7 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
     const handleAjusteChange = (cargoId: string, novoValor: number) => {
         setAjustes(prev => ({ ...prev, [cargoId]: novoValor }));
     };
-    
+
     const handleSave = async () => {
         setSaving(true);
         try {
@@ -70,7 +71,7 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
             setSaving(false);
         }
     };
-    
+
     if (loading) {
         return <Skeleton className="h-96 w-full" />;
     }
@@ -100,7 +101,7 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
                                         <TableCell className="font-medium">{linha.cargoNome}</TableCell>
                                         <TableCell className="text-center font-medium text-gray-600">{linha.quantidadeProjetada}</TableCell>
                                         <TableCell>
-                                            <AjusteInput 
+                                            <AjusteInput
                                                 value={ajusteAtual}
                                                 onChange={(novoValor) => handleAjusteChange(linha.cargoId, novoValor)}
                                             />
