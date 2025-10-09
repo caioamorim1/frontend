@@ -272,12 +272,27 @@ export interface HospitalStats {
   }>;
 }
 
+// Interface para distribuição ENF/TEC por turno
+export interface SitioDistribuicao {
+  id?: string;
+  categoria: "ENF" | "TEC";
+  segSexManha: number;
+  segSexTarde: number;
+  segSexNoite1: number;
+  segSexNoite2: number;
+  sabDomManha: number;
+  sabDomTarde: number;
+  sabDomNoite1: number;
+  sabDomNoite2: number;
+}
+
 export interface SitioFuncional {
   id: string;
   nome: string;
   descricao?: string;
   // Adição para que a entidade possa carregar os cargos já associados
   cargosSitio?: CargoSitio[];
+  distribuicoes?: SitioDistribuicao[];
 }
 
 export interface CreateSitioFuncionalDTO {
@@ -285,6 +300,7 @@ export interface CreateSitioFuncionalDTO {
   nome: string;
   descricao?: string;
   cargos?: { cargoId: string; quantidade_funcionarios: number }[];
+  distribuicoes?: SitioDistribuicao[];
 }
 
 export interface CreateParametrosDTO {
@@ -419,9 +435,47 @@ export interface GrupoCargosNaoInternacao {
   cargos: LinhaAnaliseFinanceira[];
 }
 
+export interface ResumoDistribuicaoNaoInternacao {
+  porSitio: Array<{
+    sitioId: string;
+    sitioNome?: string;
+    categoria: "ENF" | "TEC";
+    totalSemana: number;
+    totalFimSemana: number;
+    total: number;
+  }>;
+  totais: {
+    enfermeiro: number;
+    tecnico: number;
+  };
+}
+
+export interface ResumoDimensionamentoNaoInternacao {
+  periodoTrabalho: number;
+  kmEnfermeiro: number;
+  kmTecnico: number;
+  totalSitiosEnfermeiro: number;
+  totalSitiosTecnico: number;
+  pessoalEnfermeiro: number;
+  pessoalTecnico: number;
+  pessoalEnfermeiroArredondado: number;
+  pessoalTecnicoArredondado: number;
+}
+
 export interface AnaliseNaoInternacaoResponse {
   tabela: GrupoCargosNaoInternacao[];
   horasExtrasProjetadas: number;
+  parametros?: {
+    jornadaSemanalEnfermeiro?: number;
+    jornadaSemanalTecnico?: number;
+    indiceSegurancaTecnica: number;
+    equipeComRestricao: boolean;
+    diasFuncionamentoMensal: number;
+    diasSemana: number;
+    periodoTrabalho: number;
+  };
+  distribuicao?: ResumoDistribuicaoNaoInternacao;
+  dimensionamento?: ResumoDimensionamentoNaoInternacao;
 }
 
 // --- FUNÇÕES DA API ---
