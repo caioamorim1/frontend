@@ -55,29 +55,12 @@ export default function DistribuicaoTurnosForm({
     }
   }, [distribuicoes]);
 
-  // Atualiza o pai sempre que os dados mudarem
-  useEffect(() => {
-    onChange([enfData, tecData]);
-  }, [enfData, tecData]);
-
-  const calcularTotal = (dist: SitioDistribuicao) => {
-    const totalSemana =
-      (dist.segSexManha +
-        dist.segSexTarde +
-        dist.segSexNoite1 +
-        dist.segSexNoite2) *
-      5;
-    const totalFimSemana =
-      (dist.sabDomManha +
-        dist.sabDomTarde +
-        dist.sabDomNoite1 +
-        dist.sabDomNoite2) *
-      2;
-    return {
-      semana: totalSemana,
-      fimSemana: totalFimSemana,
-      total: totalSemana + totalFimSemana,
-    };
+  // Função para atualizar o pai quando os dados mudam
+  const notifyChange = (
+    newEnfData: SitioDistribuicao,
+    newTecData: SitioDistribuicao
+  ) => {
+    onChange([newEnfData, newTecData]);
   };
 
   const updateField = (
@@ -87,19 +70,23 @@ export default function DistribuicaoTurnosForm({
   ) => {
     if (readonly) return;
 
-    const setter = categoria === "ENF" ? setEnfData : setTecData;
-    setter((prev) => ({
-      ...prev,
-      [field]: Math.max(0, value),
-    }));
+    const newValue = Math.max(0, value);
+
+    if (categoria === "ENF") {
+      const newEnfData = { ...enfData, [field]: newValue };
+      setEnfData(newEnfData);
+      notifyChange(newEnfData, tecData);
+    } else {
+      const newTecData = { ...tecData, [field]: newValue };
+      setTecData(newTecData);
+      notifyChange(enfData, newTecData);
+    }
   };
 
   const renderFormGroup = (
     categoria: "ENF" | "TEC",
     data: SitioDistribuicao
   ) => {
-    const totais = calcularTotal(data);
-
     return (
       <div className="space-y-6">
         {/* Segunda a Sexta */}
@@ -167,10 +154,6 @@ export default function DistribuicaoTurnosForm({
                 className="mt-1"
               />
             </div>
-          </div>
-          <div className="text-sm text-muted-foreground bg-blue-50 p-2 rounded">
-            Total Seg-Sex: <span className="font-bold">{totais.semana}</span>{" "}
-            profissionais/semana
           </div>
         </div>
 
@@ -240,24 +223,16 @@ export default function DistribuicaoTurnosForm({
               />
             </div>
           </div>
-          <div className="text-sm text-muted-foreground bg-blue-50 p-2 rounded">
-            Total Sab-Dom: <span className="font-bold">{totais.fimSemana}</span>{" "}
-            profissionais/semana
-          </div>
         </div>
 
-        {/* Total Geral */}
+        {/* Aviso importante */}
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            <span className="font-bold text-lg">
-              Total Semanal: {totais.total} profissionais
-            </span>
-            <br />
-            <span className="text-xs text-muted-foreground">
-              Este valor será usado no cálculo de dimensionamento (multiplicado
-              pelo KM)
-            </span>
+            <span className="font-bold">Importante:</span> Informe a quantidade
+            de profissionais <span className="font-bold">por turno</span>, não o
+            total. O sistema calculará automaticamente o dimensionamento
+            semanal.
           </AlertDescription>
         </Alert>
       </div>

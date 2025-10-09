@@ -312,6 +312,21 @@ export interface CreateParametrosDTO {
 }
 export type ParametrosUnidade = CreateParametrosDTO & { id: string };
 
+// Interface para parâmetros de NÃO-INTERNAÇÃO
+export interface CreateParametrosNaoInternacaoDTO {
+  nome_enfermeiro?: string;
+  numero_coren?: string;
+  jornadaSemanalEnfermeiro?: number;
+  jornadaSemanalTecnico?: number;
+  indiceSegurancaTecnica?: number;
+  equipeComRestricao?: boolean;
+  diasFuncionamentoMensal?: number;
+  diasSemana?: number;
+}
+export type ParametrosNaoInternacao = CreateParametrosNaoInternacaoDTO & {
+  id: string;
+};
+
 // Interfaces para Questionários e Coletas
 export interface Pergunta {
   id: string;
@@ -921,18 +936,45 @@ export const deleteLeito = async (leitoId: string): Promise<void> => {
 };
 
 // PARAMETROS (Admin)
+// Para unidades de INTERNAÇÃO (leitos)
 export const getParametros = async (
   unidadeId: string
 ): Promise<ParametrosUnidade> => {
-  const response = await api.get(`/parametros/unidade/${unidadeId}`);
+  const response = await api.get(`/parametros-unidade/${unidadeId}`);
   return response.data;
 };
 export const saveParametros = async (
   unidadeId: string,
   data: CreateParametrosDTO
 ): Promise<ParametrosUnidade> => {
-  const response = await api.post(`/parametros/unidade/${unidadeId}`, data);
+  const response = await api.post(`/parametros-unidade/${unidadeId}`, data);
   return response.data;
+};
+export const deleteParametros = async (unidadeId: string): Promise<void> => {
+  await api.delete(`/parametros-unidade/${unidadeId}`);
+};
+
+// Para unidades de NÃO-INTERNAÇÃO (sítios funcionais)
+export const getParametrosNaoInternacao = async (
+  unidadeId: string
+): Promise<ParametrosNaoInternacao> => {
+  const response = await api.get(`/parametros/nao-internacao/${unidadeId}`);
+  return response.data;
+};
+export const saveParametrosNaoInternacao = async (
+  unidadeId: string,
+  data: CreateParametrosNaoInternacaoDTO
+): Promise<ParametrosNaoInternacao> => {
+  const response = await api.post(
+    `/parametros/nao-internacao/${unidadeId}`,
+    data
+  );
+  return response.data;
+};
+export const deleteParametrosNaoInternacao = async (
+  unidadeId: string
+): Promise<void> => {
+  await api.delete(`/parametros/nao-internacao/${unidadeId}`);
 };
 
 // SÍTIOS FUNCIONAIS (Admin)

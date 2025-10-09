@@ -63,6 +63,7 @@ export default function QuadroFuncionariosResumo({
         } else {
           setError("Erro ao carregar dados do baseline.");
         }
+        setSnapshotData(null); // Garante que snapshotData fica null em caso de erro
       } finally {
         setLoading(false);
       }
@@ -81,7 +82,20 @@ export default function QuadroFuncionariosResumo({
     );
 
     if (internationSector) {
-      return internationSector.staff.map((staffMember) => ({
+      console.log(
+        "📊 Staff bruto do backend (internação):",
+        internationSector.staff
+      );
+
+      // Remove duplicatas baseado no nome do cargo
+      const staffSemDuplicatas = internationSector.staff.filter(
+        (staff, index, self) =>
+          index === self.findIndex((s) => s.role === staff.role)
+      );
+
+      console.log("✅ Staff sem duplicatas (internação):", staffSemDuplicatas);
+
+      return staffSemDuplicatas.map((staffMember) => ({
         cargo: {
           id: staffMember.id,
           nome: staffMember.role,
@@ -96,7 +110,17 @@ export default function QuadroFuncionariosResumo({
     );
 
     if (assistanceSector) {
-      return assistanceSector.staff.map((staffMember) => ({
+      console.log("📊 Staff bruto do backend:", assistanceSector.staff);
+
+      // Remove duplicatas baseado no nome do cargo
+      const staffSemDuplicatas = assistanceSector.staff.filter(
+        (staff, index, self) =>
+          index === self.findIndex((s) => s.role === staff.role)
+      );
+
+      console.log("✅ Staff sem duplicatas:", staffSemDuplicatas);
+
+      return staffSemDuplicatas.map((staffMember) => ({
         cargo: {
           id: staffMember.id,
           nome: staffMember.role,
@@ -107,19 +131,20 @@ export default function QuadroFuncionariosResumo({
 
     return [];
   }, [snapshotData, setorId]);
+
   // Calcula o total de funcionários
   const totalFuncionarios = useMemo(() => {
-    if (!cargos) return 0;
+    if (!cargos || cargos.length === 0) return 0;
     return cargos.reduce((sum, item) => sum + item.quantidade_funcionarios, 0);
   }, [cargos]);
 
   // Calcula o total de cargos distintos
   const totalCargos = useMemo(() => {
-    if (!cargos) return 0;
+    if (!cargos || cargos.length === 0) return 0;
     return cargos.length;
   }, [cargos]);
 
-  // Estado de "carregando"
+  // Estado de "carregando" - verificar ANTES dos useMemo que dependem de dados
   if (loading) {
     return (
       <div className="bg-white p-6 rounded-lg border">
@@ -135,15 +160,17 @@ export default function QuadroFuncionariosResumo({
     );
   }
 
-  // Estado de "erro"
+  // Estado de "erro" - mostrar ANTES de tentar renderizar a tabela
   if (error) {
     return (
       <div className="bg-white p-6 rounded-lg border">
         <h2 className="text-xl font-semibold text-primary mb-4">
           Resumo de Funcionários (Baseline)
         </h2>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-          <p className="text-sm text-yellow-800">{error}</p>
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+          <p className="text-sm text-blue-800">
+            Ainda não há baseline cadastrado para este setor.
+          </p>
         </div>
       </div>
     );

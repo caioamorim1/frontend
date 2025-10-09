@@ -14,11 +14,13 @@ import CardInfo from "../components/CardInfo";
 import QuadroCargos from "../components/QuadroCargos";
 import LeitosAdminPage from "./LeitosAdminPage";
 import ParametrosPage from "./ParametrosPage";
+import ParametrosNaoInternacaoPage from "./ParametrosNaoInternacaoPage";
 import SitiosFuncionaisAdminPage from "./SitiosFuncionaisAdminPage";
 
 import DimensionamentoTab from "../components/DimensionamentoTab";
 import AnaliseNaoInternacaoTab from "../components/AnaliseNaoInternacao";
 import ProjetadoTab from "../components/ProjetadoTab";
+import ProjetadoNaoInternacaoTab from "../components/ProjetadoNaoInternacaoTab";
 import AtualTab from "../components/AtualTab"; // Importa o novo componente
 import QuadroFuncionariosResumo from "../components/BaselineTab";
 
@@ -98,6 +100,7 @@ export default function SetorDetailPage() {
           { id: "analise-financeira", label: "Análise Financeira" },
           { id: "sitios", label: "Sítios Funcionais" },
           { id: "funcionarios", label: "Funcionários" },
+          { id: "parametros", label: "Parâmetros" },
           { id: "baseline", label: "Baseline" },
           { id: "atual", label: "Atual" },
           { id: "projetado", label: "Projetado" },
@@ -163,13 +166,11 @@ export default function SetorDetailPage() {
               unidade={unidade as UnidadeNaoInternacao}
             />
           )}
+          {activeTab === "parametros" && <ParametrosNaoInternacaoPage />}
           {activeTab === "projetado" && (
-            <div className="text-center text-gray-500 py-8">
-              <p>
-                Funcionalidade de ajuste projetado para unidades de
-                não-internação em desenvolvimento.
-              </p>
-            </div>
+            <ProjetadoNaoInternacaoTab
+              unidade={unidade as UnidadeNaoInternacao}
+            />
           )}
         </>
       )}

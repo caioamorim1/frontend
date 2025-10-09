@@ -249,12 +249,10 @@ export default function SitiosFuncionaisAdminPage() {
 
   return (
     <div className="space-y-6">
-      {managingSitio && hospitalId && unidade && (
+      {managingSitio && (
         <CargoSitioManager
           sitioId={managingSitio.id}
           sitio={managingSitio}
-          hospitalId={hospitalId}
-          unidade={unidade}
           onClose={() => {
             setManagingSitio(null);
             fetchData();
