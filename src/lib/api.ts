@@ -940,18 +940,18 @@ export const deleteLeito = async (leitoId: string): Promise<void> => {
 export const getParametros = async (
   unidadeId: string
 ): Promise<ParametrosUnidade> => {
-  const response = await api.get(`/parametros-unidade/${unidadeId}`);
+  const response = await api.get(`/parametros/unidade/${unidadeId}`);
   return response.data;
 };
 export const saveParametros = async (
   unidadeId: string,
   data: CreateParametrosDTO
 ): Promise<ParametrosUnidade> => {
-  const response = await api.post(`/parametros-unidade/${unidadeId}`, data);
+  const response = await api.post(`/parametros/unidade/${unidadeId}`, data);
   return response.data;
 };
 export const deleteParametros = async (unidadeId: string): Promise<void> => {
-  await api.delete(`/parametros-unidade/${unidadeId}`);
+  await api.delete(`/parametros/unidade/${unidadeId}`);
 };
 
 // Para unidades de NÃO-INTERNAÇÃO (sítios funcionais)
