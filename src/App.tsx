@@ -21,7 +21,6 @@ import VisaoLeitosPage from "./features/colab/pages/VisaoLeitosPage";
 import AvaliacaoScpPage from "./features/colab/pages/AvaliacaoScpPage";
 import LeitosAdminPage from "./features/admin-hospital/pages/LeitosAdminPage";
 import ParametrosPage from "./features/admin-hospital/pages/ParametrosPage";
-import QuestionariosPage from "./features/admin-global/pages/QuestionariosPage";
 import HistoricoColetasPage from "./features/admin-hospital/pages/HistoricoColetasPage";
 import AdminsPage from "./features/admin-global/pages/AdminsPage";
 import HospitalDashboardPage from "./features/colab/pages/DashboardPage";
@@ -30,6 +29,7 @@ import GlobalDashboardPage from "./features/admin-global/pages/GlobalDashboardPa
 // NOVOS IMPORTS PARA COLETA
 import ColetasPage from "./features/colab/pages/ColetasPage";
 import RealizarColetaPage from "./features/colab/pages/RealizarColetaPage";
+import QualitativoPage from "./features/qualitativo/qualitativoPage";
 
 function App() {
   return (
@@ -48,7 +48,7 @@ function App() {
           <Route path="grupos" element={<GruposPage />} />
           <Route path="regioes" element={<RegioesPage />} />
           <Route path="scp-metodos" element={<ScpMetodosPage />} />
-          <Route path="questionarios" element={<QuestionariosPage />} />
+          <Route path="questionarios" element={<QualitativoPage />} />
           <Route path="admins" element={<AdminsPage />} />
         </Route>
 

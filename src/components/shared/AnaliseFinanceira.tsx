@@ -110,8 +110,8 @@ export default function AnaliseFinanceira({
       linha.quantidadeAtual > 0
         ? (variacaoQtd / linha.quantidadeAtual) * 100
         : linha.quantidadeProjetada > 0
-        ? Infinity
-        : 0;
+          ? Infinity
+          : 0;
     const horasReais = linha.quantidadeAtual * linha.cargaHoraria;
     const horasCalculadas = linha.quantidadeProjetada * linha.cargaHoraria;
     const variacaoHoras = horasCalculadas - horasReais;
@@ -171,7 +171,7 @@ export default function AnaliseFinanceira({
               className="w-20 text-center mx-auto"
             />
           )}
-        </TableCell> */}
+        </TableCell>
         <TableCell className="bg-blue-50 font-semibold">
           {custoTotalProjetado.toLocaleString("pt-BR", {
             style: "currency",
@@ -179,37 +179,34 @@ export default function AnaliseFinanceira({
           })}
         </TableCell>
         <TableCell
-          className={`font-medium ${
-            variacaoQtd > 0
+          className={`font-medium ${variacaoQtd > 0
               ? "text-red-600"
               : variacaoQtd < 0
-              ? "text-green-600"
-              : ""
-          }`}
+                ? "text-green-600"
+                : ""
+            }`}
         >
           {variacaoQtd}
         </TableCell>
         <TableCell
-          className={`font-medium ${
-            variacaoPercent > 0
+          className={`font-medium ${variacaoPercent > 0
               ? "text-red-600"
               : variacaoPercent < 0
-              ? "text-green-600"
-              : ""
-          }`}
+                ? "text-green-600"
+                : ""
+            }`}
         >
           {variacaoPercent === Infinity
             ? "N/A"
             : `${variacaoPercent.toFixed(0)}%`}
         </TableCell>
         <TableCell
-          className={`font-medium ${
-            variacaoCusto > 0
+          className={`font-medium ${variacaoCusto > 0
               ? "text-red-600"
               : variacaoCusto < 0
-              ? "text-green-600"
-              : ""
-          }`}
+                ? "text-green-600"
+                : ""
+            }`}
         >
           {variacaoCusto.toLocaleString("pt-BR", {
             style: "currency",
@@ -219,13 +216,12 @@ export default function AnaliseFinanceira({
         <TableCell>{horasReais.toFixed(0)}h</TableCell>
         <TableCell>{horasCalculadas.toFixed(0)}h</TableCell>
         <TableCell
-          className={`font-medium ${
-            variacaoHoras > 0
+          className={`font-medium ${variacaoHoras > 0
               ? "text-red-600"
               : variacaoHoras < 0
-              ? "text-green-600"
-              : ""
-          }`}
+                ? "text-green-600"
+                : ""
+            }`}
         >
           {variacaoHoras.toFixed(0)}h
         </TableCell>
@@ -298,19 +294,19 @@ export default function AnaliseFinanceira({
             {tipo === "internacao"
               ? (dados as LinhaAnalise[]).map((linha) => renderLinha(linha))
               : (dados as GrupoDeCargos[]).map((grupo) => (
-                  <Fragment key={grupo.id}>
-                    <TableRow>
-                      <TableCell
-                        colSpan={16}
-                        className="p-2 bg-slate-200 font-semibold text-slate-800"
-                      >
-                        {grupo.nome}
-                      </TableCell>
-                    </TableRow>
-                    {grupo.cargos.map((cargo) => renderLinha(cargo, grupo.id))}
-                    {renderSubtotal(grupo)}
-                  </Fragment>
-                ))}
+                <Fragment key={grupo.id}>
+                  <TableRow>
+                    <TableCell
+                      colSpan={16}
+                      className="p-2 bg-slate-200 font-semibold text-slate-800"
+                    >
+                      {grupo.nome}
+                    </TableCell>
+                  </TableRow>
+                  {grupo.cargos.map((cargo) => renderLinha(cargo, grupo.id))}
+                  {renderSubtotal(grupo)}
+                </Fragment>
+              ))}
           </TableBody>
           <TableFooter>
             <TableRow className="font-bold bg-gray-200 text-base">
@@ -338,17 +334,16 @@ export default function AnaliseFinanceira({
               </TableCell>
               <TableCell
                 colSpan={3}
-                className={`text-center ${
-                  totaisGerais.custoTotalProjetado -
+                className={`text-center ${totaisGerais.custoTotalProjetado -
                     totaisGerais.custoTotalAtual >
-                  0
+                    0
                     ? "text-red-600"
                     : totaisGerais.custoTotalProjetado -
-                        totaisGerais.custoTotalAtual <
+                      totaisGerais.custoTotalAtual <
                       0
-                    ? "text-green-600"
-                    : ""
-                }`}
+                      ? "text-green-600"
+                      : ""
+                  }`}
               >
                 {(
                   totaisGerais.custoTotalProjetado -
@@ -361,13 +356,12 @@ export default function AnaliseFinanceira({
               <TableCell>{totaisGerais.horasReais.toFixed(0)}h</TableCell>
               <TableCell>{totaisGerais.horasCalculadas.toFixed(0)}h</TableCell>
               <TableCell
-                className={`text-center ${
-                  totaisGerais.horasCalculadas - totaisGerais.horasReais > 0
+                className={`text-center ${totaisGerais.horasCalculadas - totaisGerais.horasReais > 0
                     ? "text-red-600"
                     : totaisGerais.horasCalculadas - totaisGerais.horasReais < 0
-                    ? "text-green-600"
-                    : ""
-                }`}
+                      ? "text-green-600"
+                      : ""
+                  }`}
               >
                 {(
                   totaisGerais.horasCalculadas - totaisGerais.horasReais

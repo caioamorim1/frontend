@@ -1,7 +1,8 @@
+import { QualitativeCategory } from "@/features/qualitativo/types";
 import axios from "axios";
 
-//export const API_BASE_URL = "http://127.0.0.1:3110";
-export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
+export const API_BASE_URL = "http://127.0.0.1:3110";
+//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/api";
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -1021,6 +1022,13 @@ export const deleteCargoDeSitio = async (
 ): Promise<void> => {
   await api.delete(`/sitios/sitios-funcionais/cargos/${cargoSitioId}`);
 };
+
+// QUALITATIVO
+export const getListQualitativesCategories = async (): Promise<QualitativeCategory[]> => {
+  const response = await api.get("/qualitative/categorys");
+  return response.data;
+};
+
 
 // QUESTIONÁRIOS E COLETAS
 export const getQuestionarios = async (): Promise<Questionario[]> => {
