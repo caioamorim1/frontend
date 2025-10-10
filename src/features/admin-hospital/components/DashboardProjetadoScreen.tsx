@@ -1,6 +1,5 @@
 // src/features/admin-hospital/components/DashboardProjetadoScreen.tsx
 import React, { useState, useMemo, useEffect } from "react";
-import { useParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -135,8 +134,8 @@ const GlobalTabContent: React.FC<{
       />
       <RadarChartComponent
         data={radarData}
-        title="Análise de Qualitativa"
-        description=""
+        title="Análise de Desempenho"
+        description="Comparativo entre o desempenho atual e projetado"
       />
     </div>
   );
@@ -172,19 +171,19 @@ const TabContentInternacao: React.FC<{
 
   const chartDataProjetado: ChartData[] = detailedData
     ? detailedData
-      .map((item) => ({
-        key: item.id,
-        name: item.name,
-        value: item.costAmount * costReductionFactor,
-        color: generateMultiColorScale(
-          item.costAmount * costReductionFactor,
-          0,
-          Math.max(
-            ...detailedData.map((i) => i.costAmount * costReductionFactor)
-          )
-        ),
-      }))
-      .sort((a, b) => b.value - a.value)
+        .map((item) => ({
+          key: item.id,
+          name: item.name,
+          value: item.costAmount * costReductionFactor,
+          color: generateMultiColorScale(
+            item.costAmount * costReductionFactor,
+            0,
+            Math.max(
+              ...detailedData.map((i) => i.costAmount * costReductionFactor)
+            )
+          ),
+        }))
+        .sort((a, b) => b.value - a.value)
     : [];
 
   const staffBySectorMap: Record<string, number> = {};
@@ -284,8 +283,8 @@ const TabContentInternacao: React.FC<{
       />
       <RadarChartComponent
         data={radarData}
-        title="Análise Qualitativa"
-        description=""
+        title="Análise de Desempenho"
+        description="Comparativo entre o desempenho atual e projetado"
       />
     </div>
   );
@@ -317,19 +316,19 @@ const TabContentNoInternacao: React.FC<{
 
   const chartDataProjetado: ChartData[] = detailedData
     ? detailedData
-      .map((item) => ({
-        key: item.id,
-        name: item.name,
-        value: item.costAmount * costReductionFactor,
-        color: generateMultiColorScale(
-          item.costAmount * costReductionFactor,
-          0,
-          Math.max(
-            ...detailedData.map((i) => i.costAmount * costReductionFactor)
-          )
-        ),
-      }))
-      .sort((a, b) => b.value - a.value)
+        .map((item) => ({
+          key: item.id,
+          name: item.name,
+          value: item.costAmount * costReductionFactor,
+          color: generateMultiColorScale(
+            item.costAmount * costReductionFactor,
+            0,
+            Math.max(
+              ...detailedData.map((i) => i.costAmount * costReductionFactor)
+            )
+          ),
+        }))
+        .sort((a, b) => b.value - a.value)
     : [];
 
   const staffBySectorMap: Record<string, number> = {};
@@ -423,8 +422,8 @@ const TabContentNoInternacao: React.FC<{
       />
       <RadarChartComponent
         data={radarData}
-        title="Análise Qualitativa"
-        description=""
+        title="Análise de Desempenho"
+        description="Comparativo entre o desempenho atual e projetado"
       />
     </div>
   );
@@ -434,69 +433,25 @@ const TabContentNoInternacao: React.FC<{
 export const DashboardProjetadoScreen: React.FC<
   DashboardProjetadoScreenProps
 > = (props) => {
-  const { hospitalId } = useParams<{ hospitalId: string }>();
   const [chartData, setChartData] = useState<HospitalSector | null>(null);
   const [radarData, setRadarData] = useState<ChartDataItem[]>([]);
   const [activeTab, setActiveTab] = useState("global");
-  const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
-    console.log(
-      "🔄 DashboardProjetadoScreen - loadData chamado, hospitalId:",
-      hospitalId
-    );
+    const dashboardData = getAllHospitalSectors();
+    const tipo = activeTab === "internacao" ? "Internacao" : "NaoInternacao";
+    const performanceData =
+      activeTab === "global"
+        ? calcularPerformanceParaGrafico()
+        : calcularPerformanceParaGrafico({ tipo: tipo });
 
-    if (!hospitalId) {
-      console.warn("⚠️ Hospital ID não encontrado na URL");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      console.log("🚀 Iniciando carregamento para hospital:", hospitalId);
-
-      const dashboardData = await getAllHospitalSectors(hospitalId);
-      const tipo = activeTab === "internacao" ? "Internacao" : "NaoInternacao";
-      const performanceData =
-        activeTab === "global"
-          ? calcularPerformanceParaGrafico()
-          : calcularPerformanceParaGrafico({ tipo: tipo });
-
-      console.log("✅ Dados carregados com sucesso:", dashboardData);
-      setChartData(dashboardData);
-      setRadarData(performanceData);
-    } catch (error) {
-      console.error("❌ Erro ao carregar dados:", error);
-    } finally {
-      setLoading(false);
-    }
+    setChartData(dashboardData);
+    setRadarData(performanceData);
   };
 
   useEffect(() => {
     loadData();
-  }, [hospitalId]);
-
-  useEffect(() => {
-    if (hospitalId) {
-      loadData();
-    }
   }, [activeTab]);
-
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{props.title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">Carregando dados...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <>
@@ -518,7 +473,7 @@ export const DashboardProjetadoScreen: React.FC<
                   Unid. de Internação
                 </TabsTrigger>
                 <TabsTrigger value="nao-internacao">
-                  Unidades de Não Internação
+                  Setores Assistenciais
                 </TabsTrigger>
               </TabsList>
 

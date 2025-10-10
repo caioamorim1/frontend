@@ -542,6 +542,29 @@ export const getHospitalSectors = async (
   return response.data;
 };
 
+export const getRedesAggregated = async (redeId: string): Promise<any> => {
+  const response = await api.get(
+    `/hospital-sectors-aggregate/network/${redeId}`
+  );
+  return response.data;
+};
+export const getGruposAggregated = async (grupoId: string): Promise<any> => {
+  const response = await api.get(
+    `/hospital-sectors-aggregate/group/${grupoId}`
+  );
+  return response.data;
+};
+export const getRegioesAggregated = async (regiaoId: string): Promise<any> => {
+  const response = await api.get(
+    `/hospital-sectors-aggregate/region/${regiaoId}`
+  );
+  return response.data;
+};
+export const getHospitaisAggregated = async (): Promise<any> => {
+  const response = await api.get(`/hospital-sectors-aggregate/all`);
+  return response.data;
+};
+
 export const getSnapshotHospitalSectors = async (
   hospitalId: string
 ): Promise<HospitalSectorsData> => {
@@ -870,24 +893,6 @@ export const changePassword = async (
   });
 };
 
-// DIMENSIONAMENTO (ANTIGO)
-export const getDimensionamentosPorUnidade = async (
-  unidadeId: string
-): Promise<Dimensionamento[]> => {
-  const response = await api.get(`/unidades/${unidadeId}/dimensionamento`);
-  return response.data;
-};
-export const createDimensionamento = async (
-  unidadeId: string,
-  data: CreateDimensionamentoDTO
-): Promise<Dimensionamento> => {
-  const response = await api.post(
-    `/unidades/${unidadeId}/dimensionamento`,
-    data
-  );
-  return response.data;
-};
-
 // --- NOVAS ROTAS DE DIMENSIONAMENTO ---
 export const getAnaliseInternacao = async (
   unidadeId: string
@@ -1024,11 +1029,12 @@ export const deleteCargoDeSitio = async (
 };
 
 // QUALITATIVO
-export const getListQualitativesCategories = async (): Promise<QualitativeCategory[]> => {
+export const getListQualitativesCategories = async (): Promise<
+  QualitativeCategory[]
+> => {
   const response = await api.get("/qualitative/categorys");
   return response.data;
 };
-
 
 // QUESTIONÁRIOS E COLETAS
 export const getQuestionarios = async (): Promise<Questionario[]> => {

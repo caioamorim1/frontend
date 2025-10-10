@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import {
   BarChart,
@@ -19,7 +19,6 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -32,7 +31,6 @@ import {
   Users,
   Building,
   ChevronsRight,
-  Radar,
   CircleDollarSign,
 } from "lucide-react";
 import RadarChartComponent from "./graphicsComponents/RadarChart";
@@ -42,13 +40,11 @@ import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import BargraphicChart from "./graphicsComponents/BarChartComp";
 import { COLORS, generateMultiColorScale } from "@/lib/generateMultiColorScale";
 import { formatAmountBRL } from "@/lib/utils";
-import {
-  HospitalSector,
-} from "@/mocks/functionSectores";
+import { HospitalSector } from "@/mocks/functionSectores";
 import { SectorInternation } from "@/mocks/internationDatabase";
 import { SectorAssistance } from "@/mocks/noInternationDatabase";
-  
-import { getAllSnapshotHospitalSectors } from "@/mocks/snapshotSectores"
+
+import { getAllSnapshotHospitalSectors } from "@/mocks/snapshotSectores";
 // --- ESTRUTURA DE DADOS APROFUNDADA ---
 export interface WaterfallDataItem {
   name: string;
@@ -138,10 +134,10 @@ const CustomTooltip = ({ active, payload, label, isCurrency }: any) => {
       data.name === payload[0].payload.name[payload[0].payload.name.length - 1];
     const displayValue = isCurrency
       ? data.value.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-        minimumFractionDigits: 0,
-      })
+          style: "currency",
+          currency: "BRL",
+          minimumFractionDigits: 0,
+        })
       : data.value;
     return (
       <div className="bg-background border p-3 rounded-lg shadow-lg text-sm">
@@ -254,28 +250,28 @@ const GlobalTabContent: React.FC<{
 
   const chartDataInternation: ChartData[] = internation
     ? internation.map((item) => ({
-      key: item.id,
-      name: item.name,
-      value: item.costAmount,
-      color: generateMultiColorScale(
-        item.costAmount,
-        0,
-        Math.max(...internation.map((i) => i.costAmount))
-      ),
-    }))
+        key: item.id,
+        name: item.name,
+        value: item.costAmount,
+        color: generateMultiColorScale(
+          item.costAmount,
+          0,
+          Math.max(...internation.map((i) => i.costAmount))
+        ),
+      }))
     : [];
 
   const chartDataAssistance: ChartData[] = assistance
     ? assistance.map((item) => ({
-      key: item.id,
-      name: item.name,
-      value: item.costAmount,
-      color: generateMultiColorScale(
-        item.costAmount,
-        0,
-        Math.max(...assistance.map((i) => i.costAmount))
-      ),
-    }))
+        key: item.id,
+        name: item.name,
+        value: item.costAmount,
+        color: generateMultiColorScale(
+          item.costAmount,
+          0,
+          Math.max(...assistance.map((i) => i.costAmount))
+        ),
+      }))
     : [];
 
   const chartDataAtual: ChartData[] = [
@@ -392,17 +388,17 @@ const TabContentInternacao: React.FC<{
 
   const chartDataAtual: ChartData[] = detailedData
     ? detailedData
-      .map((item) => ({
-        key: item.id,
-        name: item.name,
-        value: item.costAmount,
-        color: generateMultiColorScale(
-          item.costAmount,
-          0,
-          Math.max(...detailedData.map((i) => i.costAmount))
-        ),
-      }))
-      .sort((a, b) => b.value - a.value) // <--- Adicionado aqui para ordenar
+        .map((item) => ({
+          key: item.id,
+          name: item.name,
+          value: item.costAmount,
+          color: generateMultiColorScale(
+            item.costAmount,
+            0,
+            Math.max(...detailedData.map((i) => i.costAmount))
+          ),
+        }))
+        .sort((a, b) => b.value - a.value) // <--- Adicionado aqui para ordenar
     : [];
 
   const staffBySectorMap: Record<string, number> = {};
@@ -505,10 +501,12 @@ const TabContentInternacao: React.FC<{
           labelType="value"
         />
       </div>
-      {selectedSector === 'all' && <BargraphicChart
-        data={chartDataAtual}
-        title="Análise de Custo por Setor"
-      />}
+      {selectedSector === "all" && (
+        <BargraphicChart
+          data={chartDataAtual}
+          title="Análise de Custo por Setor"
+        />
+      )}
       <RadarChartComponent
         data={radarData}
         title="Análise Qualitativa"
@@ -539,17 +537,17 @@ const TabContentNoInternacao: React.FC<{
 
   const chartDataAtual: ChartData[] = detailedData
     ? detailedData
-      .map((item) => ({
-        key: item.id,
-        name: item.name,
-        value: item.costAmount,
-        color: generateMultiColorScale(
-          item.costAmount,
-          0,
-          Math.max(...detailedData.map((i) => i.costAmount))
-        ),
-      }))
-      .sort((a, b) => b.value - a.value) // <--- Adicionado aqui para ordenar
+        .map((item) => ({
+          key: item.id,
+          name: item.name,
+          value: item.costAmount,
+          color: generateMultiColorScale(
+            item.costAmount,
+            0,
+            Math.max(...detailedData.map((i) => i.costAmount))
+          ),
+        }))
+        .sort((a, b) => b.value - a.value) // <--- Adicionado aqui para ordenar
     : [];
 
   // Passo 1: Calcular o total de funcionários por função em todos os setores filtrados.
@@ -640,10 +638,12 @@ const TabContentNoInternacao: React.FC<{
           labelType="value"
         />
       </div>
-      {selectedSector === 'all' && <BargraphicChart
-        data={chartDataAtual}
-        title="Análise de Custo por Setor"
-      />}
+      {selectedSector === "all" && (
+        <BargraphicChart
+          data={chartDataAtual}
+          title="Análise de Custo por Setor"
+        />
+      )}
       <RadarChartComponent
         data={radarData}
         title="Análise Qualitativa"
