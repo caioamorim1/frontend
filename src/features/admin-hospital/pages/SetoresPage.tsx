@@ -180,7 +180,7 @@ export default function SetoresPage() {
             descricao,
             horas_extra_reais,
             horas_extra_projetadas,
-            cargos_unidade: [], // Inicia sem cargos
+            cargos_unidade: [], // Inicia sem cargos..
           });
         }
       }
