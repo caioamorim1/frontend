@@ -33,9 +33,9 @@ export const QuestionnairesTab: React.FC = () => {
 
   const questionTypes = [
     { value: 'sim-nao-na', label: 'Sim / Não / N/A' },
-    { value: 'texto', label: 'Texto' },
-    { value: 'numero', label: 'Número' },
-    { value: 'data', label: 'Data' },
+    // { value: 'texto', label: 'Texto' },
+    // { value: 'numero', label: 'Número' },
+    // { value: 'data', label: 'Data' },
     { value: 'multipla-escolha', label: 'Múltipla Escolha' }
   ];
 
