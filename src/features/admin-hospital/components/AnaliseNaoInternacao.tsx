@@ -33,6 +33,19 @@ export default function AnaliseNaoInternacaoTab({
       setError(null);
       try {
         const data = await getAnaliseNaoInternacao(unidade.id);
+        console.log("=== DADOS DA ANÁLISE ===");
+        console.log("Tabela recebida:", data.tabela);
+        data.tabela.forEach((grupo, idx) => {
+          console.log(
+            `Grupo ${idx} (${grupo.nome}):`,
+            grupo.cargos.map((c) => ({
+              nome: c.cargoNome,
+              id: c.cargoId,
+              qtdAtual: c.quantidadeAtual,
+              qtdProjetada: c.quantidadeProjetada,
+            }))
+          );
+        });
         setAnaliseData(data);
         setTabelaData(data.tabela); // Inicia a tabela com os dados do backend
       } catch (err) {

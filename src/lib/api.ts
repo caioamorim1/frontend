@@ -309,7 +309,9 @@ export interface CreateParametrosDTO {
   numero_coren?: string;
   aplicarIST?: boolean;
   ist?: number;
-  diasSemana?: number;
+  diasSemana?: string;
+  cargaHorariaEnfermeiro?: number;
+  cargaHorariaTecnico?: number;
 }
 export type ParametrosUnidade = CreateParametrosDTO & { id: string };
 
