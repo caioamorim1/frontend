@@ -28,7 +28,6 @@ import GlobalDashboardPage from "./features/admin-global/pages/GlobalDashboardPa
 
 // NOVOS IMPORTS PARA COLETA
 import ColetasPage from "./features/colab/pages/ColetasPage";
-import RealizarColetaPage from "./features/colab/pages/RealizarColetaPage";
 import QualitativoPage from "./features/qualitativo/qualitativoPage";
 
 function App() {
@@ -83,10 +82,7 @@ function App() {
 
           {/* ✅ NOVAS ROTAS PARA COLETA DE DADOS */}
           <Route path="/coletas" element={<ColetasPage />} />
-          <Route
-            path="/coletas/realizar/:questionarioId/:unidadeId/:unidadeNome"
-            element={<RealizarColetaPage />}
-          />
+
         </Route>
 
         {/* Redirecionamento principal: se logado, vai para o painel de admin */}

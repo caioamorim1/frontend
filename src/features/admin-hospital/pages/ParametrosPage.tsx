@@ -187,3 +187,4 @@ export default function ParametrosPage() {
     </div>
   );
 }
+// 167 lines

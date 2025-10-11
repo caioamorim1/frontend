@@ -21,9 +21,15 @@ export interface Questionnaire {
   name: string;
   categoryId?: number;
   questions: Question[];
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
+
+export interface QuestionOption {
+  label: string;
+  weight: number;
+}
+
 
 export interface Question {
   id: number;
@@ -31,11 +37,21 @@ export interface Question {
   type: 'sim-nao-na' | 'texto' | 'numero' | 'data' | 'multipla-escolha';
   weight: number;
   categoryId: number;
-  options?: string[]; // Para múltipla escolha
+  options?: QuestionOption[]; // Para múltipla escolha
 }
 
 export interface QualitativeCategory {
   id: number;
   name: string;
   meta: number;
+}
+
+export interface CreateCategoryDTO {
+  name: string;
+  meta: number;
+}
+
+export interface UpdateCategoryDTO {
+  name?: string;
+  meta?: number;
 }
