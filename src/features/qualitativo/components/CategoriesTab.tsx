@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, CreditCard as Edit, Trash2, Save, X } from 'lucide-react';
+import { Plus, CreditCard as Edit, Trash2, Save, X, Edit2 } from 'lucide-react';
 import { QualitativeCategory } from '../types';
 import { dataRepository } from '../repository/DataRepository';
 import { createCategory, deleteCategory, getListQualitativesCategories, updateCategory } from '@/lib/api';
@@ -206,7 +206,7 @@ export const CategoriesTab: React.FC = () => {
                         className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-200"
                         title="Editar categoria"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit2 className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(category.id)}
