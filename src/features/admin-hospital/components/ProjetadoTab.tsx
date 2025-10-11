@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { MinusCircle, PlusCircle } from "lucide-react";
 import { LinhaAnalise } from "@/components/shared/AnaliseFinanceira";
+import { EvaluationsTab } from "@/features/qualitativo/components/EvaluationsTab";
 
 // Componente para o input de ajuste
 const AjusteInput = ({
@@ -61,6 +62,7 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
   const [saving, setSaving] = useState(false);
   const [analiseBase, setAnaliseBase] = useState<LinhaAnaliseFinanceira[]>([]);
   const [ajustes, setAjustes] = useState<AjustesPayload>({});
+  const [showAvaliarPage, setShowAvaliarPage] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -116,10 +118,8 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
 
 
   const handleOpenAvaliar = () => {
-    // Implementar a lógica para abrir a aba de Avaliação
-    // Pode ser uma navegação para outra rota ou abrir um modal, dependendo da estrutura da aplicação
-    console.log("Abrir aba de Avaliação");
-  }
+    setShowAvaliarPage(true);
+  };
 
   if (loading) {
     return <Skeleton className="h-96 w-full" />;
@@ -158,112 +158,120 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
   };
 
   return (
-    <Card className="animate-fade-in-down">
-      <CardHeader>
-        <CardTitle>Ajuste Qualitativo do Quadro Projetado</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[30%]">Função</TableHead>
-                <TableHead className="text-center">Atual</TableHead>
-                <TableHead className="text-center">
-                  Projetado (Sistema)
-                </TableHead>
-                <TableHead className="text-center w-[200px]">
-                  Ajuste Qualitativo
-                </TableHead>
-                <TableHead className="text-center">Projetado Final</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {/* Cargos com Projetado (Enfermeiro/Técnico) */}
-              {cargosComProjetado.map((linha) => {
-                const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
-                const ajusteAtual = ajustes[linha.cargoId] || 0;
-                const projetadoFinal = linha.quantidadeProjetada + ajusteAtual;
-                return (
-                  <TableRow key={linha.cargoId}>
-                    <TableCell className="font-medium">
-                      {linha.cargoNome}
-                    </TableCell>
-                    <TableCell className="text-center font-medium text-gray-500">
-                      {quantidadeAtual}
-                    </TableCell>
-                    <TableCell className="text-center font-medium text-gray-600">
-                      {linha.quantidadeProjetada}
-                    </TableCell>
-                    <TableCell>
-                      <AjusteInput
-                        value={ajusteAtual}
-                        onChange={(novoValor) =>
-                          handleAjusteChange(linha.cargoId, novoValor)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="text-center font-bold text-xl text-primary">
-                      {projetadoFinal}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-
-              {/* Outros Cargos (sem projetado - usa Atual) */}
-              {cargosAtuais.map((linha) => {
-                const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
-                const ajusteAtual = ajustes[linha.cargoId] || 0;
-                const projetadoFinal = quantidadeAtual + ajusteAtual;
-                return (
-                  <TableRow key={linha.cargoId}>
-                    <TableCell className="font-medium">
-                      {linha.cargoNome}
-                    </TableCell>
-                    <TableCell className="text-center font-medium text-gray-600">
-                      {quantidadeAtual}
-                    </TableCell>
-                    <TableCell className="text-center font-medium text-gray-400">
-                      -
-                    </TableCell>
-                    <TableCell>
-                      <AjusteInput
-                        value={ajusteAtual}
-                        onChange={(novoValor) =>
-                          handleAjusteChange(linha.cargoId, novoValor)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="text-center font-bold text-xl text-primary">
-                      {projetadoFinal}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-
-              {linhasUnicas.length === 0 && (
+    <>{showAvaliarPage ? (
+      <EvaluationsTab
+        onClose={() => setShowAvaliarPage(false)}
+        unidadeInternacao={unidade}
+      />
+    ) : (
+      <Card className="animate-fade-in-down">
+        <CardHeader>
+          <CardTitle>Ajuste Qualitativo do Quadro Projetado</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center text-muted-foreground h-24"
-                  >
-                    Nenhum cargo encontrado para dimensionamento.
-                  </TableCell>
+                  <TableHead className="w-[30%]">Função</TableHead>
+                  <TableHead className="text-center">Atual</TableHead>
+                  <TableHead className="text-center">
+                    Projetado (Sistema)
+                  </TableHead>
+                  <TableHead className="text-center w-[200px]">
+                    Ajuste Qualitativo
+                  </TableHead>
+                  <TableHead className="text-center">Projetado Final</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="flex justify-end mt-6 gap-3">
-          <Button onClick={handleOpenAvaliar} disabled={saving}>
-            {"Avaliação"}
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Salvando..." : "Salvar Ajustes"}
-          </Button>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {/* Cargos com Projetado (Enfermeiro/Técnico) */}
+                {cargosComProjetado.map((linha) => {
+                  const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
+                  const ajusteAtual = ajustes[linha.cargoId] || 0;
+                  const projetadoFinal = linha.quantidadeProjetada + ajusteAtual;
+                  return (
+                    <TableRow key={linha.cargoId}>
+                      <TableCell className="font-medium">
+                        {linha.cargoNome}
+                      </TableCell>
+                      <TableCell className="text-center font-medium text-gray-500">
+                        {quantidadeAtual}
+                      </TableCell>
+                      <TableCell className="text-center font-medium text-gray-600">
+                        {linha.quantidadeProjetada}
+                      </TableCell>
+                      <TableCell>
+                        <AjusteInput
+                          value={ajusteAtual}
+                          onChange={(novoValor) =>
+                            handleAjusteChange(linha.cargoId, novoValor)
+                          }
+                        />
+                      </TableCell>
+                      <TableCell className="text-center font-bold text-xl text-primary">
+                        {projetadoFinal}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
 
-      </CardContent>
-    </Card>
+                {/* Outros Cargos (sem projetado - usa Atual) */}
+                {cargosAtuais.map((linha) => {
+                  const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
+                  const ajusteAtual = ajustes[linha.cargoId] || 0;
+                  const projetadoFinal = quantidadeAtual + ajusteAtual;
+                  return (
+                    <TableRow key={linha.cargoId}>
+                      <TableCell className="font-medium">
+                        {linha.cargoNome}
+                      </TableCell>
+                      <TableCell className="text-center font-medium text-gray-600">
+                        {quantidadeAtual}
+                      </TableCell>
+                      <TableCell className="text-center font-medium text-gray-400">
+                        -
+                      </TableCell>
+                      <TableCell>
+                        <AjusteInput
+                          value={ajusteAtual}
+                          onChange={(novoValor) =>
+                            handleAjusteChange(linha.cargoId, novoValor)
+                          }
+                        />
+                      </TableCell>
+                      <TableCell className="text-center font-bold text-xl text-primary">
+                        {projetadoFinal}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+
+                {linhasUnicas.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="text-center text-muted-foreground h-24"
+                    >
+                      Nenhum cargo encontrado para dimensionamento.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="flex justify-end mt-6 gap-3">
+            <Button onClick={handleOpenAvaliar} disabled={saving}>
+              {"Avaliação"}
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar Ajustes"}
+            </Button>
+          </div>
+
+        </CardContent>
+      </Card>
+    )}
+    </>
   );
 }

@@ -1,10 +1,11 @@
 import {
   CreateCategoryDTO,
+  Evaluation,
   QualitativeCategory,
-  Questionnaire,
-  UpdateCategoryDTO,
   Question,
+  Questionnaire,
   QuestionOption,
+  UpdateCategoryDTO,
 } from "@/features/qualitativo/types";
 import axios from "axios";
 
@@ -1112,6 +1113,34 @@ export const deleteQuestionario = async (
   questionarioId: number | string
 ): Promise<void> => {
   await api.delete(`/qualitative/questionnaires/${questionarioId}`);
+};
+
+// AVALIAÇÕES
+export const getAvaliacoes = async (): Promise<Evaluation[]> => {
+  const response = await api.get("/qualitative/evaluations");
+  return response.data;
+};
+
+export const getAvaliacaoById = async (id: number): Promise<Evaluation> => {
+  const response = await api.get(`/qualitative/evaluations/${id}`);
+  return response.data;
+};
+
+export const createAvaliacao = async (data: any): Promise<Evaluation> => {
+  const response = await api.post("/qualitative/evaluations", data);
+  return response.data;
+};
+
+export const updateAvaliacao = async (
+  id: number,
+  data: any
+): Promise<Evaluation> => {
+  const response = await api.put(`/qualitative/evaluations/${id}`, data);
+  return response.data;
+};
+
+export const deleteAvaliacao = async (id: number): Promise<void> => {
+  await api.delete(`/qualitative/evaluations/${id}`);
 };
 
 export const createColeta = async (data: FormData): Promise<any> => {

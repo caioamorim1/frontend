@@ -8,8 +8,17 @@ import {
   FileText,
   Trash2,
 } from "lucide-react";
-import { Questionnaire, Question, Answer, Evaluation } from "../types";
-import { dataRepository } from "../repository/DataRepository";
+import {
+  Questionnaire,
+  Question,
+  Answer,
+  Evaluation,
+  QualitativeCategory,
+} from "../types";
+import { getListQualitativesCategories, getQuestionarios } from "@/lib/api";
+import { useAlert } from "@/contexts/AlertContext";
+import { useModal } from "@/contexts/ModalContext";
+import { calculateQuestionScore } from "../calculate";
 
 interface QuestionInputRendererProps {
   question: Question;
@@ -44,36 +53,42 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => onAnswerChange(question.id, "sim")}
+              onClick={() =>
+                onAnswerChange(question.id, question.options[0]?.label)
+              }
               className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                value === "sim"
+                value === question.options[0]?.label
                   ? "bg-green-600 text-white shadow-md"
                   : "bg-gray-100 text-gray-700 hover:bg-green-100 hover:text-green-700"
               }`}
             >
-              Sim
+              {question.options[0]?.label || "Sim"}
             </button>
             <button
               type="button"
-              onClick={() => onAnswerChange(question.id, "nao")}
+              onClick={() =>
+                onAnswerChange(question.id, question.options[1]?.label)
+              }
               className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                value === "nao"
+                value === question.options[1]?.label
                   ? "bg-red-600 text-white shadow-md"
                   : "bg-gray-100 text-gray-700 hover:bg-red-100 hover:text-red-700"
               }`}
             >
-              Não
+              {question.options[1]?.label || "Não"}
             </button>
             <button
               type="button"
-              onClick={() => onAnswerChange(question.id, "na")}
+              onClick={() =>
+                onAnswerChange(question.id, question.options[2]?.label)
+              }
               className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                value === "na"
+                value === question.options[2]?.label
                   ? "bg-yellow-600 text-white shadow-md"
                   : "bg-gray-100 text-gray-700 hover:bg-yellow-100 hover:text-yellow-700"
               }`}
             >
-              N/A
+              {question.options[2]?.label || "N/A"}
             </button>
           </div>
 
@@ -388,7 +403,7 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
           )}
 
           {/* Lista de anexos */}
-          {attachments.length > 0 && (
+          {/* {attachments.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Arquivos Anexados
@@ -417,7 +432,7 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
                 ))}
               </div>
             </div>
-          )}
+          )} */}
         </div>
       );
 
@@ -531,39 +546,70 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
   onSave,
   editingEvaluation,
 }) => {
+  const { showAlert } = useAlert();
+  const { showModal } = useModal();
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
+  const [categories, setCategories] = useState<QualitativeCategory[]>([]);
   const [selectedQuestionnaire, setSelectedQuestionnaire] =
     useState<Questionnaire | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     evaluator: "",
     questionnaireId: 0,
+    questionnaire: "",
   });
   const [answers, setAnswers] = useState<Answer[]>([]);
+  `
+  `;
+
+  const showModalAviso = (title: string, message: string) => {
+    showModal({
+      type: "info",
+      title: title,
+      message: message,
+    });
+  };
+
+  const loadQuestionnaires = async () => {
+    getQuestionarios()
+      .then(setQuestionnaires)
+      .catch((err) => {
+        console.error("Falha ao buscar questionários:", err);
+        showAlert("destructive", "Erro", "Falha ao buscar questionários.");
+      });
+    getListQualitativesCategories()
+      .then(setCategories)
+      .catch((err) => {
+        console.error("Falha ao buscar categorias:", err);
+        showAlert("destructive", "Erro", "Falha ao buscar categorias.");
+      });
+  };
 
   useEffect(() => {
-    setQuestionnaires(dataRepository.getQuestionnaires());
-
     // Se estiver editando, carregar os dados da avaliação
     if (editingEvaluation) {
       setFormData({
         title: editingEvaluation.title,
         evaluator: editingEvaluation.evaluator,
         questionnaireId: editingEvaluation.questionnaireId,
+        questionnaire: editingEvaluation.questionnaire,
       });
 
-      const questionnaire = dataRepository
-        .getQuestionnaires()
-        .find((q) => q.id === editingEvaluation.questionnaireId);
+      const questionnaire = questionnaires.find(
+        (q) => q.id === editingEvaluation.questionnaireId
+      );
       if (questionnaire) {
         setSelectedQuestionnaire(questionnaire);
         setAnswers(editingEvaluation.answers || []);
       }
     }
+  }, [questionnaires]);
+
+  useEffect(() => {
+    loadQuestionnaires();
   }, []);
 
   const getCategoryName = (categoryId: number) => {
-    const categories = dataRepository.getCategories();
     const category = categories.find((c) => c.id === categoryId);
     return category ? category.name : "Categoria não encontrada";
   };
@@ -608,7 +654,10 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
     const currentAttachments =
       answers.find((a) => a.questionId === questionId)?.attachments || [];
     if (currentAttachments.length >= 3) {
-      alert("Máximo de 3 arquivos por pergunta");
+      showModalAviso(
+        "Limite de anexos atingido",
+        "Você já atingiu o limite máximo de 3 anexos para esta pergunta."
+      );
       return;
     }
 
@@ -616,7 +665,8 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
     const totalFiles = currentAttachments.length + fileNames.length;
 
     if (totalFiles > 3) {
-      alert(
+      showModalAviso(
+        "Limite de anexos atingido",
         `Você pode anexar no máximo 3 arquivos por pergunta. Atualmente há ${currentAttachments.length} arquivo(s) anexado(s).`
       );
       return;
@@ -652,7 +702,10 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
       !formData.evaluator.trim() ||
       !selectedQuestionnaire
     ) {
-      alert("Por favor, preencha todos os campos obrigatórios");
+      showModalAviso(
+        "Informações incompletas",
+        "Por favor, preencha todas as informações básicas e selecione um questionário."
+      );
       return;
     }
 
@@ -682,30 +735,28 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
       }
     );
 
-    if (unansweredQuestions.length > 0) {
-      const questionNumbers = unansweredQuestions
-        .map(
-          (q) =>
-            selectedQuestionnaire.questions.findIndex((sq) => sq.id === q.id) +
-            1
-        )
-        .join(", ");
-      alert(
-        `Por favor, responda todas as perguntas antes de finalizar.\nPerguntas não respondidas: ${questionNumbers}`
-      );
-      return;
-    }
+    // if (unansweredQuestions.length > 0) {
+    //   const questionNumbers = unansweredQuestions.map(q =>
+    //     selectedQuestionnaire.questions.findIndex(sq => sq.id === q.id) + 1
+    //   ).join(', ');
+    //   showModalAviso("Perguntas não respondidas", `Por favor, responda todas as perguntas antes de finalizar.\nPerguntas não respondidas: ${questionNumbers}`);
+    //   return;
+    // }
+
+    const calculateRate = calculateQuestionScore(
+      selectedQuestionnaire.questions,
+      answers || []
+    );
 
     const evaluationData = {
       title: formData.title,
       evaluator: formData.evaluator,
       date: new Date().toISOString().split("T")[0],
-      status: editingEvaluation
-        ? editingEvaluation.status
-        : ("completed" as const),
+      status: unansweredQuestions.length > 0 ? "incompleto" : "completo",
       questionnaire: selectedQuestionnaire!.name,
-      questionnaireId: formData.questionnaireId,
+      questionnaireId: selectedQuestionnaire!.id,
       answers,
+      calculateRate,
     };
 
     if (editingEvaluation) {
@@ -721,12 +772,20 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
         <h3 className="text-lg font-semibold text-gray-900">
           {editingEvaluation ? "Editar Avaliação" : "Nova Avaliação"}
         </h3>
-        <button
-          onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
-        >
-          <X className="h-5 w-5" />
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <button
+            onClick={handleNext}
+            className="text-green-800 hover:text-green-600 transition-colors duration-200"
+          >
+            <Save className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       {/* Informações básicas */}
@@ -821,9 +880,13 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
               >
                 <div className="mb-3">
                   <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Pergunta {index + 1}
+                    {index + 1} - {question.text}
                   </label>
-                  <p className="text-gray-700 mb-3">{question.text}</p>
+                  <p className="text-gray-700 mb-3">
+                    <span className="text-gray-500">
+                      {getCategoryName(question.categoryId)}
+                    </span>
+                  </p>
                 </div>
                 <QuestionInputRenderer
                   question={question}

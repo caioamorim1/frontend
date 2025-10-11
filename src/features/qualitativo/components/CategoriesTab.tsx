@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, CreditCard as Edit, Trash2, Save, X, Edit2 } from 'lucide-react';
 import { QualitativeCategory } from '../types';
-import { dataRepository } from '../repository/DataRepository';
 import { createCategory, deleteCategory, getListQualitativesCategories, updateCategory } from '@/lib/api';
 import { useAlert } from '@/contexts/AlertContext';
 import { useModal } from '@/contexts/ModalContext';

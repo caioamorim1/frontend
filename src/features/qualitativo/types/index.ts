@@ -7,7 +7,11 @@ export interface Evaluation {
   questionnaire: string;
   questionnaireId: number;
   answers?: Answer[];
+  calculateRate: number;
+  sectorId: string;
 }
+
+
 
 export interface Answer {
   questionId: number;
@@ -23,6 +27,11 @@ export interface Questionnaire {
   questions: Question[];
   created_at: string;
   updated_at: string;
+}
+
+export interface QuestionnaireSelected {
+  id: number;
+  name: string;
 }
 
 export interface QuestionOption {
