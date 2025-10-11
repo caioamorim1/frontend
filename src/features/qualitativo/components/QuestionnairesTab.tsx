@@ -12,12 +12,15 @@ export const QuestionnairesTab: React.FC = () => {
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
   const [categories, setCategories] = useState<QualitativeCategory[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingQuestionnaire, setEditingQuestionnaire] = useState<Questionnaire | null>(null);
+  const [editingQuestionnaire, setEditingQuestionnaire] =
+    useState<Questionnaire | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
-    questions: [] as Question[]
+    name: "",
+    questions: [] as Question[],
   });
-  const [categoryQuestions, setCategoryQuestions] = useState<{ [key: number]: Question[] }>({});
+  const [categoryQuestions, setCategoryQuestions] = useState<{
+    [key: number]: Question[];
+  }>({});
 
   useEffect(() => {
     loadData();
@@ -46,8 +49,8 @@ export const QuestionnairesTab: React.FC = () => {
   const addQuestionToCategory = (categoryId: number) => {
     const newQuestion: Question = {
       id: Date.now(),
-      text: '',
-      type: 'sim-nao-na',
+      text: "",
+      type: "sim-nao-na",
       weight: 1,
       options: [
         { label: 'Sim', weight: 100 },
@@ -56,16 +59,24 @@ export const QuestionnairesTab: React.FC = () => {
       ],
       categoryId
     };
-    setCategoryQuestions(prev => ({
+    setCategoryQuestions((prev) => ({
       ...prev,
-      [categoryId]: [...(prev[categoryId] || []), newQuestion]
+      [categoryId]: [...(prev[categoryId] || []), newQuestion],
     }));
   };
 
-  const updateQuestionInCategory = (categoryId: number, questionIndex: number, field: keyof Question, value: any) => {
-    setCategoryQuestions(prev => {
+  const updateQuestionInCategory = (
+    categoryId: number,
+    questionIndex: number,
+    field: keyof Question,
+    value: any
+  ) => {
+    setCategoryQuestions((prev) => {
       const categoryQs = [...(prev[categoryId] || [])];
-      categoryQs[questionIndex] = { ...categoryQs[questionIndex], [field]: value };
+      categoryQs[questionIndex] = {
+        ...categoryQs[questionIndex],
+        [field]: value,
+      };
 
       //categoryQs[questionIndex].options = [];
 
@@ -84,21 +95,26 @@ export const QuestionnairesTab: React.FC = () => {
 
       return {
         ...prev,
-        [categoryId]: categoryQs
+        [categoryId]: categoryQs,
       };
     });
   };
 
-  const removeQuestionFromCategory = (categoryId: number, questionIndex: number) => {
-    setCategoryQuestions(prev => ({
+  const removeQuestionFromCategory = (
+    categoryId: number,
+    questionIndex: number
+  ) => {
+    setCategoryQuestions((prev) => ({
       ...prev,
-      [categoryId]: (prev[categoryId] || []).filter((_, i) => i !== questionIndex)
+      [categoryId]: (prev[categoryId] || []).filter(
+        (_, i) => i !== questionIndex
+      ),
     }));
   };
 
 
   const addOptionToQuestion = (categoryId: number, questionIndex: number) => {
-    setCategoryQuestions(prev => {
+    setCategoryQuestions((prev) => {
       const categoryQs = [...(prev[categoryId] || [])];
       if (!categoryQs[questionIndex].options) {
         categoryQs[questionIndex].options = [];
@@ -106,7 +122,7 @@ export const QuestionnairesTab: React.FC = () => {
       categoryQs[questionIndex].options!.push({ label: '', weight: 1 });
       return {
         ...prev,
-        [categoryId]: categoryQs
+        [categoryId]: categoryQs,
       };
     });
   };
@@ -117,18 +133,22 @@ export const QuestionnairesTab: React.FC = () => {
       categoryQs[questionIndex].options![optionIndex] = value;
       return {
         ...prev,
-        [categoryId]: categoryQs
+        [categoryId]: categoryQs,
       };
     });
   };
 
-  const removeQuestionOption = (categoryId: number, questionIndex: number, optionIndex: number) => {
-    setCategoryQuestions(prev => {
+  const removeQuestionOption = (
+    categoryId: number,
+    questionIndex: number,
+    optionIndex: number
+  ) => {
+    setCategoryQuestions((prev) => {
       const categoryQs = [...(prev[categoryId] || [])];
       categoryQs[questionIndex].options!.splice(optionIndex, 1);
       return {
         ...prev,
-        [categoryId]: categoryQs
+        [categoryId]: categoryQs,
       };
     });
   };
@@ -167,8 +187,9 @@ export const QuestionnairesTab: React.FC = () => {
     }
 
     // Validar se todas as perguntas têm texto em todas as categorias
-    const invalidQuestions = Object.values(categoryQuestions).some(questions =>
-      questions.some(q => !q.text.trim() || !q.weight || q.weight < 1)
+    const invalidQuestions = Object.values(categoryQuestions).some(
+      (questions) =>
+        questions.some((q) => !q.text.trim() || !q.weight || q.weight < 1)
     );
     if (invalidQuestions) {
       showModalAviso("Atenção", "Por favor, preencha o texto e peso de todas as perguntas. O peso deve ser maior que zero.");
@@ -190,17 +211,17 @@ export const QuestionnairesTab: React.FC = () => {
     const allQuestions: Question[] = [];
 
     Object.entries(categoryQuestions).forEach(([categoryId, questions]) => {
-      questions.forEach(question => {
+      questions.forEach((question) => {
         allQuestions.push({
           ...question,
-          categoryId: parseInt(categoryId)
+          categoryId: parseInt(categoryId),
         });
       });
     });
 
     const questionnaireData = {
       name: formData.name,
-      questions: allQuestions
+      questions: allQuestions,
     };
 
     if (editingQuestionnaire) {
@@ -252,17 +273,19 @@ export const QuestionnairesTab: React.FC = () => {
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      questions: [] as Question[]
+      name: "",
+      questions: [] as Question[],
     });
     setCategoryQuestions({});
     setEditingQuestionnaire(null);
     setIsFormOpen(false);
   };
   const getTotalQuestions = () => {
-    return Object.values(categoryQuestions).reduce((total, questions) => total + questions.length, 0);
+    return Object.values(categoryQuestions).reduce(
+      (total, questions) => total + questions.length,
+      0
+    );
   };
-
 
   const handleDelete = (id: number) => {
     showModal({
@@ -282,17 +305,18 @@ export const QuestionnairesTab: React.FC = () => {
     });
   };
 
-
   const getCategoryName = (categoryId?: number) => {
-    if (!categoryId) return 'Sem categoria';
-    const category = categories.find(c => c.id === categoryId);
-    return category ? category.name : 'Categoria não encontrada';
+    if (!categoryId) return "Sem categoria";
+    const category = categories.find((c) => c.id === categoryId);
+    return category ? category.name : "Categoria não encontrada";
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Gestão de Questionários</h2>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Gestão de Questionários
+        </h2>
         <button
           onClick={() => setIsFormOpen(true)}
           className="bg-secondary text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
@@ -307,7 +331,9 @@ export const QuestionnairesTab: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-gray-900">
-              {editingQuestionnaire ? 'Editar Questionário' : 'Novo Questionário'}
+              {editingQuestionnaire
+                ? "Editar Questionário"
+                : "Novo Questionário"}
             </h3>
             <button
               onClick={resetForm}
@@ -320,14 +346,19 @@ export const QuestionnairesTab: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Informações básicas */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Nome Base do Questionário *
               </label>
               <input
                 type="text"
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors duration-200"
                 placeholder="Digite o nome base"
               />
@@ -343,7 +374,10 @@ export const QuestionnairesTab: React.FC = () => {
 
               <div className="space-y-6">
                 {categories.map((category) => (
-                  <div key={category.id} className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                  <div
+                    key={category.id}
+                    className="border border-gray-300 rounded-lg p-4 bg-gray-50"
+                  >
                     <div className="flex justify-between items-center mb-4">
                       <div>
                         <h5 className="font-semibold text-gray-900">{category.name}</h5>
@@ -360,54 +394,34 @@ export const QuestionnairesTab: React.FC = () => {
                     </div>
 
                     <div className="space-y-4">
-                      {(categoryQuestions[category.id] || []).map((question, questionIndex) => (
-                        <div key={question.id} className="border border-gray-200 rounded-lg p-4 bg-white">
-                          <div className="flex justify-between items-start mb-3">
-                            <h6 className="font-medium text-gray-900">Pergunta {questionIndex + 1}</h6>
-                            <button
-                              type="button"
-                              onClick={() => removeQuestionFromCategory(category.id, questionIndex)}
-                              className="text-red-600 hover:text-red-800 p-1"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Texto da Pergunta *
-                              </label>
-                              <input
-                                type="text"
-                                value={question.text}
-                                onChange={(e) => updateQuestionInCategory(category.id, questionIndex, 'text', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Digite o texto da pergunta"
-                                required
-                              />
+                      {(categoryQuestions[category.id] || []).map(
+                        (question, questionIndex) => (
+                          <div
+                            key={question.id}
+                            className="border border-gray-200 rounded-lg p-4 bg-white"
+                          >
+                            <div className="flex justify-between items-start mb-3">
+                              <h6 className="font-medium text-gray-900">
+                                Pergunta {questionIndex + 1}
+                              </h6>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeQuestionFromCategory(
+                                    category.id,
+                                    questionIndex
+                                  )
+                                }
+                                className="text-red-600 hover:text-red-800 p-1"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Tipo de Resposta *
-                                </label>
-                                <select
-                                  value={question.type}
-                                  onChange={(e) => updateQuestionInCategory(category.id, questionIndex, 'type', e.target.value)}
-                                  className="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                >
-                                  {questionTypes.map((type) => (
-                                    <option key={type.value} value={type.value}>
-                                      {type.label}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Peso *
+                                  Texto da Pergunta *
                                 </label>
                                 <input
                                   type="number"
@@ -418,8 +432,6 @@ export const QuestionnairesTab: React.FC = () => {
                                   required
                                 />
                               </div>
-                            </div>
-                          </div>
 
                           {/* Opções para múltipla escolha */}
                           {['multipla-escolha', 'sim-nao-na'].includes(question.type) && (
@@ -481,13 +493,79 @@ export const QuestionnairesTab: React.FC = () => {
                                 ))}
                               </div>
                             </div>
-                          )}
-                        </div>
-                      ))}
+
+                            {/* Opções para múltipla escolha */}
+                            {question.type === "multipla-escolha" && (
+                              <div>
+                                <div className="flex justify-between items-center mb-2">
+                                  <label className="block text-sm font-medium text-gray-700">
+                                    Opções de Resposta
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      addOptionToQuestion(
+                                        category.id,
+                                        questionIndex
+                                      )
+                                    }
+                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                  >
+                                    + Adicionar Opção
+                                  </button>
+                                </div>
+                                <div className="space-y-2">
+                                  {question.options?.map(
+                                    (option, optionIndex) => (
+                                      <div
+                                        key={optionIndex}
+                                        className="flex items-center space-x-2"
+                                      >
+                                        <input
+                                          type="text"
+                                          value={option}
+                                          onChange={(e) =>
+                                            updateQuestionOption(
+                                              category.id,
+                                              questionIndex,
+                                              optionIndex,
+                                              e.target.value
+                                            )
+                                          }
+                                          className="flex-1 px-3 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                          placeholder={`Opção ${
+                                            optionIndex + 1
+                                          }`}
+                                          required
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            removeQuestionOption(
+                                              category.id,
+                                              questionIndex,
+                                              optionIndex
+                                            )
+                                          }
+                                          className="text-red-600 hover:text-red-800 p-1"
+                                        >
+                                          <Minus className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      )}
 
                       {(categoryQuestions[category.id] || []).length === 0 && (
                         <div className="text-center py-4 text-gray-500 bg-white rounded-lg border border-gray-200">
-                          <p className="text-sm">Nenhuma pergunta adicionada nesta categoria.</p>
+                          <p className="text-sm">
+                            Nenhuma pergunta adicionada nesta categoria.
+                          </p>
                         </div>
                       )}
                     </div>
@@ -498,7 +576,9 @@ export const QuestionnairesTab: React.FC = () => {
               {categories.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <p>Nenhuma categoria encontrada.</p>
-                  <p className="text-sm">Crie categorias primeiro na aba "Categorias".</p>
+                  <p className="text-sm">
+                    Crie categorias primeiro na aba "Categorias".
+                  </p>
                 </div>
               )}
             </div>
@@ -516,7 +596,7 @@ export const QuestionnairesTab: React.FC = () => {
                 className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
               >
                 <Save className="h-4 w-4" />
-                <span>{editingQuestionnaire ? 'Atualizar' : 'Salvar'}</span>
+                <span>{editingQuestionnaire ? "Atualizar" : "Salvar"}</span>
               </button>
             </div>
           </form>
@@ -549,13 +629,19 @@ export const QuestionnairesTab: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {questionnaires.map((questionnaire) => (
-                  <tr key={questionnaire.id} className="hover:bg-gray-50 transition-colors duration-150">
+                  <tr
+                    key={questionnaire.id}
+                    className="hover:bg-gray-50 transition-colors duration-150"
+                  >
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{questionnaire.name}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {questionnaire.name}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {questionnaire.questions.length} pergunta{questionnaire.questions.length !== 1 ? 's' : ''}
+                        {questionnaire.questions.length} pergunta
+                        {questionnaire.questions.length !== 1 ? "s" : ""}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -594,8 +680,12 @@ export const QuestionnairesTab: React.FC = () => {
 
           {questionnaires.length === 0 && (
             <div className="text-center py-12">
-              <div className="text-gray-500 text-lg mb-2">Nenhum questionário encontrado</div>
-              <div className="text-gray-400 text-sm">Clique em "Novo Questionário" para começar</div>
+              <div className="text-gray-500 text-lg mb-2">
+                Nenhum questionário encontrado
+              </div>
+              <div className="text-gray-400 text-sm">
+                Clique em "Novo Questionário" para começar
+              </div>
             </div>
           )}
         </div>
