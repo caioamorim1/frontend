@@ -309,7 +309,9 @@ export interface CreateParametrosDTO {
   numero_coren?: string;
   aplicarIST?: boolean;
   ist?: number;
-  diasSemana?: number;
+  diasSemana?: string;
+  cargaHorariaEnfermeiro?: number;
+  cargaHorariaTecnico?: number;
 }
 export type ParametrosUnidade = CreateParametrosDTO & { id: string };
 
@@ -991,8 +993,21 @@ export const updateSitioFuncional = async (
   sitioId: string,
   data: Partial<CreateSitioFuncionalDTO>
 ): Promise<SitioFuncional> => {
-  const response = await api.put(`/sitios/sitios-funcionais/${sitioId}`, data);
-  return response.data;
+  console.log("🌐 API - updateSitioFuncional chamada");
+  console.log("  SitioId:", sitioId);
+  console.log("  Data:", JSON.stringify(data, null, 2));
+
+  try {
+    const response = await api.put(
+      `/sitios/sitios-funcionais/${sitioId}`,
+      data
+    );
+    console.log("✅ API - Resposta:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ API - Erro:", error.response?.data || error.message);
+    throw error;
+  }
 };
 export const deleteSitioFuncional = async (sitioId: string): Promise<void> => {
   await api.delete(`/sitios/sitios-funcionais/${sitioId}`);

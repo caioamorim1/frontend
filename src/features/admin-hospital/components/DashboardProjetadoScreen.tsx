@@ -1,5 +1,6 @@
 // src/features/admin-hospital/components/DashboardProjetadoScreen.tsx
 import React, { useState, useMemo, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -437,8 +438,12 @@ export const DashboardProjetadoScreen: React.FC<
   const [radarData, setRadarData] = useState<ChartDataItem[]>([]);
   const [activeTab, setActiveTab] = useState("global");
 
+  // Pegar hospitalId da URL
+  const { hospitalId } = useParams<{ hospitalId: string }>();
+
   const loadData = async () => {
-    const dashboardData = getAllHospitalSectors();
+    // Passar hospitalId para a função
+    const dashboardData = await getAllHospitalSectors(hospitalId);
     const tipo = activeTab === "internacao" ? "Internacao" : "NaoInternacao";
     const performanceData =
       activeTab === "global"
@@ -451,7 +456,7 @@ export const DashboardProjetadoScreen: React.FC<
 
   useEffect(() => {
     loadData();
-  }, [activeTab]);
+  }, [activeTab, hospitalId]); // Adicionar hospitalId como dependência
 
   return (
     <>

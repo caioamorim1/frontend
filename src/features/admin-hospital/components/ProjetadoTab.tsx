@@ -118,6 +118,38 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
     return <Skeleton className="h-96 w-full" />;
   }
 
+  // Remover duplicatas por cargoId
+  const cargosMap = new Map<string, LinhaAnaliseFinanceira>();
+  analiseBase.forEach((linha) => {
+    if (!cargosMap.has(linha.cargoId)) {
+      cargosMap.set(linha.cargoId, linha);
+    }
+  });
+  const linhasUnicas = Array.from(cargosMap.values());
+
+  // Separar cargos que têm projetado (Enfermeiro/Técnico) dos outros
+  const cargosComProjetado = linhasUnicas.filter(
+    (linha) =>
+      linha.cargoNome.toLowerCase().includes("enfermeiro") ||
+      linha.cargoNome.toLowerCase().includes("técnico") ||
+      linha.cargoNome.toLowerCase().includes("tecnico")
+  );
+
+  const cargosAtuais = linhasUnicas.filter(
+    (linha) =>
+      !linha.cargoNome.toLowerCase().includes("enfermeiro") &&
+      !linha.cargoNome.toLowerCase().includes("técnico") &&
+      !linha.cargoNome.toLowerCase().includes("tecnico")
+  );
+
+  // Buscar quantidade atual da unidade para os cargos sem projetado
+  const getQuantidadeAtual = (cargoId: string): number => {
+    const cargoUnidade = unidade.cargos_unidade?.find(
+      (cu) => cu.cargo.id === cargoId
+    );
+    return cargoUnidade?.quantidade_funcionarios || 0;
+  };
+
   return (
     <Card className="animate-fade-in-down">
       <CardHeader>
@@ -129,6 +161,7 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[30%]">Função</TableHead>
+                <TableHead className="text-center">Atual</TableHead>
                 <TableHead className="text-center">
                   Projetado (Sistema)
                 </TableHead>
@@ -139,13 +172,18 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {analiseBase.map((linha) => {
+              {/* Cargos com Projetado (Enfermeiro/Técnico) */}
+              {cargosComProjetado.map((linha) => {
+                const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
                 const ajusteAtual = ajustes[linha.cargoId] || 0;
                 const projetadoFinal = linha.quantidadeProjetada + ajusteAtual;
                 return (
                   <TableRow key={linha.cargoId}>
                     <TableCell className="font-medium">
                       {linha.cargoNome}
+                    </TableCell>
+                    <TableCell className="text-center font-medium text-gray-500">
+                      {quantidadeAtual}
                     </TableCell>
                     <TableCell className="text-center font-medium text-gray-600">
                       {linha.quantidadeProjetada}
@@ -164,6 +202,48 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
                   </TableRow>
                 );
               })}
+
+              {/* Outros Cargos (sem projetado - usa Atual) */}
+              {cargosAtuais.map((linha) => {
+                const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
+                const ajusteAtual = ajustes[linha.cargoId] || 0;
+                const projetadoFinal = quantidadeAtual + ajusteAtual;
+                return (
+                  <TableRow key={linha.cargoId}>
+                    <TableCell className="font-medium">
+                      {linha.cargoNome}
+                    </TableCell>
+                    <TableCell className="text-center font-medium text-gray-600">
+                      {quantidadeAtual}
+                    </TableCell>
+                    <TableCell className="text-center font-medium text-gray-400">
+                      -
+                    </TableCell>
+                    <TableCell>
+                      <AjusteInput
+                        value={ajusteAtual}
+                        onChange={(novoValor) =>
+                          handleAjusteChange(linha.cargoId, novoValor)
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="text-center font-bold text-xl text-primary">
+                      {projetadoFinal}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+
+              {linhasUnicas.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-muted-foreground h-24"
+                  >
+                    Nenhum cargo encontrado para dimensionamento.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>

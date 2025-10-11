@@ -123,14 +123,57 @@ export default function ProjetadoNaoInternacaoTab({
     return <Skeleton className="h-96 w-full" />;
   }
 
-  // Agrupar todos os cargos de todos os grupos em uma lista única
-  const todasAsLinhas = analiseBase.flatMap((grupo) =>
-    grupo.cargos.map((cargo) => ({
-      cargoId: cargo.cargoId,
-      cargoNome: cargo.cargoNome,
-      quantidadeProjetada: cargo.quantidadeProjetada,
-    }))
+  // Agrupar todos os cargos e remover duplicatas por cargoId
+  const cargosMap = new Map<
+    string,
+    {
+      cargoId: string;
+      cargoNome: string;
+      quantidadeProjetada: number;
+    }
+  >();
+
+  analiseBase.forEach((grupo) => {
+    grupo.cargos.forEach((cargo) => {
+      if (!cargosMap.has(cargo.cargoId)) {
+        cargosMap.set(cargo.cargoId, {
+          cargoId: cargo.cargoId,
+          cargoNome: cargo.cargoNome,
+          quantidadeProjetada: cargo.quantidadeProjetada,
+        });
+      }
+    });
+  });
+
+  const todasAsLinhas = Array.from(cargosMap.values());
+
+  // Separar cargos que têm projetado (Enfermeiro/Técnico) dos outros
+  const cargosComProjetado = todasAsLinhas.filter(
+    (cargo) =>
+      cargo.cargoNome.toLowerCase().includes("enfermeiro") ||
+      cargo.cargoNome.toLowerCase().includes("técnico") ||
+      cargo.cargoNome.toLowerCase().includes("tecnico")
   );
+
+  const cargosAtuais = todasAsLinhas.filter(
+    (cargo) =>
+      !cargo.cargoNome.toLowerCase().includes("enfermeiro") &&
+      !cargo.cargoNome.toLowerCase().includes("técnico") &&
+      !cargo.cargoNome.toLowerCase().includes("tecnico")
+  );
+
+  // Buscar quantidade atual dos sítios para os cargos sem projetado
+  const getQuantidadeAtual = (cargoId: string): number => {
+    let total = 0;
+    unidade.sitiosFuncionais?.forEach((sitio) => {
+      sitio.cargosSitio?.forEach((cs) => {
+        if (cs.cargoUnidade.cargo.id === cargoId) {
+          total += cs.quantidade_funcionarios;
+        }
+      });
+    });
+    return total;
+  };
 
   return (
     <Card className="animate-fade-in-down">
@@ -143,6 +186,7 @@ export default function ProjetadoNaoInternacaoTab({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[30%]">Função</TableHead>
+                <TableHead className="text-center">Atual</TableHead>
                 <TableHead className="text-center">
                   Projetado (Sistema)
                 </TableHead>
@@ -153,13 +197,18 @@ export default function ProjetadoNaoInternacaoTab({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {todasAsLinhas.map((linha) => {
+              {/* Cargos com Projetado (Enfermeiro/Técnico) */}
+              {cargosComProjetado.map((linha) => {
+                const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
                 const ajusteAtual = ajustes[linha.cargoId] || 0;
                 const projetadoFinal = linha.quantidadeProjetada + ajusteAtual;
                 return (
                   <TableRow key={linha.cargoId}>
                     <TableCell className="font-medium">
                       {linha.cargoNome}
+                    </TableCell>
+                    <TableCell className="text-center font-medium text-gray-500">
+                      {quantidadeAtual}
                     </TableCell>
                     <TableCell className="text-center font-medium text-gray-600">
                       {linha.quantidadeProjetada}
@@ -178,6 +227,48 @@ export default function ProjetadoNaoInternacaoTab({
                   </TableRow>
                 );
               })}
+
+              {/* Outros Cargos (sem projetado - usa Atual) */}
+              {cargosAtuais.map((linha) => {
+                const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
+                const ajusteAtual = ajustes[linha.cargoId] || 0;
+                const projetadoFinal = quantidadeAtual + ajusteAtual;
+                return (
+                  <TableRow key={linha.cargoId}>
+                    <TableCell className="font-medium">
+                      {linha.cargoNome}
+                    </TableCell>
+                    <TableCell className="text-center font-medium text-gray-600">
+                      {quantidadeAtual}
+                    </TableCell>
+                    <TableCell className="text-center font-medium text-gray-400">
+                      -
+                    </TableCell>
+                    <TableCell>
+                      <AjusteInput
+                        value={ajusteAtual}
+                        onChange={(novoValor) =>
+                          handleAjusteChange(linha.cargoId, novoValor)
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="text-center font-bold text-xl text-primary">
+                      {projetadoFinal}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+
+              {todasAsLinhas.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-muted-foreground h-24"
+                  >
+                    Nenhum cargo encontrado para dimensionamento.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>

@@ -33,7 +33,6 @@ import { Textarea } from "@/components/ui/textarea";
 // Interface para controlar o formulário de alocação de cargos
 interface CargoParaAlocar {
   cargoId: string;
-  quantidade_funcionarios: number;
   nome?: string;
 }
 
@@ -59,7 +58,6 @@ export default function SitiosFuncionaisAdminPage() {
     []
   );
   const [selectedCargoId, setSelectedCargoId] = useState("");
-  const [quantidade, setQuantidade] = useState(1);
 
   const fetchData = async () => {
     if (!unidadeId) return;
@@ -73,9 +71,17 @@ export default function SitiosFuncionaisAdminPage() {
       // 2. Busca os sítios com os detalhes de alocação (a correção principal)
       const sitiosDetalhados = await getSitiosFuncionaisByUnidadeId(unidadeId);
 
-      // 3. Combina os dados para ter o objeto 'unidade' completo
+      // 3. Remove duplicatas de cargos_unidade se existirem
+      const cargosUnicos =
+        unidadeData.cargos_unidade?.filter(
+          (cu, index, self) =>
+            index === self.findIndex((c) => c.cargo.id === cu.cargo.id)
+        ) || [];
+
+      // 4. Combina os dados para ter o objeto 'unidade' completo
       const unidadeCompleta = {
         ...unidadeData,
+        cargos_unidade: cargosUnicos,
         sitiosFuncionais: sitiosDetalhados,
       };
 
@@ -91,36 +97,21 @@ export default function SitiosFuncionaisAdminPage() {
     fetchData();
   }, [unidadeId]);
 
-  const saldosPorCargo = useMemo(() => {
-    const saldos: { [key: string]: number } = {};
-    if (!unidade || !unidade.cargos_unidade) return saldos;
-
-    unidade.cargos_unidade.forEach((cu) => {
-      saldos[cu.cargo.id] = cu.quantidade_funcionarios;
-    });
-
-    unidade.sitiosFuncionais?.forEach((sitio) => {
-      if (editingSitio && sitio.id === editingSitio.id) {
-        return;
-      }
-
-      sitio.cargosSitio?.forEach((cs) => {
-        const cargoId = cs.cargoUnidade.cargo.id;
-        if (saldos[cargoId] !== undefined) {
-          saldos[cargoId] -= cs.quantidade_funcionarios;
-        }
-      });
-    });
-
-    return saldos;
-  }, [unidade, editingSitio]);
+  // Removido o cálculo de saldosPorCargo pois não controla mais quantidade aqui
 
   const cargosDisponiveisParaAdicionar = useMemo(() => {
     if (!unidade?.cargos_unidade) return [];
     const idsCargosJaNoFormulario = new Set(
       cargosParaAlocar.map((c) => c.cargoId)
     );
-    return unidade.cargos_unidade.filter(
+
+    // Remove duplicatas baseado no ID do cargo
+    const cargosUnicos = unidade.cargos_unidade.filter(
+      (cu, index, self) =>
+        index === self.findIndex((c) => c.cargo.id === cu.cargo.id)
+    );
+
+    return cargosUnicos.filter(
       (cu) => !idsCargosJaNoFormulario.has(cu.cargo.id)
     );
   }, [unidade?.cargos_unidade, cargosParaAlocar]);
@@ -129,7 +120,6 @@ export default function SitiosFuncionaisAdminPage() {
     setFormData({});
     setCargosParaAlocar([]);
     setSelectedCargoId("");
-    setQuantidade(1);
     setIsFormVisible(false);
     setEditingSitio(null);
   };
@@ -143,11 +133,19 @@ export default function SitiosFuncionaisAdminPage() {
     );
 
     if (sitio && sitio.cargosSitio) {
-      const cargosAlocados = sitio.cargosSitio.map((cs) => ({
-        cargoId: cs.cargoUnidade.cargo.id,
-        nome: cs.cargoUnidade.cargo.nome,
-        quantidade_funcionarios: cs.quantidade_funcionarios,
-      }));
+      // Remove duplicatas ao carregar cargos do sítio
+      const cargosAlocados = sitio.cargosSitio
+        .filter(
+          (cs, index, self) =>
+            index ===
+            self.findIndex(
+              (c) => c.cargoUnidade.cargo.id === cs.cargoUnidade.cargo.id
+            )
+        )
+        .map((cs) => ({
+          cargoId: cs.cargoUnidade.cargo.id,
+          nome: cs.cargoUnidade.cargo.nome,
+        }));
       setCargosParaAlocar(cargosAlocados);
     } else {
       setCargosParaAlocar([]);
@@ -162,16 +160,14 @@ export default function SitiosFuncionaisAdminPage() {
 
   const adicionarCargo = () => {
     setError(null);
-    if (!selectedCargoId || quantidade < 1) {
-      setError("Selecione um cargo e uma quantidade válida.");
+    if (!selectedCargoId) {
+      setError("Selecione um cargo.");
       return;
     }
 
-    const saldoDisponivel = saldosPorCargo[selectedCargoId] ?? 0;
-    if (quantidade > saldoDisponivel) {
-      setError(
-        `Quantidade excede o saldo disponível de ${saldoDisponivel} para este cargo.`
-      );
+    // Verifica se o cargo já foi adicionado
+    if (cargosParaAlocar.some((c) => c.cargoId === selectedCargoId)) {
+      setError("Este cargo já foi adicionado.");
       return;
     }
 
@@ -183,12 +179,10 @@ export default function SitiosFuncionaisAdminPage() {
         ...prev,
         {
           cargoId: selectedCargoId,
-          quantidade_funcionarios: quantidade,
           nome: cargoInfo.cargo.nome,
         },
       ]);
       setSelectedCargoId("");
-      setQuantidade(1);
     }
   };
 
@@ -200,12 +194,10 @@ export default function SitiosFuncionaisAdminPage() {
     e.preventDefault();
     if (!unidadeId || !formData.nome?.trim()) return;
 
-    const payloadCargos = cargosParaAlocar.map(
-      ({ cargoId, quantidade_funcionarios }) => ({
-        cargoId,
-        quantidade_funcionarios,
-      })
-    );
+    const payloadCargos = cargosParaAlocar.map(({ cargoId }) => ({
+      cargoId,
+      quantidade_funcionarios: 0, // Quantidade será definida na tab Atual
+    }));
 
     try {
       if (editingSitio) {
@@ -324,7 +316,10 @@ export default function SitiosFuncionaisAdminPage() {
             </div>
 
             <div className="space-y-3 pt-4 border-t">
-              <h3 className="font-semibold text-primary">Alocar Cargos</h3>
+              <h3 className="font-semibold text-primary">Associar Cargos</h3>
+              <p className="text-sm text-muted-foreground">
+                A quantidade de funcionários será definida na aba "Atual"
+              </p>
               <div className="flex items-end gap-2">
                 <div className="flex-grow">
                   <label className="text-sm font-medium">Cargo</label>
@@ -339,22 +334,11 @@ export default function SitiosFuncionaisAdminPage() {
                     <SelectContent>
                       {cargosDisponiveisParaAdicionar.map((cu) => (
                         <SelectItem key={cu.cargo.id} value={cu.cargo.id}>
-                          {cu.cargo.nome} (Saldo:{" "}
-                          {saldosPorCargo[cu.cargo.id] ?? 0})
+                          {cu.cargo.nome}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Qtd.</label>
-                  <Input
-                    type="number"
-                    value={quantidade}
-                    onChange={(e) => setQuantidade(Number(e.target.value))}
-                    min="1"
-                    className="w-24"
-                  />
                 </div>
                 <Button
                   type="button"
@@ -370,16 +354,14 @@ export default function SitiosFuncionaisAdminPage() {
               {cargosParaAlocar.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-gray-600 mt-2">
-                    Cargos a serem alocados neste sítio:
+                    Cargos associados a este sítio:
                   </h4>
                   {cargosParaAlocar.map((cargo) => (
                     <div
                       key={cargo.cargoId}
                       className="flex justify-between items-center p-2 bg-slate-50 rounded-md text-sm"
                     >
-                      <span>
-                        {cargo.nome} (Qtd: {cargo.quantidade_funcionarios})
-                      </span>
+                      <span>{cargo.nome}</span>
                       <button
                         type="button"
                         onClick={() => removerCargo(cargo.cargoId)}

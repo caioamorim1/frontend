@@ -4,6 +4,8 @@ import { Globe, Layers } from "lucide-react";
 // Importando os componentes de dashboard
 import { DashboardAtualScreen } from "@/features/admin-hospital/components/DashboardAtualScreen";
 import { DashboardProjetadoScreen } from "@/features/admin-hospital/components/DashboardProjetadoScreen";
+import { DashboardBaselineScreen } from "@/features/admin-hospital/components/DashboardBaselineScreen";
+import { DashboardComparativoScreen } from "@/features/admin-hospital/components/DashboardComparativoScreen";
 import { clearSectorsCache } from "@/mocks/functionSectores";
 
 // Importando componentes de gráficos específicos
@@ -584,10 +586,12 @@ export default function GlobalDashboardPage() {
       </Card>
 
       {/* Abas de Dashboard */}
-      <Tabs defaultValue="baseline">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs defaultValue="atual">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="baseline">Baseline</TabsTrigger>
           <TabsTrigger value="atual">Atual</TabsTrigger>
           <TabsTrigger value="projetado">Projetado</TabsTrigger>
+          <TabsTrigger value="comparativo">Comparativo</TabsTrigger>
         </TabsList>
 
         {loading ? (
@@ -602,6 +606,21 @@ export default function GlobalDashboardPage() {
           </Card>
         ) : (
           <>
+            <TabsContent value="baseline">
+              <div className="grid grid-cols-1 gap-6 mt-6">
+                <DashboardBaselineScreen
+                  title={`Análise Econômico-Financeira Baseline - ${
+                    groupBy === "rede"
+                      ? "Por Rede"
+                      : groupBy === "grupo"
+                      ? "Por Grupo"
+                      : groupBy === "regiao"
+                      ? "Por Região"
+                      : "Por Hospital"
+                  }`}
+                />
+              </div>
+            </TabsContent>
             <TabsContent value="atual">
               <div className="grid grid-cols-1 gap-6 mt-6">
                 <DashboardAtualScreen
@@ -624,6 +643,21 @@ export default function GlobalDashboardPage() {
               <div className="grid grid-cols-1 gap-6 mt-6">
                 <DashboardProjetadoScreen
                   title={`Análise Econômico-Financeira Projetada - ${
+                    groupBy === "rede"
+                      ? "Por Rede"
+                      : groupBy === "grupo"
+                      ? "Por Grupo"
+                      : groupBy === "regiao"
+                      ? "Por Região"
+                      : "Por Hospital"
+                  }`}
+                />
+              </div>
+            </TabsContent>
+            <TabsContent value="comparativo">
+              <div className="grid grid-cols-1 gap-6 mt-6">
+                <DashboardComparativoScreen
+                  title={`Análise Comparativa - ${
                     groupBy === "rede"
                       ? "Por Rede"
                       : groupBy === "grupo"
