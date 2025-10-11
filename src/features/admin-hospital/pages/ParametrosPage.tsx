@@ -25,6 +25,7 @@ export default function ParametrosPage() {
       }
       try {
         const data = await getParametros(setorId);
+        console.log("Dados dos parâmetros carregados:", data);
         if (!mounted) return;
         setParametros(data ?? {}); // aceita null/undefined -> {} (sem parâmetros)
       } catch (err: any) {
@@ -58,6 +59,10 @@ export default function ParametrosPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!setorId) return;
+    console.log("Parametro :", parametros);
+    if (parametros.aplicarIST === undefined || parametros.aplicarIST === null) {
+      parametros.aplicarIST = false;
+    }
     try {
       await saveParametros(setorId, parametros as CreateParametrosDTO);
       alert("Parâmetros salvos com sucesso!");
@@ -69,73 +74,105 @@ export default function ParametrosPage() {
   if (loading) return <p>Carregando parâmetros...</p>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
         <Settings /> Parâmetros da Unidade
       </h2>
       {error && <p className="text-red-500">{error}</p>}
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-lg border space-y-4"
+        className="bg-white p-8 rounded-lg border shadow-sm space-y-6"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium">
+            <label className="block text-sm font-medium mb-2">
               Nome do Enfermeiro Responsável
             </label>
             <input
               name="nome_enfermeiro"
               value={parametros.nome_enfermeiro || ""}
               onChange={handleChange}
-              className="mt-1 w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">Número do COREN</label>
+            <label className="block text-sm font-medium mb-2">
+              Número do COREN
+            </label>
             <input
               name="numero_coren"
               value={parametros.numero_coren || ""}
               onChange={handleChange}
-              className="mt-1 w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md"
             />
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <label className="block text-sm font-medium">
+            <label className="block text-sm font-medium mb-2">
               Dias da Semana para Cálculo
             </label>
             <input
               name="diasSemana"
               type="number"
-              value={parametros.diasSemana || 7}
+              value={parametros.diasSemana || ""}
               onChange={handleChange}
-              className="mt-1 w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md"
             />
           </div>
-          <div className="flex items-center gap-4 pt-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Jornada Semanal Enfermeiro (horas)
+            </label>
+            <input
+              name="cargaHorariaEnfermeiro"
+              type="number"
+              value={parametros.cargaHorariaEnfermeiro || ""}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-md"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Jornada Semanal Técnico (horas)
+            </label>
+            <input
+              name="cargaHorariaTecnico"
+              type="number"
+              value={parametros.cargaHorariaTecnico || ""}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-md"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-start gap-6">
+          <div className="w-48">
+            <label className="block text-sm font-medium mb-2">
+              Valor do IST (%)
+            </label>
+            <input
+              name="ist"
+              type="number"
+              value={parametros.ist || ""}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-md"
+            />
+          </div>
+          <div className="flex items-start gap-3 flex-1 pt-7">
             <input
               id="aplicarIST"
               name="aplicarIST"
               type="checkbox"
               checked={parametros.aplicarIST || false}
               onChange={handleChange}
-              className="h-4 w-4 rounded"
+              className="h-4 w-4 rounded mt-1"
             />
             <label htmlFor="aplicarIST" className="text-sm font-medium">
               Equipe de enfermagem é composta em sua maioria de pessoas com
               idade superior a 50 anos, ou 20% da equipe com restrições?
             </label>
-          </div>
-          <div>
-            <label className="block text-sm font-medium">
-              Valor do IST (%)
-            </label>
-            <input
-              name="ist"
-              type="number"
-              value={parametros.ist ?? 15}
-              onChange={handleChange}
-              className="mt-1 w-full p-2 border rounded-md"
-            />
           </div>
         </div>
         <div className="flex justify-end">

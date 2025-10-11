@@ -33,7 +33,8 @@ export default function DimensionamentoTab({
       try {
         const data = await getAnaliseInternacao(unidade.id);
         setAnaliseData(data);
-        console.log(data);
+        console.log("=== DADOS COMPLETOS DA ANÁLISE DE INTERNAÇÃO ===");
+        console.log(JSON.stringify(data, null, 2));
         setTabelaData(data?.tabela ?? []);
       } catch (err: any) {
         const isNotFound =
