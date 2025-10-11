@@ -44,7 +44,7 @@ export const QuestionnairesTab: React.FC = () => {
   // --- CONSTANTS ---
   const questionTypes = [
     { value: 'sim-nao-na', label: 'Sim / Não / N/A' },
-    { value: 'multipla-escolha', label: 'Múltipla Escolha' }
+    // { value: 'multipla-escolha', label: 'Múltipla Escolha' }
   ];
 
   // --- FORM HANDLERS ---
@@ -333,43 +333,41 @@ export const QuestionnairesTab: React.FC = () => {
                             </button>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4">
-                            <div className="md:col-span-8">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Texto da Pergunta *</label>
+                          <div className="flex flex-col md:flex-row items-start gap-4 mb-4">
+                            {/* Campo da pergunta (80%) */}
+                            <div className="flex-1">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Texto da Pergunta *
+                              </label>
                               <input
                                 type="text"
                                 value={question.text}
-                                onChange={(e) => updateQuestionInCategory(category.id, questionIndex, 'text', e.target.value)}
+                                onChange={(e) =>
+                                  updateQuestionInCategory(category.id, questionIndex, 'text', e.target.value)
+                                }
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Digite o texto da pergunta"
                                 required
                               />
                             </div>
-                            <div className="md:col-span-2">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
-                              <select
-                                value={question.type}
-                                onChange={(e) => updateQuestionInCategory(category.id, questionIndex, 'type', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                              >
-                                {questionTypes.map(type => (
-                                  <option key={type.value} value={type.value}>{type.label}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="md:col-span-2">
+
+                            {/* Campo do peso (20%) */}
+                            <div className="w-32 flex-shrink-0">
                               <label className="block text-sm font-medium text-gray-700 mb-1">Peso *</label>
                               <input
                                 type="number"
                                 min="1"
                                 value={question.weight}
-                                onChange={(e) => updateQuestionInCategory(category.id, questionIndex, 'weight', parseInt(e.target.value, 10))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                onChange={(e) =>
+                                  updateQuestionInCategory(category.id, questionIndex, 'weight', parseInt(e.target.value, 10))
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 "
                                 placeholder="Peso"
                                 required
                               />
                             </div>
                           </div>
+
 
                           {/* Opções de Resposta */}
                           {['multipla-escolha', 'sim-nao-na'].includes(question.type) && (
@@ -388,31 +386,49 @@ export const QuestionnairesTab: React.FC = () => {
                               </div>
                               <div className="space-y-2">
                                 {question.options?.map((option, optionIndex) => (
-                                  <div key={optionIndex} className="flex items-center space-x-2">
+                                  <div
+                                    key={optionIndex}
+                                    className="flex items-center gap-2"
+                                  >
+                                    {/* Campo de texto da opção (80%) */}
                                     <input
                                       type="text"
                                       value={option.label}
-                                      onChange={(e) => updateQuestionOption(category.id, questionIndex, optionIndex, { label: e.target.value })}
-                                      className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                      onChange={(e) =>
+                                        updateQuestionOption(category.id, questionIndex, optionIndex, {
+                                          label: e.target.value,
+                                        })
+                                      }
+                                      className="w-50 px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                       placeholder={`Opção ${optionIndex + 1}`}
                                       required
                                       disabled={question.type === 'sim-nao-na'} // Desabilita edição para Sim/Não
                                     />
+
+                                    {/* Campo de peso (20%) */}
                                     <input
                                       type="number"
                                       min={0}
                                       max={100}
                                       value={option.weight}
-                                      onChange={(e) => updateQuestionOption(category.id, questionIndex, optionIndex, { weight: parseFloat(e.target.value) })}
-                                      className="w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                      placeholder="Pontos"
+                                      onChange={(e) =>
+                                        updateQuestionOption(category.id, questionIndex, optionIndex, {
+                                          weight: parseFloat(e.target.value),
+                                        })
+                                      }
+                                      className="w-20 px-2 py-1 text-sm text-center border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                      placeholder="Pts"
                                       required
                                     />
+
+                                    {/* Botão remover (somente múltipla escolha) */}
                                     {question.type === 'multipla-escolha' && (
                                       <button
                                         type="button"
-                                        onClick={() => removeQuestionOption(category.id, questionIndex, optionIndex)}
-                                        className="text-red-600 hover:text-red-800 p-2"
+                                        onClick={() =>
+                                          removeQuestionOption(category.id, questionIndex, optionIndex)
+                                        }
+                                        className="text-red-600 hover:text-red-800 p-1"
                                         title="Remover Opção"
                                       >
                                         <Minus className="h-4 w-4" />
@@ -421,6 +437,7 @@ export const QuestionnairesTab: React.FC = () => {
                                   </div>
                                 ))}
                               </div>
+
                             </div>
                           )}
                         </div>

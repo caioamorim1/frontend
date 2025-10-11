@@ -4,7 +4,7 @@ import { Questionnaire, Question, Answer, Evaluation, QualitativeCategory } from
 import { getListQualitativesCategories, getQuestionarios } from '@/lib/api';
 import { useAlert } from '@/contexts/AlertContext';
 import { useModal } from '@/contexts/ModalContext';
-import { calculateQuestionScore } from '../calculate';
+import { calculateQuestionScoreByCategory } from '../calculate';
 
 interface QuestionInputRendererProps {
   question: Question;
@@ -643,7 +643,8 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
     //   return;
     // }
 
-    const calculateRate = calculateQuestionScore(selectedQuestionnaire.questions, answers || []);
+    const calculateRate = calculateQuestionScoreByCategory(selectedQuestionnaire.questions, answers || []);
+    console.log("calculateRate", calculateRate);
 
     const evaluationData = {
       title: formData.title,
@@ -653,7 +654,7 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
       questionnaire: selectedQuestionnaire!.name,
       questionnaireId: selectedQuestionnaire!.id,
       answers,
-      calculateRate
+      calculateRate: calculateRate.totalRate
     };
 
     if (editingEvaluation) {

@@ -6,7 +6,6 @@ import { EvaluationForm } from './EvaluationForm';
 import { createAvaliacao, deleteAvaliacao, getAvaliacoes, getQuestionarios, UnidadeInternacao, UnidadeNaoInternacao, updateAvaliacao } from '@/lib/api';
 import { useAlert } from '@/contexts/AlertContext';
 import { useModal } from '@/contexts/ModalContext';
-import { calculateQuestionScore } from '../calculate';
 
 export const EvaluationsTab: React.FC<{
   onClose: () => void;
