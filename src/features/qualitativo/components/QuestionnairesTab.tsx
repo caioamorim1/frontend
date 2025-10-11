@@ -373,8 +373,8 @@ export const QuestionnairesTab: React.FC = () => {
                             </button>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                            <div>
+                          <div className="flex flex-col md:flex-row md:space-x-4 mb-4">
+                            <div className="flex-1 mb-4 md:mb-0">
                               <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Texto da Pergunta *
                               </label>
@@ -388,8 +388,8 @@ export const QuestionnairesTab: React.FC = () => {
                               />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
+
+                            {/*<div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                   Tipo de Resposta *
                                 </label>
@@ -405,19 +405,19 @@ export const QuestionnairesTab: React.FC = () => {
                                   ))}
                                 </select>
                               </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Peso *
-                                </label>
-                                <input
-                                  type="number"
-                                  value={question.weight}
-                                  onChange={(e) => updateQuestionInCategory(category.id, questionIndex, 'weight', parseInt(e.target.value))}
-                                  className="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                  placeholder="Peso da pergunta"
-                                  required
-                                />
-                              </div>
+                              */}
+                            <div className=" mb-4 md:mb-0">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Peso *
+                              </label>
+                              <input
+                                type="number"
+                                value={question.weight}
+                                onChange={(e) => updateQuestionInCategory(category.id, questionIndex, 'weight', parseInt(e.target.value))}
+                                className="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Peso da pergunta"
+                                required
+                              />
                             </div>
                           </div>
 
@@ -451,12 +451,13 @@ export const QuestionnairesTab: React.FC = () => {
                                         className="flex-1 min-w-[220px] px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                         placeholder={`Opção ${optionIndex + 1}`}
                                         required
+                                        disabled={true}
                                       />
                                     </div>
 
                                     <div className="mt-2 md:mt-0 w-32">
                                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Peso
+                                        Pontos
                                       </label>
                                       <input
                                         type="number"
@@ -520,86 +521,88 @@ export const QuestionnairesTab: React.FC = () => {
               </button>
             </div>
           </form>
-        </div>
+        </div >
       )}
 
       {/* Tabela de Questionários */}
-      {!isFormOpen && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nome do Questionário
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nº de Perguntas
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Data de Criação
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Última Atualização
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {questionnaires.map((questionnaire) => (
-                  <tr key={questionnaire.id} className="hover:bg-gray-50 transition-colors duration-150">
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{questionnaire.name}</div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {questionnaire.questions.length} pergunta{questionnaire.questions.length !== 1 ? 's' : ''}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="text-sm text-gray-600">
-                        {new Date(questionnaire.created_at).toLocaleDateString('pt-BR')}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="text-sm text-gray-600">
-                        {new Date(questionnaire.updated_at).toLocaleDateString('pt-BR')}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center space-x-2">
-                        <button
-                          onClick={() => handleEdit(questionnaire)}
-                          className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                          title="Editar questionário"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(questionnaire.id)}
-                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200"
-                          title="Excluir questionário"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
+      {
+        !isFormOpen && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Nome do Questionário
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Nº de Perguntas
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Data de Criação
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Última Atualização
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ações
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {questionnaires.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-gray-500 text-lg mb-2">Nenhum questionário encontrado</div>
-              <div className="text-gray-400 text-sm">Clique em "Novo Questionário" para começar</div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {questionnaires.map((questionnaire) => (
+                    <tr key={questionnaire.id} className="hover:bg-gray-50 transition-colors duration-150">
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">{questionnaire.name}</div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {questionnaire.questions.length} pergunta{questionnaire.questions.length !== 1 ? 's' : ''}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="text-sm text-gray-600">
+                          {new Date(questionnaire.created_at).toLocaleDateString('pt-BR')}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="text-sm text-gray-600">
+                          {new Date(questionnaire.updated_at).toLocaleDateString('pt-BR')}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center space-x-2">
+                          <button
+                            onClick={() => handleEdit(questionnaire)}
+                            className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                            title="Editar questionário"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(questionnaire.id)}
+                            className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200"
+                            title="Excluir questionário"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
-      )}
-    </div>
+
+            {questionnaires.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-gray-500 text-lg mb-2">Nenhum questionário encontrado</div>
+                <div className="text-gray-400 text-sm">Clique em "Novo Questionário" para começar</div>
+              </div>
+            )}
+          </div>
+        )
+      }
+    </div >
   );
 };
