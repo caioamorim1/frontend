@@ -2,9 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Plus, CreditCard as Edit, Trash2, Save, X } from 'lucide-react';
 import { QualitativeCategory } from '../types';
 import { dataRepository } from '../repository/DataRepository';
-import { getListQualitativesCategories } from '@/lib/api';
+import { createCategory, deleteCategory, getListQualitativesCategories, updateCategory } from '@/lib/api';
+import { useAlert } from '@/contexts/AlertContext';
+import { useModal } from '@/contexts/ModalContext';
 
 export const CategoriesTab: React.FC = () => {
+  const { showAlert } = useAlert()
+  const { showModal } = useModal()
+
   const [categories, setCategories] = useState<QualitativeCategory[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<QualitativeCategory | null>(null);
@@ -17,7 +22,10 @@ export const CategoriesTab: React.FC = () => {
   const loadCategories = () => {
     getListQualitativesCategories()
       .then(setCategories)
-      .catch(err => console.error("Falha ao buscar categorias:", err))
+      .catch(err => {
+        console.error("Falha ao buscar categorias:", err);
+        showAlert("destructive", "Erro", "Falha ao buscar categorias.");
+      });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,9 +37,21 @@ export const CategoriesTab: React.FC = () => {
     }
 
     if (editingCategory) {
-      dataRepository.updateCategory(editingCategory.id, formData);
+      updateCategory(editingCategory.id, formData).then(() => {
+        showAlert("success", "Sucesso", "Categoria atualizada com sucesso.");
+        loadCategories();
+      }).catch(err => {
+        console.error("Falha ao atualizar categoria:", err);
+        showAlert("destructive", "Erro", "Falha ao atualizar categoria.");
+      });
     } else {
-      dataRepository.addCategory(formData);
+      createCategory({ name: formData.name, meta: formData.meta }).then(() => {
+        showAlert("success", "Sucesso", "Categoria criada com sucesso.");
+        loadCategories();
+      }).catch(err => {
+        console.error("Falha ao criar categoria:", err);
+        showAlert("destructive", "Erro", "Falha ao criar categoria.");
+      });
     }
 
     loadCategories();
@@ -45,10 +65,24 @@ export const CategoriesTab: React.FC = () => {
   };
 
   const handleDelete = (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir esta categoria?')) {
-      dataRepository.deleteCategory(id);
-      loadCategories();
-    }
+    showModal({
+      type: "confirm",
+      title: "Excluir registro?",
+      message: "Tem certeza que deseja deletar este item?",
+      onConfirm: () => deleteItem(id),
+    })
+  };
+
+  const deleteItem = (id: number) => {
+    deleteCategory(id)
+      .then(() => {
+        showAlert("success", "Sucesso", "Categoria excluída com sucesso.");
+        loadCategories();
+      })
+      .catch(err => {
+        console.error("Falha ao excluir categoria:", err);
+        showAlert("destructive", "Erro", "Falha ao excluir categoria.");
+      });
   };
 
   const resetForm = () => {
@@ -63,7 +97,7 @@ export const CategoriesTab: React.FC = () => {
         <h2 className="text-2xl font-bold text-gray-900">Gestão de Categorias</h2>
         <button
           onClick={() => setIsFormOpen(true)}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
+          className="bg-secondary text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
         >
           <Plus className="h-4 w-4" />
           <span>Nova Categoria</span>

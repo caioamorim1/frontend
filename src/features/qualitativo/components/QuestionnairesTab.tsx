@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, CreditCard as Edit, Trash2, Save, X, Minus } from 'lucide-react';
-import { Questionnaire, Question, Category } from '../types';
-import { dataRepository } from '../repository/DataRepository';
+import { Plus, CreditCard as Edit, Trash2, Save, X, Minus, Edit2 } from 'lucide-react';
+import { Questionnaire, Question, QualitativeCategory } from '../types';
+import { createQuestionario, deleteQuestionario, getListQualitativesCategories, getQuestionarios, updateQuestionario } from '@/lib/api';
+import { useAlert } from '@/contexts/AlertContext';
+import { useModal } from '@/contexts/ModalContext';
 
 export const QuestionnairesTab: React.FC = () => {
+  const { showAlert } = useAlert();
+  const { showModal } = useModal()
+
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<QualitativeCategory[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingQuestionnaire, setEditingQuestionnaire] = useState<Questionnaire | null>(null);
   const [formData, setFormData] = useState({
@@ -18,9 +23,12 @@ export const QuestionnairesTab: React.FC = () => {
     loadData();
   }, []);
 
-  const loadData = () => {
-    setQuestionnaires(dataRepository.getQuestionnaires());
-    setCategories(dataRepository.getCategories());
+  const loadData = async () => {
+    const result = await getQuestionarios();
+    setQuestionnaires(result);
+
+    const categoriesResult = await getListQualitativesCategories();
+    setCategories(categoriesResult);
   };
 
   const questionTypes = [
@@ -111,18 +119,35 @@ export const QuestionnairesTab: React.FC = () => {
   };
 
 
+  const showModalAviso = (title: string, message: string) => {
+    showModal({
+      type: "info",
+      title: title,
+      message: message,
+    })
+  }
+
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      alert('Por favor, preencha o nome do questionário');
+      showModalAviso("Atenção", "O nome base do questionário é obrigatório.");
       return;
     }
 
-    // Verificar se há pelo menos uma pergunta em alguma categoria
-    const totalQuestions = Object.values(categoryQuestions).reduce((total, questions) => total + questions.length, 0);
-    if (totalQuestions === 0) {
-      alert('Por favor, adicione pelo menos uma pergunta em alguma categoria');
+
+    // Verifica se há categorias sem perguntas
+    const emptyCategories = categories.filter(
+      (cat) => !categoryQuestions[cat.id] || categoryQuestions[cat.id].length === 0
+    );
+
+    if (emptyCategories.length > 0) {
+      const emptyNames = emptyCategories.map((c) => c.name).join(", ");
+      showModalAviso(
+        "Atenção",
+        `As seguintes categorias precisam ter pelo menos uma pergunta: ${emptyNames}.`
+      );
       return;
     }
 
@@ -131,7 +156,7 @@ export const QuestionnairesTab: React.FC = () => {
       questions.some(q => !q.text.trim() || !q.weight || q.weight < 1)
     );
     if (invalidQuestions) {
-      alert('Por favor, preencha o texto e peso de todas as perguntas. O peso deve ser maior que zero.');
+      showModalAviso("Atenção", "Por favor, preencha o texto e peso de todas as perguntas. O peso deve ser maior que zero.");
       return;
     }
 
@@ -142,7 +167,7 @@ export const QuestionnairesTab: React.FC = () => {
       )
     );
     if (invalidOptions) {
-      alert('Por favor, preencha todas as opções das perguntas de múltipla escolha');
+      showModalAviso("Atenção", "Por favor, preencha todas as opções das perguntas de múltipla escolha");
       return;
     }
 
@@ -164,28 +189,49 @@ export const QuestionnairesTab: React.FC = () => {
     };
 
     if (editingQuestionnaire) {
-      dataRepository.updateQuestionnaire(editingQuestionnaire.id, questionnaireData);
+      updateQuestionario(editingQuestionnaire.id, questionnaireData).then(() => {
+        showAlert("success", "Sucesso", "Questionário atualizado com sucesso.");
+      }).catch(err => {
+        console.error("Falha ao atualizar questionário:", err);
+        showAlert("destructive", "Erro", "Falha ao atualizar questionário.");
+      }).finally(() => {
+        loadData();
+      });
     } else {
-      //dataRepository.addQuestionnaire(questionnaireData);
+      createQuestionario(questionnaireData).then(() => {
+        showAlert("success", "Sucesso", "Questionário criado com sucesso.");
+      }).catch(err => {
+        console.error("Falha ao criar questionário:", err);
+        showAlert("destructive", "Erro", "Falha ao criar questionário.");
+      }).finally(() => {
+        loadData();
+      });
     }
-
-    loadData();
     resetForm();
   };
 
   const handleEdit = (questionnaire: Questionnaire) => {
+    console.log("Editing Questionnaire:", questionnaire);
+
     setEditingQuestionnaire(questionnaire);
+
+    // Preenche o formulário base
     setFormData({
-      name: questionnaire.name.replace(` - ${getCategoryName(questionnaire.categoryId)}`, ''),
-      questions: [] as Question[]
+      name: questionnaire.name,
+      questions: structuredClone(questionnaire.questions), // Deep copy seguro
     });
 
-    // Carregar perguntas na categoria correspondente
-    if (questionnaire.categoryId) {
-      setCategoryQuestions({
-        [questionnaire.categoryId]: [...questionnaire.questions]
-      });
-    }
+    // 🔥 Agrupa as perguntas por categoriaId
+    const groupedByCategory = questionnaire.questions.reduce((acc, question) => {
+      const { categoryId } = question;
+      if (!acc[categoryId]) acc[categoryId] = [];
+      acc[categoryId].push(question);
+      return acc;
+    }, {} as Record<number, any[]>);
+
+    // Atualiza o estado de perguntas organizadas por categoria
+    setCategoryQuestions(groupedByCategory);
+
     setIsFormOpen(true);
   };
 
@@ -204,10 +250,21 @@ export const QuestionnairesTab: React.FC = () => {
 
 
   const handleDelete = (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir este questionário?')) {
-      dataRepository.deleteQuestionnaire(id);
-      loadData();
-    }
+    showModal({
+      type: "confirm",
+      title: "Excluir registro?",
+      message: "Tem certeza que deseja excluir este registro?",
+      onConfirm: () => {
+        deleteQuestionario(id).then(() => {
+          showAlert("success", "Sucesso", "Questionário excluído com sucesso.");
+        }).catch(err => {
+          console.error("Falha ao excluir questionário:", err);
+          showAlert("destructive", "Erro", "Falha ao excluir questionário.");
+        }).finally(() => {
+          loadData();
+        });
+      }
+    });
   };
 
 
@@ -223,7 +280,7 @@ export const QuestionnairesTab: React.FC = () => {
         <h2 className="text-2xl font-bold text-gray-900">Gestão de Questionários</h2>
         <button
           onClick={() => setIsFormOpen(true)}
-          className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
+          className="bg-secondary text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
         >
           <Plus className="h-4 w-4" />
           <span>Novo Questionário</span>
@@ -257,12 +314,8 @@ export const QuestionnairesTab: React.FC = () => {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors duration-200"
-                placeholder="Digite o nome base (será combinado com o nome da categoria)"
-                required
+                placeholder="Digite o nome base"
               />
-              <p className="text-sm text-gray-500 mt-1">
-                O nome final será: "{formData.name} - [Nome da Categoria]"
-              </p>
             </div>
 
             {/* Perguntas por Categoria */}
@@ -279,7 +332,7 @@ export const QuestionnairesTab: React.FC = () => {
                     <div className="flex justify-between items-center mb-4">
                       <div>
                         <h5 className="font-semibold text-gray-900">{category.name}</h5>
-                        <p className="text-sm text-gray-600">Meta: {category.meta} | Perguntas: {(categoryQuestions[category.id] || []).length}</p>
+                        <p className="text-sm text-gray-600">Perguntas: {(categoryQuestions[category.id] || []).length}</p>
                       </div>
                       <button
                         type="button"
@@ -344,11 +397,9 @@ export const QuestionnairesTab: React.FC = () => {
                                 <input
                                   type="number"
                                   value={question.weight}
-                                  onChange={(e) => updateQuestionInCategory(category.id, questionIndex, 'weight', parseInt(e.target.value) || 1)}
+                                  onChange={(e) => updateQuestionInCategory(category.id, questionIndex, 'weight', parseInt(e.target.value))}
                                   className="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                  placeholder="1-10"
-                                  min="1"
-                                  max="10"
+                                  placeholder="Peso da pergunta"
                                   required
                                 />
                               </div>
@@ -471,12 +522,12 @@ export const QuestionnairesTab: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="text-sm text-gray-600">
-                        {new Date(questionnaire.createdAt).toLocaleDateString('pt-BR')}
+                        {new Date(questionnaire.created_at).toLocaleDateString('pt-BR')}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="text-sm text-gray-600">
-                        {new Date(questionnaire.updatedAt).toLocaleDateString('pt-BR')}
+                        {new Date(questionnaire.updated_at).toLocaleDateString('pt-BR')}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -486,7 +537,7 @@ export const QuestionnairesTab: React.FC = () => {
                           className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-200"
                           title="Editar questionário"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit2 className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(questionnaire.id)}

@@ -33,10 +33,9 @@ const NavItem = ({
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${
-          isActive
-            ? "bg-secondary/10 text-secondary font-semibold"
-            : "text-gray-200 hover:bg-white/10"
+        `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${isActive
+          ? "bg-secondary/10 text-secondary font-semibold"
+          : "text-gray-200 hover:bg-white/10"
         }`
       }
     >
@@ -141,7 +140,7 @@ export default function Sidebar() {
     {
       to: `/admin/questionarios`,
       icon: <ListChecks size={18} />,
-      label: "Questionários",
+      label: "Qualitativo",
     },
     {
       to: `/admin/admins`,

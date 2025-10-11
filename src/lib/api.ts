@@ -1,4 +1,4 @@
-import { QualitativeCategory } from "@/features/qualitativo/types";
+import { CreateCategoryDTO, QualitativeCategory, Questionnaire, UpdateCategoryDTO } from "@/features/qualitativo/types";
 import axios from "axios";
 
 export const API_BASE_URL = "http://127.0.0.1:3110";
@@ -338,13 +338,6 @@ export interface Pergunta {
   obrigatoria: boolean;
 }
 
-export interface Questionario {
-  id: string;
-  nome: string;
-  perguntas: Pergunta[];
-}
-export type CreateQuestionarioDTO = Omit<Questionario, "id">;
-export type UpdateQuestionarioDTO = Partial<CreateQuestionarioDTO>;
 
 export interface RespostaColeta {
   perguntaId: string;
@@ -356,7 +349,7 @@ export interface Coleta {
   id: string;
   localNome: string;
   respostas: RespostaColeta[];
-  questionario: Questionario;
+  questionario: { id: string; nome: string };
   colaborador?: { id: string; nome: string };
   created_at: string;
 }
@@ -1032,39 +1025,48 @@ export const deleteCargoDeSitio = async (
 export const getListQualitativesCategories = async (): Promise<
   QualitativeCategory[]
 > => {
-  const response = await api.get("/qualitative/categorys");
+  const response = await api.get("/qualitative/categories");
+  console.log("Categorias qualitativas:", response.data);
   return response.data;
 };
 
-// QUESTIONÁRIOS E COLETAS
-export const getQuestionarios = async (): Promise<Questionario[]> => {
-  const response = await api.get("/questionarios");
-  return response.data.questionarios;
-};
-
-export const getQuestionarioById = async (
-  questionarioId: string
-): Promise<Questionario> => {
-  const response = await api.get(`/questionarios/${questionarioId}`);
+export const createCategory = async (data: CreateCategoryDTO): Promise<QualitativeCategory> => {
+  const response = await api.post("/qualitative/categories", data);
   return response.data;
 };
 
+export const updateCategory = async (id: number, data: UpdateCategoryDTO): Promise<void> => {
+  await api.put(`/qualitative/categories/${id}`, data);
+};
+
+export const deleteCategory = async (id: number): Promise<void> => {
+  await api.delete(`/qualitative/categories/${id}`);
+};
+
+// QUESTIONÁRIOS 
+export const getQuestionarios = async (): Promise<Questionnaire[]> => {
+  const response = await api.get("/qualitative/questionnaires");
+  return response.data;
+};
 export const createQuestionario = async (
-  data: CreateQuestionarioDTO
-): Promise<Questionario> => {
-  const response = await api.post("/questionarios", data);
+  data: any
+): Promise<Questionnaire> => {
+  const response = await api.post("/qualitative/questionnaires", data);
   return response.data;
 };
 export const updateQuestionario = async (
-  id: string,
-  data: UpdateQuestionarioDTO
-): Promise<Questionario> => {
-  const response = await api.put(`/questionarios/${id}`, data);
+  questionarioId: number,
+  data: any
+): Promise<Questionnaire> => {
+  const response = await api.put(`/qualitative/questionnaires/${questionarioId}`, data);
   return response.data;
 };
-export const deleteQuestionario = async (id: string): Promise<void> => {
-  await api.delete(`/questionarios/${id}`);
+export const deleteQuestionario = async (
+  questionarioId: number
+): Promise<void> => {
+  await api.delete(`/qualitative/questionnaires/${questionarioId}`);
 };
+
 export const createColeta = async (data: FormData): Promise<any> => {
   const response = await api.post("/coletas", data, {
     headers: { "Content-Type": "multipart/form-data" },

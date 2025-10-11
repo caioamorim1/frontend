@@ -6,18 +6,16 @@ import { QuestionnairesTab } from './components/QuestionnairesTab';
 import { CategoriesTab } from './components/CategoriesTab';
 
 function qualitativoPage() {
-  const [activeTab, setActiveTab] = useState('evaluations');
+  const [activeTab, setActiveTab] = useState('questionnaires');
 
   const renderActiveTab = () => {
     switch (activeTab) {
-      case 'evaluations':
-        return <EvaluationsTab />;
       case 'questionnaires':
         return <QuestionnairesTab />;
       case 'categories':
         return <CategoriesTab />;
       default:
-        return <EvaluationsTab />;
+        return <QuestionnairesTab />;
     }
   };
 

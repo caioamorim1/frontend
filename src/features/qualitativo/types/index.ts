@@ -21,8 +21,8 @@ export interface Questionnaire {
   name: string;
   categoryId?: number;
   questions: Question[];
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Question {
@@ -38,4 +38,14 @@ export interface QualitativeCategory {
   id: number;
   name: string;
   meta: number;
+}
+
+export interface CreateCategoryDTO {
+  name: string;
+  meta: number;
+}
+
+export interface UpdateCategoryDTO {
+  name?: string;
+  meta?: number;
 }
