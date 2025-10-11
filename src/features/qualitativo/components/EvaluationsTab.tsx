@@ -6,6 +6,7 @@ import { EvaluationForm } from './EvaluationForm';
 import { createAvaliacao, deleteAvaliacao, getAvaliacoes, getQuestionarios, UnidadeInternacao, UnidadeNaoInternacao, updateAvaliacao } from '@/lib/api';
 import { useAlert } from '@/contexts/AlertContext';
 import { useModal } from '@/contexts/ModalContext';
+import { calculateQuestionScore } from '../calculate';
 
 export const EvaluationsTab: React.FC<{
   onClose: () => void;
@@ -33,9 +34,7 @@ export const EvaluationsTab: React.FC<{
   };
 
 
-
   const handleSaveEvaluation = (evaluationData: any) => {
-    console.log('Received evaluation data:', evaluationData);
     if (!evaluationData || !evaluationData.questionnaireId) {
       showAlert('destructive', 'Dados da avaliação inválidos.', 'error');
       return;
@@ -45,7 +44,11 @@ export const EvaluationsTab: React.FC<{
       showAlert('destructive', 'Setor inválido para a avaliação.', 'error');
       return;
     }
+
     console.log('Saving evaluation:', evaluationData);
+
+
+
     if (editingEvaluation) {
       updateAvaliacao(editingEvaluation.id, evaluationData).then(() => {
         loadEvaluations();
@@ -175,6 +178,9 @@ export const EvaluationsTab: React.FC<{
                     STATUS
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    NOTA
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     QUESTIONÁRIO
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -204,6 +210,9 @@ export const EvaluationsTab: React.FC<{
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(evaluation.status)}`}>
                         {getStatusText(evaluation.status)}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {evaluation.calculateRate || 0}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {evaluation.questionnaire}

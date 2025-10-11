@@ -4,6 +4,7 @@ import { Questionnaire, Question, Answer, Evaluation, QualitativeCategory } from
 import { getListQualitativesCategories, getQuestionarios } from '@/lib/api';
 import { useAlert } from '@/contexts/AlertContext';
 import { useModal } from '@/contexts/ModalContext';
+import { calculateQuestionScore } from '../calculate';
 
 interface QuestionInputRendererProps {
   question: Question;
@@ -35,8 +36,8 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => onAnswerChange(question.id, 'sim')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${value === 'sim'
+              onClick={() => onAnswerChange(question.id, question.options[0]?.label)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${value === question.options[0]?.label
                 ? 'bg-green-600 text-white shadow-md'
                 : 'bg-gray-100 text-gray-700 hover:bg-green-100 hover:text-green-700'
                 }`}
@@ -45,8 +46,8 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => onAnswerChange(question.id, 'nao')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${value === 'nao'
+              onClick={() => onAnswerChange(question.id, question.options[1]?.label)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${value === question.options[1]?.label
                 ? 'bg-red-600 text-white shadow-md'
                 : 'bg-gray-100 text-gray-700 hover:bg-red-100 hover:text-red-700'
                 }`}
@@ -55,8 +56,8 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => onAnswerChange(question.id, 'na')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${value === 'na'
+              onClick={() => onAnswerChange(question.id, question.options[2]?.label)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${value === question.options[2]?.label
                 ? 'bg-yellow-600 text-white shadow-md'
                 : 'bg-gray-100 text-gray-700 hover:bg-yellow-100 hover:text-yellow-700'
                 }`}
@@ -526,9 +527,6 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
         questionnaire: editingEvaluation.questionnaire
       });
 
-      console.log("Carregando avaliação para edição:", editingEvaluation);
-      console.log("Questionários disponíveis:", questionnaires);
-
       const questionnaire = questionnaires.find(q => q.id === editingEvaluation.questionnaireId);
       if (questionnaire) {
         setSelectedQuestionnaire(questionnaire);
@@ -645,6 +643,8 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
     //   return;
     // }
 
+    const calculateRate = calculateQuestionScore(selectedQuestionnaire.questions, answers || []);
+
     const evaluationData = {
       title: formData.title,
       evaluator: formData.evaluator,
@@ -652,7 +652,8 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
       status: unansweredQuestions.length > 0 ? 'incompleto' : 'completo',
       questionnaire: selectedQuestionnaire!.name,
       questionnaireId: selectedQuestionnaire!.id,
-      answers
+      answers,
+      calculateRate
     };
 
     if (editingEvaluation) {
