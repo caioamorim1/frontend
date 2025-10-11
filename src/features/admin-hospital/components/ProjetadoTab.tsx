@@ -114,6 +114,13 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
     }
   };
 
+
+  const handleOpenAvaliar = () => {
+    // Implementar a lógica para abrir a aba de Avaliação
+    // Pode ser uma navegação para outra rota ou abrir um modal, dependendo da estrutura da aplicação
+    console.log("Abrir aba de Avaliação");
+  }
+
   if (loading) {
     return <Skeleton className="h-96 w-full" />;
   }
@@ -247,11 +254,15 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
             </TableBody>
           </Table>
         </div>
-        <div className="flex justify-end mt-6">
+        <div className="flex justify-end mt-6 gap-3">
+          <Button onClick={handleOpenAvaliar} disabled={saving}>
+            {"Avaliação"}
+          </Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? "Salvando..." : "Salvar Ajustes"}
           </Button>
         </div>
+
       </CardContent>
     </Card>
   );

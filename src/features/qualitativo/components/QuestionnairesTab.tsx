@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, CreditCard as Edit, Trash2, Save, X, Minus, Edit2 } from 'lucide-react';
-import { Questionnaire, Question, QualitativeCategory } from '../types';
+import { Questionnaire, Question, QualitativeCategory, QuestionOption } from '../types';
 import { createQuestionario, deleteQuestionario, getListQualitativesCategories, getQuestionarios, updateQuestionario } from '@/lib/api';
 import { useAlert } from '@/contexts/AlertContext';
 import { useModal } from '@/contexts/ModalContext';
@@ -33,9 +33,9 @@ export const QuestionnairesTab: React.FC = () => {
 
   const questionTypes = [
     { value: 'sim-nao-na', label: 'Sim / Não / N/A' },
-    { value: 'texto', label: 'Texto' },
-    { value: 'numero', label: 'Número' },
-    { value: 'data', label: 'Data' },
+    // { value: 'texto', label: 'Texto' },
+    // { value: 'numero', label: 'Número' },
+    // { value: 'data', label: 'Data' },
     { value: 'multipla-escolha', label: 'Múltipla Escolha' }
   ];
 
@@ -49,8 +49,12 @@ export const QuestionnairesTab: React.FC = () => {
       text: '',
       type: 'sim-nao-na',
       weight: 1,
-      options: [],
-      categoryId: 0
+      options: [
+        { label: 'Sim', weight: 100 },
+        { label: 'Não', weight: 0 },
+        { label: 'Não se aplica', weight: 0 }
+      ],
+      categoryId
     };
     setCategoryQuestions(prev => ({
       ...prev,
@@ -63,9 +67,19 @@ export const QuestionnairesTab: React.FC = () => {
       const categoryQs = [...(prev[categoryId] || [])];
       categoryQs[questionIndex] = { ...categoryQs[questionIndex], [field]: value };
 
-      // Se mudou para múltipla escolha, inicializa as opções
-      if (field === 'type' && value === 'multipla-escolha' && !categoryQs[questionIndex].options) {
-        categoryQs[questionIndex].options = [''];
+      //categoryQs[questionIndex].options = [];
+
+      // Ajusta automaticamente opções padrão
+      if (field === 'type' && value === 'sim-nao-na') {
+        categoryQs[questionIndex].options = [
+          { label: 'Sim', weight: 100 },
+          { label: 'Não', weight: 0 },
+          { label: 'Não se aplica', weight: 0 }
+        ];
+      } else if (field === 'type' && value === 'multipla-escolha') {
+        categoryQs[questionIndex].options = [{ label: '', weight: 1 }];
+      } else if (field === 'type' && !['sim-nao-na', 'multipla-escolha'].includes(value)) {
+        categoryQs[questionIndex].options = [];
       }
 
       return {
@@ -82,13 +96,14 @@ export const QuestionnairesTab: React.FC = () => {
     }));
   };
 
+
   const addOptionToQuestion = (categoryId: number, questionIndex: number) => {
     setCategoryQuestions(prev => {
       const categoryQs = [...(prev[categoryId] || [])];
       if (!categoryQs[questionIndex].options) {
         categoryQs[questionIndex].options = [];
       }
-      categoryQs[questionIndex].options!.push('');
+      categoryQs[questionIndex].options!.push({ label: '', weight: 1 });
       return {
         ...prev,
         [categoryId]: categoryQs
@@ -96,7 +111,7 @@ export const QuestionnairesTab: React.FC = () => {
     });
   };
 
-  const updateQuestionOption = (categoryId: number, questionIndex: number, optionIndex: number, value: string) => {
+  const updateQuestionOption = (categoryId: number, questionIndex: number, optionIndex: number, value: QuestionOption) => {
     setCategoryQuestions(prev => {
       const categoryQs = [...(prev[categoryId] || [])];
       categoryQs[questionIndex].options![optionIndex] = value;
@@ -163,7 +178,7 @@ export const QuestionnairesTab: React.FC = () => {
     // Validar opções de múltipla escolha
     const invalidOptions = Object.values(categoryQuestions).some(questions =>
       questions.some(q =>
-        q.type === 'multipla-escolha' && (!q.options || q.options.length === 0 || q.options.some(opt => !opt.trim()))
+        q.type === 'multipla-escolha' && (!q.options || q.options.length === 0 || q.options.some(opt => !opt.label.trim()))
       )
     );
     if (invalidOptions) {
@@ -337,7 +352,7 @@ export const QuestionnairesTab: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => addQuestionToCategory(category.id)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 flex items-center space-x-1"
+                        className="bg-secondary text-white px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 flex items-center space-x-1"
                       >
                         <Plus className="h-3 w-3" />
                         <span>Adicionar Pergunta</span>
@@ -407,38 +422,61 @@ export const QuestionnairesTab: React.FC = () => {
                           </div>
 
                           {/* Opções para múltipla escolha */}
-                          {question.type === 'multipla-escolha' && (
+                          {['multipla-escolha', 'sim-nao-na'].includes(question.type) && (
                             <div>
                               <div className="flex justify-between items-center mb-2">
                                 <label className="block text-sm font-medium text-gray-700">
                                   Opções de Resposta
                                 </label>
-                                <button
-                                  type="button"
-                                  onClick={() => addOptionToQuestion(category.id, questionIndex)}
-                                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                >
-                                  + Adicionar Opção
-                                </button>
+                                {question.type === 'multipla-escolha' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => addOptionToQuestion(category.id, questionIndex)}
+                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                  >
+                                    + Adicionar Opção
+                                  </button>)}
                               </div>
                               <div className="space-y-2">
                                 {question.options?.map((option, optionIndex) => (
-                                  <div key={optionIndex} className="flex items-center space-x-2">
-                                    <input
-                                      type="text"
-                                      value={option}
-                                      onChange={(e) => updateQuestionOption(category.id, questionIndex, optionIndex, e.target.value)}
-                                      className="flex-1 px-3 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                      placeholder={`Opção ${optionIndex + 1}`}
-                                      required
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => removeQuestionOption(category.id, questionIndex, optionIndex)}
-                                      className="text-red-600 hover:text-red-800 p-1"
-                                    >
-                                      <Minus className="h-3 w-3" />
-                                    </button>
+                                  <div key={optionIndex} className="flex flex-col md:flex-row md:items-center md:space-x-2 mb-2">
+                                    <div >
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Texto da Opção
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={option.label}
+                                        onChange={(e) => updateQuestionOption(category.id, questionIndex, optionIndex, { ...option, label: e.target.value })}
+                                        className="flex-1 min-w-[220px] px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder={`Opção ${optionIndex + 1}`}
+                                        required
+                                      />
+                                    </div>
+
+                                    <div className="mt-2 md:mt-0 w-32">
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Peso
+                                      </label>
+                                      <input
+                                        type="number"
+                                        min={0}
+                                        max={100}
+                                        value={option.weight}
+                                        onChange={(e) => updateQuestionOption(category.id, questionIndex, optionIndex, { ...option, weight: parseFloat(e.target.value) })}
+                                        className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Peso (%)"
+                                        required
+                                      />
+                                    </div>
+                                    {question.type === 'multipla-escolha' && (
+                                      <button
+                                        type="button"
+                                        onClick={() => removeQuestionOption(category.id, questionIndex, optionIndex)}
+                                        className="text-red-600 hover:text-red-800 p-2 mt-2 md:mt-6"
+                                      >
+                                        <Minus className="h-4 w-4" />
+                                      </button>)}
                                   </div>
                                 ))}
                               </div>

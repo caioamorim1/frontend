@@ -25,13 +25,19 @@ export interface Questionnaire {
   updated_at: string;
 }
 
+export interface QuestionOption {
+  label: string;
+  weight: number;
+}
+
+
 export interface Question {
   id: number;
   text: string;
   type: 'sim-nao-na' | 'texto' | 'numero' | 'data' | 'multipla-escolha';
   weight: number;
   categoryId: number;
-  options?: string[]; // Para múltipla escolha
+  options?: QuestionOption[]; // Para múltipla escolha
 }
 
 export interface QualitativeCategory {

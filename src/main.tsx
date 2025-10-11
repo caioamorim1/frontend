@@ -8,15 +8,15 @@ import { AlertProvider } from "./contexts/AlertContext";
 import { ModalProvider } from "./contexts/ModalContext";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <HashRouter>
-      <AuthProvider>
-        <AlertProvider>
-          <ModalProvider>
-            <App />
-          </ModalProvider>
-        </AlertProvider>
-      </AuthProvider>
-    </HashRouter>
-  </React.StrictMode>
+  // <React.StrictMode>
+  <HashRouter>
+    <AuthProvider>
+      <AlertProvider>
+        <ModalProvider>
+          <App />
+        </ModalProvider>
+      </AlertProvider>
+    </AuthProvider>
+  </HashRouter>
+  // </React.StrictMode>
 );
