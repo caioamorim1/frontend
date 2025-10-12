@@ -146,7 +146,8 @@ export const CategoriesTab: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, meta: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-200"
                   placeholder="Digite o valor da meta"
-                  min="0"
+                  min={1}
+                  max={100}
                   required
                 />
               </div>
