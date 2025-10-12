@@ -1,20 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { Plus, Trash2, Save, X, Minus, Edit2 } from "lucide-react";
-import {
-  Questionnaire,
-  Question,
-  QualitativeCategory,
-  QuestionOption,
-} from "../types";
-import {
-  createQuestionario,
-  deleteQuestionario,
-  getListQualitativesCategories,
-  getQuestionarios,
-  updateQuestionario,
-} from "@/lib/api";
-import { useAlert } from "@/contexts/AlertContext";
-import { useModal } from "@/contexts/ModalContext";
+import React, { useState, useEffect } from 'react';
+import { Plus, Trash2, Save, X, Minus, Edit2 } from 'lucide-react';
+import { Questionnaire, Question, QualitativeCategory, QuestionOption } from '../types';
+import { createQuestionario, deleteQuestionario, getListQualitativesCategories, getQuestionarios, updateQuestionario } from '@/lib/api';
+import { useAlert } from '@/contexts/AlertContext';
+import { useModal } from '@/contexts/ModalContext';
 
 export const QuestionnairesTab: React.FC = () => {
   const { showAlert } = useAlert();
@@ -24,16 +13,13 @@ export const QuestionnairesTab: React.FC = () => {
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
   const [categories, setCategories] = useState<QualitativeCategory[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingQuestionnaire, setEditingQuestionnaire] =
-    useState<Questionnaire | null>(null);
+  const [editingQuestionnaire, setEditingQuestionnaire] = useState<Questionnaire | null>(null);
 
   // Estado para o nome do questionário
   const [formName, setFormName] = useState("");
 
   // Estado para as perguntas, organizadas por ID de categoria
-  const [categoryQuestions, setCategoryQuestions] = useState<{
-    [key: number]: Question[];
-  }>({});
+  const [categoryQuestions, setCategoryQuestions] = useState<{ [key: number]: Question[] }>({});
 
   // --- EFFECTS ---
   useEffect(() => {
@@ -51,11 +37,7 @@ export const QuestionnairesTab: React.FC = () => {
       setCategories(categoriesResult);
     } catch (error) {
       console.error("Failed to load data:", error);
-      showAlert(
-        "destructive",
-        "Erro",
-        "Não foi possível carregar os dados necessários."
-      );
+      showAlert("destructive", "Erro", "Não foi possível carregar os dados necessários.");
     }
   };
 
@@ -78,18 +60,15 @@ export const QuestionnairesTab: React.FC = () => {
     setFormName(questionnaire.name);
 
     // Agrupa as perguntas por categoryId para popular o formulário de edição
-    const groupedByCategory = questionnaire.questions.reduce(
-      (acc, question) => {
-        const { categoryId } = question;
-        if (!acc[categoryId]) {
-          acc[categoryId] = [];
-        }
-        // Usando structuredClone para garantir uma cópia profunda e evitar mutações de estado
-        acc[categoryId].push(structuredClone(question));
-        return acc;
-      },
-      {} as Record<number, Question[]>
-    );
+    const groupedByCategory = questionnaire.questions.reduce((acc, question) => {
+      const { categoryId } = question;
+      if (!acc[categoryId]) {
+        acc[categoryId] = [];
+      }
+      // Usando structuredClone para garantir uma cópia profunda e evitar mutações de estado
+      acc[categoryId].push(structuredClone(question));
+      return acc;
+    }, {} as Record<number, Question[]>);
 
     setCategoryQuestions(groupedByCategory);
     setIsFormOpen(true);
@@ -103,11 +82,11 @@ export const QuestionnairesTab: React.FC = () => {
       type: "sim-nao-na",
       weight: 1,
       options: [
-        { label: "Sim", weight: 100 },
-        { label: "Não", weight: 0 },
-        { label: "Não se aplica", weight: 0 },
+        { label: 'Sim', weight: 100 },
+        { label: 'Não', weight: 0 },
+        { label: 'Não se aplica', weight: 0 }
       ],
-      categoryId,
+      categoryId
     };
     setCategoryQuestions((prev) => ({
       ...prev,
@@ -123,21 +102,18 @@ export const QuestionnairesTab: React.FC = () => {
   ) => {
     setCategoryQuestions((prev) => {
       const updatedCategoryQs = [...(prev[categoryId] || [])];
-      const questionToUpdate = {
-        ...updatedCategoryQs[questionIndex],
-        [field]: value,
-      };
+      const questionToUpdate = { ...updatedCategoryQs[questionIndex], [field]: value };
 
       // Ajusta automaticamente as opções padrão ao mudar o tipo da pergunta
-      if (field === "type") {
-        if (value === "sim-nao-na") {
+      if (field === 'type') {
+        if (value === 'sim-nao-na') {
           questionToUpdate.options = [
-            { label: "Sim", weight: 100 },
-            { label: "Não", weight: 0 },
-            { label: "Não se aplica", weight: 0 },
+            { label: 'Sim', weight: 100 },
+            { label: 'Não', weight: 0 },
+            { label: 'Não se aplica', weight: 0 }
           ];
-        } else if (value === "multipla-escolha") {
-          questionToUpdate.options = [{ label: "", weight: 100 }];
+        } else if (value === 'multipla-escolha') {
+          questionToUpdate.options = [{ label: '', weight: 100 }];
         } else {
           questionToUpdate.options = [];
         }
@@ -148,15 +124,12 @@ export const QuestionnairesTab: React.FC = () => {
     });
   };
 
-  const removeQuestionFromCategory = (
-    categoryId: number,
-    questionIndex: number
-  ) => {
+
+
+  const removeQuestionFromCategory = (categoryId: number, questionIndex: number) => {
     setCategoryQuestions((prev) => ({
       ...prev,
-      [categoryId]: (prev[categoryId] || []).filter(
-        (_, i) => i !== questionIndex
-      ),
+      [categoryId]: (prev[categoryId] || []).filter((_, i) => i !== questionIndex),
     }));
   };
 
@@ -167,35 +140,23 @@ export const QuestionnairesTab: React.FC = () => {
       if (!question.options) {
         question.options = [];
       }
-      question.options.push({ label: "", weight: 100 });
+      question.options.push({ label: '', weight: 100 });
       return { ...prev, [categoryId]: updatedCategoryQs };
     });
   };
 
-  const updateQuestionOption = (
-    categoryId: number,
-    questionIndex: number,
-    optionIndex: number,
-    value: Partial<QuestionOption>
-  ) => {
-    setCategoryQuestions((prev) => {
+  const updateQuestionOption = (categoryId: number, questionIndex: number, optionIndex: number, value: Partial<QuestionOption>) => {
+    setCategoryQuestions(prev => {
       const updatedCategoryQs = [...(prev[categoryId] || [])];
       const question = updatedCategoryQs[questionIndex];
       if (question.options) {
-        question.options[optionIndex] = {
-          ...question.options[optionIndex],
-          ...value,
-        };
+        question.options[optionIndex] = { ...question.options[optionIndex], ...value };
       }
       return { ...prev, [categoryId]: updatedCategoryQs };
     });
   };
 
-  const removeQuestionOption = (
-    categoryId: number,
-    questionIndex: number,
-    optionIndex: number
-  ) => {
+  const removeQuestionOption = (categoryId: number, questionIndex: number, optionIndex: number) => {
     setCategoryQuestions((prev) => {
       const updatedCategoryQs = [...(prev[categoryId] || [])];
       updatedCategoryQs[questionIndex].options?.splice(optionIndex, 1);
@@ -208,52 +169,29 @@ export const QuestionnairesTab: React.FC = () => {
     e.preventDefault();
 
     if (!formName.trim()) {
-      showModal({
-        type: "info",
-        title: "Atenção",
-        message: "O nome base do questionário é obrigatório.",
-      });
+      showModal({ type: "info", title: "Atenção", message: "O nome base do questionário é obrigatório." });
       return;
     }
 
     const allQuestions = Object.values(categoryQuestions).flat();
 
     if (allQuestions.length === 0) {
-      showModal({
-        type: "info",
-        title: "Atenção",
-        message: "O questionário precisa ter pelo menos uma pergunta.",
-      });
+      showModal({ type: "info", title: "Atenção", message: "O questionário precisa ter pelo menos uma pergunta." });
       return;
     }
 
-    const hasInvalidQuestion = allQuestions.some(
-      (q) => !q.text.trim() || !q.weight || q.weight < 1
-    );
+    const hasInvalidQuestion = allQuestions.some(q => !q.text.trim() || !q.weight || q.weight < 1);
     if (hasInvalidQuestion) {
-      showModal({
-        type: "info",
-        title: "Atenção",
-        message:
-          "Por favor, preencha o texto e o peso (maior que zero) de todas as perguntas.",
-      });
+      showModal({ type: "info", title: "Atenção", message: "Por favor, preencha o texto e o peso (maior que zero) de todas as perguntas." });
       return;
     }
 
-    const hasInvalidOption = allQuestions.some(
-      (q) =>
-        q.type === "multipla-escolha" &&
-        (!q.options ||
-          q.options.length === 0 ||
-          q.options.some((opt) => !opt.label.trim()))
+    const hasInvalidOption = allQuestions.some(q =>
+      q.type === 'multipla-escolha' &&
+      (!q.options || q.options.length === 0 || q.options.some(opt => !opt.label.trim()))
     );
     if (hasInvalidOption) {
-      showModal({
-        type: "info",
-        title: "Atenção",
-        message:
-          "Por favor, preencha o texto de todas as opções das perguntas de múltipla escolha.",
-      });
+      showModal({ type: "info", title: "Atenção", message: "Por favor, preencha o texto de todas as opções das perguntas de múltipla escolha." });
       return;
     }
 
@@ -274,11 +212,7 @@ export const QuestionnairesTab: React.FC = () => {
       loadData();
     } catch (err) {
       console.error("Falha ao salvar questionário:", err);
-      showAlert(
-        "destructive",
-        "Erro",
-        `Falha ao ${editingQuestionnaire ? "atualizar" : "criar"} questionário.`
-      );
+      showAlert("destructive", "Erro", `Falha ao ${editingQuestionnaire ? 'atualizar' : 'criar'} questionário.`);
     }
   };
 
@@ -296,17 +230,15 @@ export const QuestionnairesTab: React.FC = () => {
           console.error("Falha ao excluir questionário:", err);
           showAlert("destructive", "Erro", "Falha ao excluir questionário.");
         }
-      },
+      }
     });
   };
 
   // --- HELPERS ---
   const getTotalQuestions = () => {
-    return Object.values(categoryQuestions).reduce(
-      (total, questions) => total + questions.length,
-      0
-    );
+    return Object.values(categoryQuestions).reduce((total, questions) => total + questions.length, 0);
   };
+
 
   // --- RENDER ---
   return (
@@ -331,9 +263,7 @@ export const QuestionnairesTab: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-fade-in">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-gray-900">
-              {editingQuestionnaire
-                ? "Editar Questionário"
-                : "Novo Questionário"}
+              {editingQuestionnaire ? "Editar Questionário" : "Novo Questionário"}
             </h3>
             <button
               onClick={resetForm}
@@ -346,10 +276,7 @@ export const QuestionnairesTab: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Informações básicas */}
             <div>
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                 Nome Base do Questionário *
               </label>
               <input
@@ -373,19 +300,11 @@ export const QuestionnairesTab: React.FC = () => {
 
               <div className="space-y-6">
                 {categories.map((category) => (
-                  <div
-                    key={category.id}
-                    className="border border-gray-300 rounded-lg p-4 bg-gray-50"
-                  >
+                  <div key={category.id} className="border border-gray-300 rounded-lg p-4 bg-gray-50">
                     <div className="flex justify-between items-center mb-4">
                       <div>
-                        <h5 className="font-semibold text-gray-900">
-                          {category.name}
-                        </h5>
-                        <p className="text-sm text-gray-600">
-                          Perguntas:{" "}
-                          {(categoryQuestions[category.id] || []).length}
-                        </p>
+                        <h5 className="font-semibold text-gray-900">{category.name}</h5>
+                        <p className="text-sm text-gray-600">Perguntas: {(categoryQuestions[category.id] || []).length}</p>
                       </div>
                       <button
                         type="button"
@@ -447,6 +366,7 @@ export const QuestionnairesTab: React.FC = () => {
                                 required
                               />
                             </div>
+                          </div>
 
 
                           {/* Opções de Resposta */}
@@ -519,111 +439,13 @@ export const QuestionnairesTab: React.FC = () => {
                               </div>
 
                             </div>
-
-                            {/* Opções de Resposta */}
-                            {["multipla-escolha", "sim-nao-na"].includes(
-                              question.type
-                            ) && (
-                              <div>
-                                <div className="flex justify-between items-center mb-2">
-                                  <label className="block text-sm font-medium text-gray-700">
-                                    Opções de Resposta
-                                  </label>
-                                  {question.type === "multipla-escolha" && (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        addOptionToQuestion(
-                                          category.id,
-                                          questionIndex
-                                        )
-                                      }
-                                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                    >
-                                      + Adicionar Opção
-                                    </button>
-                                  )}
-                                </div>
-                                <div className="space-y-2">
-                                  {question.options?.map(
-                                    (option, optionIndex) => (
-                                      <div
-                                        key={optionIndex}
-                                        className="flex items-center space-x-2"
-                                      >
-                                        <input
-                                          type="text"
-                                          value={option.label}
-                                          onChange={(e) =>
-                                            updateQuestionOption(
-                                              category.id,
-                                              questionIndex,
-                                              optionIndex,
-                                              { label: e.target.value }
-                                            )
-                                          }
-                                          className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                          placeholder={`Opção ${
-                                            optionIndex + 1
-                                          }`}
-                                          required
-                                          disabled={
-                                            question.type === "sim-nao-na"
-                                          } // Desabilita edição para Sim/Não
-                                        />
-                                        <input
-                                          type="number"
-                                          min={0}
-                                          max={100}
-                                          value={option.weight}
-                                          onChange={(e) =>
-                                            updateQuestionOption(
-                                              category.id,
-                                              questionIndex,
-                                              optionIndex,
-                                              {
-                                                weight: parseFloat(
-                                                  e.target.value
-                                                ),
-                                              }
-                                            )
-                                          }
-                                          className="w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                          placeholder="Pontos"
-                                          required
-                                        />
-                                        {question.type ===
-                                          "multipla-escolha" && (
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              removeQuestionOption(
-                                                category.id,
-                                                questionIndex,
-                                                optionIndex
-                                              )
-                                            }
-                                            className="text-red-600 hover:text-red-800 p-2"
-                                            title="Remover Opção"
-                                          >
-                                            <Minus className="h-4 w-4" />
-                                          </button>
-                                        )}
-                                      </div>
-                                    )
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )
-                      )}
+                          )}
+                        </div>
+                      ))}
 
                       {(categoryQuestions[category.id] || []).length === 0 && (
                         <div className="text-center py-4 text-gray-500 bg-white rounded-lg border border-gray-200">
-                          <p className="text-sm">
-                            Nenhuma pergunta adicionada nesta categoria.
-                          </p>
+                          <p className="text-sm">Nenhuma pergunta adicionada nesta categoria.</p>
                         </div>
                       )}
                     </div>
@@ -634,9 +456,7 @@ export const QuestionnairesTab: React.FC = () => {
               {categories.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <p>Nenhuma categoria encontrada.</p>
-                  <p className="text-sm">
-                    Crie categorias primeiro na aba "Categorias Qualitativas".
-                  </p>
+                  <p className="text-sm">Crie categorias primeiro na aba "Categorias Qualitativas".</p>
                 </div>
               )}
             </div>
@@ -658,7 +478,7 @@ export const QuestionnairesTab: React.FC = () => {
               </button>
             </div>
           </form>
-        </div>
+        </div >
       )}
 
       {/* Tabela de Questionários */}
@@ -668,52 +488,32 @@ export const QuestionnairesTab: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nome do Questionário
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nº de Perguntas
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Data de Criação
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Última Atualização
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ações
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome do Questionário</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Nº de Perguntas</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Data de Criação</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Última Atualização</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {questionnaires.map((questionnaire) => (
-                  <tr
-                    key={questionnaire.id}
-                    className="hover:bg-gray-50 transition-colors duration-150"
-                  >
+                  <tr key={questionnaire.id} className="hover:bg-gray-50 transition-colors duration-150">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {questionnaire.name}
-                      </div>
+                      <div className="text-sm font-medium text-gray-900">{questionnaire.name}</div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {questionnaire.questions.length} pergunta
-                        {questionnaire.questions.length !== 1 ? "s" : ""}
+                        {questionnaire.questions.length} pergunta{questionnaire.questions.length !== 1 ? 's' : ''}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="text-sm text-gray-600">
-                        {new Date(questionnaire.created_at).toLocaleDateString(
-                          "pt-BR"
-                        )}
+                        {new Date(questionnaire.created_at).toLocaleDateString('pt-BR')}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="text-sm text-gray-600">
-                        {new Date(questionnaire.updated_at).toLocaleDateString(
-                          "pt-BR"
-                        )}
+                        {new Date(questionnaire.updated_at).toLocaleDateString('pt-BR')}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -742,16 +542,12 @@ export const QuestionnairesTab: React.FC = () => {
 
           {questionnaires.length === 0 && (
             <div className="text-center py-12">
-              <div className="text-gray-500 text-lg mb-2">
-                Nenhum questionário encontrado
-              </div>
-              <div className="text-gray-400 text-sm">
-                Clique em "Novo Questionário" para começar
-              </div>
+              <div className="text-gray-500 text-lg mb-2">Nenhum questionário encontrado</div>
+              <div className="text-gray-400 text-sm">Clique em "Novo Questionário" para começar</div>
             </div>
           )}
         </div>
       )}
-    </div>
+    </div >
   );
 };
