@@ -32,7 +32,10 @@ export const flattenProjectedBySitio = (
   projectedStaff: any
 ): Array<{ role: string; quantity: number; custoPorFuncionario?: number }> => {
   if (!isProjectedBySitio(projectedStaff)) return [];
-  const map = new Map<string, { role: string; quantity: number; custoPorFuncionario?: number }>();
+  const map = new Map<
+    string,
+    { role: string; quantity: number; custoPorFuncionario?: number }
+  >();
   projectedStaff.forEach((sitio: any) => {
     if (!sitio || !Array.isArray(sitio.cargos)) return;
     sitio.cargos.forEach((c: any) => {
@@ -59,5 +62,9 @@ export const computeProjectedCostFromSitios = (sector: any): number => {
   if (!isProjectedBySitio(projected)) return 0;
   const flattened = flattenProjectedBySitio(projected);
   // If custoPorFuncionario provided per cargo, use it; otherwise fallback to 0
-  return flattened.reduce((sum, c) => sum + (Number(c.custoPorFuncionario || 0) * Number(c.quantity || 0)), 0);
+  return flattened.reduce(
+    (sum, c) =>
+      sum + Number(c.custoPorFuncionario || 0) * Number(c.quantity || 0),
+    0
+  );
 };

@@ -55,17 +55,31 @@ interface ChartData {
 // ✅ Helper para pegar valores projetados (compatível com dados antigos e novos)
 const getProjectedCost = (sector: any): number => {
   // Prefer explicit projectedCostAmount from backend when available
-  if (sector && sector.projectedCostAmount !== undefined && sector.projectedCostAmount !== null) {
+  if (
+    sector &&
+    sector.projectedCostAmount !== undefined &&
+    sector.projectedCostAmount !== null
+  ) {
     const value = parseCostUtil(sector.projectedCostAmount);
-    console.log(`💰 getProjectedCost (projectedCostAmount) for ${sector.name}:`, value);
+    console.log(
+      `💰 getProjectedCost (projectedCostAmount) for ${sector.name}:`,
+      value
+    );
     return value;
   }
 
   // If projectedCostAmount not provided, but projectedStaff comes per-sitio with custoPorFuncionario, compute cost from sitios
-  if (sector && sector.projectedStaff && isProjectedBySitio(sector.projectedStaff)) {
+  if (
+    sector &&
+    sector.projectedStaff &&
+    isProjectedBySitio(sector.projectedStaff)
+  ) {
     const fromSitios = computeProjectedCostFromSitios(sector);
     if (fromSitios > 0) {
-      console.log(`💰 getProjectedCost (from sitios) for ${sector.name}:`, fromSitios);
+      console.log(
+        `💰 getProjectedCost (from sitios) for ${sector.name}:`,
+        fromSitios
+      );
       return fromSitios;
     }
     // otherwise fallthrough to costAmount
@@ -88,17 +102,26 @@ const getProjectedStaff = (
   if (sector && sector.projectedStaff) {
     if (isProjectedBySitio(sector.projectedStaff)) {
       const flattened = flattenProjectedBySitio(sector.projectedStaff);
-      console.log(`👥 getProjectedStaff (flattened sitios) for ${sector.name}:`, flattened);
+      console.log(
+        `👥 getProjectedStaff (flattened sitios) for ${sector.name}:`,
+        flattened
+      );
       return flattened.map((f) => ({ role: f.role, quantity: f.quantity }));
     }
     if (Array.isArray(sector.projectedStaff)) {
-      console.log(`👥 getProjectedStaff (simple array) for ${sector.name}:`, sector.projectedStaff);
+      console.log(
+        `👥 getProjectedStaff (simple array) for ${sector.name}:`,
+        sector.projectedStaff
+      );
       return sector.projectedStaff;
     }
   }
 
   const staff = sector.staff || [];
-  console.log(`👥 getProjectedStaff fallback to staff for ${sector.name}:`, staff);
+  console.log(
+    `👥 getProjectedStaff fallback to staff for ${sector.name}:`,
+    staff
+  );
   return staff;
 };
 

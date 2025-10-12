@@ -256,17 +256,29 @@ export const DashboardComparativoScreen: React.FC<{
       arr.reduce((sum, sector) => {
         if (useProjected) {
           // Prefer explicit projectedCostAmount from backend when available
-          if (sector.projectedCostAmount !== undefined && sector.projectedCostAmount !== null) {
+          if (
+            sector.projectedCostAmount !== undefined &&
+            sector.projectedCostAmount !== null
+          ) {
             const val = parseCostUtil(sector.projectedCostAmount);
-            console.log(`💰 sumCost (projectedCostAmount) for ${sector.name}:`, val);
+            console.log(
+              `💰 sumCost (projectedCostAmount) for ${sector.name}:`,
+              val
+            );
             return sum + val;
           }
 
           // If projectedCostAmount not provided, but projectedStaff comes per-sitio with custoPorFuncionario, compute cost from sitios
-          if (sector.projectedStaff && isProjectedBySitio(sector.projectedStaff)) {
+          if (
+            sector.projectedStaff &&
+            isProjectedBySitio(sector.projectedStaff)
+          ) {
             const fromSitios = computeProjectedCostFromSitios(sector);
             if (fromSitios > 0) {
-              console.log(`💰 sumCost (from sitios) for ${sector.name}:`, fromSitios);
+              console.log(
+                `💰 sumCost (from sitios) for ${sector.name}:`,
+                fromSitios
+              );
               return sum + fromSitios;
             }
           }
@@ -280,7 +292,10 @@ export const DashboardComparativoScreen: React.FC<{
     const sumStaff = (arr: any[], useProjected = false) =>
       arr.reduce((sum, sector) => {
         if (useProjected) {
-          if (sector.projectedStaff && isProjectedBySitio(sector.projectedStaff)) {
+          if (
+            sector.projectedStaff &&
+            isProjectedBySitio(sector.projectedStaff)
+          ) {
             const flattened = flattenProjectedBySitio(sector.projectedStaff);
             return sum + flattened.reduce((s, it) => s + (it.quantity || 0), 0);
           }
