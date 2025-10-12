@@ -42,6 +42,7 @@ import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import BargraphicChart from "./graphicsComponents/BarChartComp";
 import { COLORS, generateMultiColorScale } from "@/lib/generateMultiColorScale";
 import { formatAmountBRL } from "@/lib/utils";
+import { parseCost as parseCostUtil, sumStaff } from "@/lib/dataUtils";
 import {
   getAllHospitalSectors,
   HospitalSector,
@@ -338,52 +339,22 @@ const GlobalTabContent: React.FC<{
   });
 
   const totalStaffInternation = safeInternation.reduce(
-    (acc, sector) =>
-      acc +
-      (sector.staff || []).reduce(
-        (sum, staff) => sum + (staff.quantity || 0),
-        0
-      ),
+    (acc, sector) => acc + sumStaff(sector),
     0
   );
-  const amountTotalInternation = safeInternation.reduce((acc, sector) => {
-    // Converter string para número - API pode retornar como string
-    const amount =
-      typeof sector.costAmount === "string"
-        ? parseFloat(sector.costAmount) || 0
-        : sector.costAmount || 0;
-    console.log(
-      `💵 Setor Internação "${sector.name}": costAmount =`,
-      sector.costAmount,
-      "→",
-      amount
-    );
-    return acc + amount;
-  }, 0);
+  const amountTotalInternation = safeInternation.reduce(
+    (acc, sector) => acc + parseCostUtil(sector.costAmount),
+    0
+  );
 
   const totalStaffAssistance = safeAssistance.reduce(
-    (acc, sector) =>
-      acc +
-      (sector.staff || []).reduce(
-        (sum, staff) => sum + (staff.quantity || 0),
-        0
-      ),
+    (acc, sector) => acc + sumStaff(sector),
     0
   );
-  const amountTotalAssistance = safeAssistance.reduce((acc, sector) => {
-    // Converter string para número - API pode retornar como string
-    const amount =
-      typeof sector.costAmount === "string"
-        ? parseFloat(sector.costAmount) || 0
-        : sector.costAmount || 0;
-    console.log(
-      `💵 Setor Assistência "${sector.name}": costAmount =`,
-      sector.costAmount,
-      "→",
-      amount
-    );
-    return acc + amount;
-  }, 0);
+  const amountTotalAssistance = safeAssistance.reduce(
+    (acc, sector) => acc + parseCostUtil(sector.costAmount),
+    0
+  );
 
   const totalStaff = totalStaffInternation + totalStaffAssistance;
   const amountTotal = amountTotalInternation + amountTotalAssistance;
@@ -398,10 +369,7 @@ const GlobalTabContent: React.FC<{
 
   // Usar cor por hospital se tiver hospitalName, senão usar escala de calor
   const chartDataInternation: ChartData[] = safeInternation.map((item: any) => {
-    const costValue =
-      typeof item.costAmount === "string"
-        ? parseFloat(item.costAmount) || 0
-        : item.costAmount || 0;
+    const costValue = parseCostUtil(item.costAmount);
 
     return {
       key: item.id,
@@ -429,10 +397,7 @@ const GlobalTabContent: React.FC<{
   });
 
   const chartDataAssistance: ChartData[] = safeAssistance.map((item: any) => {
-    const costValue =
-      typeof item.costAmount === "string"
-        ? parseFloat(item.costAmount) || 0
-        : item.costAmount || 0;
+    const costValue = parseCostUtil(item.costAmount);
 
     return {
       key: item.id,
@@ -558,26 +523,44 @@ const TabContentInternacao: React.FC<{
     (sector) => selectedSector === "all" || sector.id === selectedSector
   );
 
-  const totalMinimumCare = detailedData.reduce(
-    (acc, sector) => acc + (sector.CareLevel?.minimumCare || 0),
-    0
-  );
-  const totalIntermediateCare = detailedData.reduce(
-    (acc, sector) => acc + (sector.CareLevel?.intermediateCare || 0),
-    0
-  );
-  const totalHighDependency = detailedData.reduce(
-    (acc, sector) => acc + (sector.CareLevel?.highDependency || 0),
-    0
-  );
-  const totalSemiIntensive = detailedData.reduce(
-    (acc, sector) => acc + (sector.CareLevel?.semiIntensive || 0),
-    0
-  );
-  const totalIntensive = detailedData.reduce(
-    (acc, sector) => acc + (sector.CareLevel?.intensive || 0),
-    0
-  );
+  // Debug: verificar estrutura dos dados
+  console.log("🔍 Debug Níveis de Cuidado:", {
+    sourceDataLength: sourceData?.length,
+    detailedDataLength: detailedData.length,
+    firstSector: detailedData[0],
+    careLevelStructure:
+      detailedData[0]?.CareLevel || (detailedData[0] as any)?.careLevel,
+  });
+
+  const totalMinimumCare = detailedData.reduce((acc, sector) => {
+    // Suportar tanto CareLevel quanto careLevel
+    const careLevel = sector.CareLevel || (sector as any).careLevel;
+    return acc + (careLevel?.minimumCare || 0);
+  }, 0);
+  const totalIntermediateCare = detailedData.reduce((acc, sector) => {
+    const careLevel = sector.CareLevel || (sector as any).careLevel;
+    return acc + (careLevel?.intermediateCare || 0);
+  }, 0);
+  const totalHighDependency = detailedData.reduce((acc, sector) => {
+    const careLevel = sector.CareLevel || (sector as any).careLevel;
+    return acc + (careLevel?.highDependency || 0);
+  }, 0);
+  const totalSemiIntensive = detailedData.reduce((acc, sector) => {
+    const careLevel = sector.CareLevel || (sector as any).careLevel;
+    return acc + (careLevel?.semiIntensive || 0);
+  }, 0);
+  const totalIntensive = detailedData.reduce((acc, sector) => {
+    const careLevel = sector.CareLevel || (sector as any).careLevel;
+    return acc + (careLevel?.intensive || 0);
+  }, 0);
+
+  console.log("📊 Totais de Níveis de Cuidado:", {
+    totalMinimumCare,
+    totalIntermediateCare,
+    totalHighDependency,
+    totalSemiIntensive,
+    totalIntensive,
+  });
 
   const totalBeds = detailedData.reduce(
     (acc, sector) => acc + (sector.bedCount || 0),
@@ -1003,7 +986,47 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
     // Se tem dados externos (visão global), usa eles
     if (props.isGlobalView && props.externalData) {
       console.log("🌍 Usando dados externos (Global View)", props.externalData);
-      dashboardData = props.externalData;
+      // Normalize several possible shapes:
+      // - Array of entities (items) => we expect a single HospitalSector-like object
+      // - Object with .items (array of entities) => concatenate sectors
+      // - Object with internation/assistance directly => use as-is
+      const ext = props.externalData;
+      if (Array.isArray(ext)) {
+        // It's an array of entities: concat their sectors
+        const allIntern: any[] = [];
+        const allAssist: any[] = [];
+        ext.forEach((entity) => {
+          if (Array.isArray(entity.internation))
+            allIntern.push(...entity.internation);
+          if (Array.isArray(entity.assistance))
+            allAssist.push(...entity.assistance);
+        });
+        dashboardData = {
+          internation: allIntern,
+          assistance: allAssist,
+        } as HospitalSector;
+      } else if (ext.items && Array.isArray(ext.items)) {
+        const allIntern: any[] = [];
+        const allAssist: any[] = [];
+        ext.items.forEach((item: any) => {
+          if (Array.isArray(item.internation))
+            allIntern.push(...item.internation);
+          if (Array.isArray(item.assistance))
+            allAssist.push(...item.assistance);
+        });
+        dashboardData = {
+          internation: allIntern,
+          assistance: allAssist,
+        } as HospitalSector;
+      } else if (ext.internation || ext.assistance) {
+        dashboardData = {
+          internation: ext.internation || [],
+          assistance: ext.assistance || [],
+        } as HospitalSector;
+      } else {
+        // fallback: try to use as-is, but ensure keys exist
+        dashboardData = { internation: [], assistance: [] } as HospitalSector;
+      }
     } else {
       // Senão, busca dados normalmente por hospitalId
       console.log("🏥 Buscando dados por hospitalId", hospitalId);

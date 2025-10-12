@@ -40,6 +40,11 @@ import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import BargraphicChart from "./graphicsComponents/BarChartComp";
 import { COLORS, generateMultiColorScale } from "@/lib/generateMultiColorScale";
 import { formatAmountBRL } from "@/lib/utils";
+import {
+  parseCost as parseCostUtil,
+  getStaffArray,
+  sumStaff,
+} from "@/lib/dataUtils";
 import { HospitalSector } from "@/mocks/functionSectores";
 import { SectorInternation } from "@/mocks/internationDatabase";
 import { SectorAssistance } from "@/mocks/noInternationDatabase";
@@ -62,6 +67,8 @@ export interface DetailedWaterfallData {
 
 interface DashboardBaselineScreenProps {
   title: string;
+  externalData?: any;
+  isGlobalView?: boolean;
 }
 
 interface ChartDataItem {
@@ -223,25 +230,24 @@ const GlobalTabContent: React.FC<{
   sourceData: HospitalSector;
   radarData: ChartDataItem[];
 }> = ({ sourceData, radarData }) => {
-  const { internation, assistance } = sourceData;
+  const internation = sourceData?.internation || [];
+  const assistance = sourceData?.assistance || [];
 
   const totalStaffInternation = internation.reduce(
-    (acc, sector) =>
-      acc + sector.staff.reduce((sum, staff) => sum + staff.quantity, 0),
+    (acc, sector) => acc + sumStaff(sector),
     0
   );
   const amountTotalInternation = internation.reduce(
-    (acc, sector) => acc + sector.costAmount,
+    (acc, sector) => acc + parseCostUtil(sector.costAmount),
     0
   );
 
   const totalStaffAssistance = assistance.reduce(
-    (acc, sector) =>
-      acc + sector.staff.reduce((sum, staff) => sum + staff.quantity, 0),
+    (acc, sector) => acc + sumStaff(sector),
     0
   );
   const amountTotalAssistance = assistance.reduce(
-    (acc, sector) => acc + sector.costAmount,
+    (acc, sector) => acc + parseCostUtil(sector.costAmount),
     0
   );
 
@@ -252,11 +258,11 @@ const GlobalTabContent: React.FC<{
     ? internation.map((item) => ({
         key: item.id,
         name: item.name,
-        value: item.costAmount,
+        value: parseCostUtil(item.costAmount),
         color: generateMultiColorScale(
-          item.costAmount,
+          parseCostUtil(item.costAmount),
           0,
-          Math.max(...internation.map((i) => i.costAmount))
+          Math.max(...internation.map((i) => parseCostUtil(i.costAmount)))
         ),
       }))
     : [];
@@ -265,11 +271,11 @@ const GlobalTabContent: React.FC<{
     ? assistance.map((item) => ({
         key: item.id,
         name: item.name,
-        value: item.costAmount,
+        value: parseCostUtil(item.costAmount),
         color: generateMultiColorScale(
-          item.costAmount,
+          parseCostUtil(item.costAmount),
           0,
-          Math.max(...assistance.map((i) => i.costAmount))
+          Math.max(...assistance.map((i) => parseCostUtil(i.costAmount)))
         ),
       }))
     : [];
@@ -316,26 +322,26 @@ const TabContentInternacao: React.FC<{
     (sector) => selectedSector === "all" || sector.id === selectedSector
   );
 
-  const totalMinimumCare = detailedData.reduce(
-    (acc, sector) => acc + sector.CareLevel.minimumCare,
-    0
-  );
-  const totalIntermediateCare = detailedData.reduce(
-    (acc, sector) => acc + sector.CareLevel.intermediateCare,
-    0
-  );
-  const totalHighDependency = detailedData.reduce(
-    (acc, sector) => acc + sector.CareLevel.highDependency,
-    0
-  );
-  const totalSemiIntensive = detailedData.reduce(
-    (acc, sector) => acc + sector.CareLevel.semiIntensive,
-    0
-  );
-  const totalIntensive = detailedData.reduce(
-    (acc, sector) => acc + sector.CareLevel.intensive,
-    0
-  );
+  const totalMinimumCare = detailedData.reduce((acc, sector) => {
+    const careLevel = sector.CareLevel || (sector as any).careLevel || {};
+    return acc + (careLevel?.minimumCare || 0);
+  }, 0);
+  const totalIntermediateCare = detailedData.reduce((acc, sector) => {
+    const careLevel = sector.CareLevel || (sector as any).careLevel || {};
+    return acc + (careLevel?.intermediateCare || 0);
+  }, 0);
+  const totalHighDependency = detailedData.reduce((acc, sector) => {
+    const careLevel = sector.CareLevel || (sector as any).careLevel || {};
+    return acc + (careLevel?.highDependency || 0);
+  }, 0);
+  const totalSemiIntensive = detailedData.reduce((acc, sector) => {
+    const careLevel = sector.CareLevel || (sector as any).careLevel || {};
+    return acc + (careLevel?.semiIntensive || 0);
+  }, 0);
+  const totalIntensive = detailedData.reduce((acc, sector) => {
+    const careLevel = sector.CareLevel || (sector as any).careLevel || {};
+    return acc + (careLevel?.intensive || 0);
+  }, 0);
 
   const totalBeds = detailedData.reduce(
     (acc, sector) => acc + sector.bedCount,
@@ -359,12 +365,11 @@ const TabContentInternacao: React.FC<{
     totalBeds > 0 ? Math.round((totalEvaluatedBeds / totalBeds) * 100) : 0;
 
   const totalStaff = detailedData.reduce(
-    (acc, sector) =>
-      acc + sector.staff.reduce((sum, staff) => sum + staff.quantity, 0),
+    (acc, sector) => acc + sumStaff(sector),
     0
   );
   const amountTotal = detailedData.reduce(
-    (acc, sector) => acc + sector.costAmount,
+    (acc, sector) => acc + parseCostUtil(sector.costAmount),
     0
   );
 
@@ -391,11 +396,11 @@ const TabContentInternacao: React.FC<{
         .map((item) => ({
           key: item.id,
           name: item.name,
-          value: item.costAmount,
+          value: parseCostUtil(item.costAmount),
           color: generateMultiColorScale(
-            item.costAmount,
+            parseCostUtil(item.costAmount),
             0,
-            Math.max(...detailedData.map((i) => i.costAmount))
+            Math.max(...detailedData.map((i) => parseCostUtil(i.costAmount)))
           ),
         }))
         .sort((a, b) => b.value - a.value) // <--- Adicionado aqui para ordenar
@@ -403,14 +408,13 @@ const TabContentInternacao: React.FC<{
 
   const staffBySectorMap: Record<string, number> = {};
 
-  // Soma os colaboradores por setor
+  // Soma os colaboradores por setor (seguro para staff nulo)
   detailedData.forEach((sector) => {
     let totalInSector = 0;
-
-    sector.staff.forEach((staffMember) => {
-      totalInSector += staffMember.quantity;
+    const staffArr = getStaffArray(sector);
+    staffArr.forEach((staffMember) => {
+      totalInSector += staffMember.quantity || 0;
     });
-
     staffBySectorMap[sector.name] = totalInSector;
   });
 
@@ -427,9 +431,10 @@ const TabContentInternacao: React.FC<{
   const staffByRoleMap: Record<string, number> = {};
 
   detailedData.forEach((sector) => {
-    sector.staff.forEach((staffMember) => {
+    const staffArr = getStaffArray(sector);
+    staffArr.forEach((staffMember) => {
       const { role, quantity } = staffMember;
-      staffByRoleMap[role] = (staffByRoleMap[role] || 0) + quantity;
+      staffByRoleMap[role] = (staffByRoleMap[role] || 0) + (quantity || 0);
     });
   });
 
@@ -526,12 +531,11 @@ const TabContentNoInternacao: React.FC<{
   );
 
   const totalStaff = detailedData.reduce(
-    (acc, sector) =>
-      acc + sector.staff.reduce((sum, staff) => sum + staff.quantity, 0),
+    (acc, sector) => acc + sumStaff(sector),
     0
   );
   const amountTotal = detailedData.reduce(
-    (acc, sector) => acc + sector.costAmount,
+    (acc, sector) => acc + parseCostUtil(sector.costAmount),
     0
   );
 
@@ -540,11 +544,11 @@ const TabContentNoInternacao: React.FC<{
         .map((item) => ({
           key: item.id,
           name: item.name,
-          value: item.costAmount,
+          value: parseCostUtil(item.costAmount),
           color: generateMultiColorScale(
-            item.costAmount,
+            parseCostUtil(item.costAmount),
             0,
-            Math.max(...detailedData.map((i) => i.costAmount))
+            Math.max(...detailedData.map((i) => parseCostUtil(i.costAmount)))
           ),
         }))
         .sort((a, b) => b.value - a.value) // <--- Adicionado aqui para ordenar
@@ -556,11 +560,10 @@ const TabContentNoInternacao: React.FC<{
   // Soma os colaboradores por setor
   detailedData.forEach((sector) => {
     let totalInSector = 0;
-
-    sector.staff.forEach((staffMember) => {
-      totalInSector += staffMember.quantity;
+    const staffArr = getStaffArray(sector);
+    staffArr.forEach((staffMember) => {
+      totalInSector += staffMember.quantity || 0;
     });
-
     staffBySectorMap[sector.name] = totalInSector;
   });
 
@@ -577,9 +580,10 @@ const TabContentNoInternacao: React.FC<{
   const staffByRoleMap: Record<string, number> = {};
 
   detailedData.forEach((sector) => {
-    sector.staff.forEach((staffMember) => {
+    const staffArr = getStaffArray(sector);
+    staffArr.forEach((staffMember) => {
       const { role, quantity } = staffMember;
-      staffByRoleMap[role] = (staffByRoleMap[role] || 0) + quantity;
+      staffByRoleMap[role] = (staffByRoleMap[role] || 0) + (quantity || 0);
     });
   });
 
@@ -667,16 +671,104 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
   const loadData = async () => {
     console.log("🔄 loadData chamado, hospitalId:", hospitalId);
 
-    if (!hospitalId) {
-      console.warn("⚠️ Hospital ID não encontrado na URL, abortando loadData");
+    console.log("ℹ️ DashboardBaselineScreen props:", {
+      isGlobalView: props.isGlobalView,
+      hasExternalData: !!props.externalData,
+      externalDataPreview: props.externalData
+        ? {
+            keys: Object.keys(props.externalData),
+            hasItems: !!props.externalData.items,
+            sample: Array.isArray(props.externalData)
+              ? props.externalData[0]
+              : props.externalData.items
+              ? props.externalData.items?.[0]
+              : props.externalData.internation?.[0] ||
+                props.externalData.assistance?.[0],
+          }
+        : null,
+    });
+
+    if (!hospitalId && !(props.isGlobalView && props.externalData)) {
+      console.warn(
+        "⚠️ Hospital ID não encontrado na URL e não é visão global com externalData, abortando loadData"
+      );
       setLoading(false);
       return;
     }
+    if (!hospitalId && props.isGlobalView && props.externalData) {
+      console.log(
+        "ℹ️ Sem hospitalId na URL, mas usando externalData (global view) para popular baseline"
+      );
+    }
 
     try {
-      console.log("🚀 Iniciando carregamento para hospital:", hospitalId);
+      console.log("🚀 Iniciando carregamento baseline", {
+        hospitalId,
+        isGlobalView: props.isGlobalView,
+        hasExternal: !!props.externalData,
+      });
       setLoading(true);
-      const dashboardData = await getAllSnapshotHospitalSectors(hospitalId); // Usa hospitalId da URL
+      let dashboardData: any;
+      if (props.isGlobalView && props.externalData) {
+        console.log(
+          "🔎 Usando externalData para Baseline (visão global)",
+          props.externalData
+        );
+        // Normalize: externalData may be aggregated (items array) or single object with internation/assistance
+        if (Array.isArray(props.externalData)) {
+          const allIntern: any[] = [];
+          const allAssist: any[] = [];
+          props.externalData.forEach((it: any) => {
+            if (Array.isArray(it.internation))
+              allIntern.push(...it.internation);
+            if (Array.isArray(it.assistance)) allAssist.push(...it.assistance);
+          });
+          console.log("🔁 normalized externalData (array) -> counts:", {
+            allIntern: allIntern.length,
+            allAssist: allAssist.length,
+          });
+          dashboardData = { internation: allIntern, assistance: allAssist };
+        } else if (
+          props.externalData.items &&
+          Array.isArray(props.externalData.items)
+        ) {
+          const allIntern: any[] = [];
+          const allAssist: any[] = [];
+          props.externalData.items.forEach((it: any) => {
+            if (Array.isArray(it.internation))
+              allIntern.push(...it.internation);
+            if (Array.isArray(it.assistance)) allAssist.push(...it.assistance);
+          });
+          console.log("🔁 normalized externalData (.items) -> counts:", {
+            allIntern: allIntern.length,
+            allAssist: allAssist.length,
+          });
+          dashboardData = { internation: allIntern, assistance: allAssist };
+        } else if (
+          props.externalData.internation ||
+          props.externalData.assistance
+        ) {
+          dashboardData = {
+            internation: props.externalData.internation || [],
+            assistance: props.externalData.assistance || [],
+          };
+          console.log("🔁 normalized externalData (direct) -> counts:", {
+            internation: dashboardData.internation.length,
+            assistance: dashboardData.assistance.length,
+          });
+        } else {
+          dashboardData = { internation: [], assistance: [] };
+        }
+      } else {
+        const snapshotData = await getAllSnapshotHospitalSectors(hospitalId); // Usa hospitalId da URL
+        dashboardData = snapshotData;
+        console.log("🔁 loaded snapshotData for hospital -> counts:", {
+          internation: dashboardData?.internation?.length,
+          assistance: dashboardData?.assistance?.length,
+          sampleIntern: dashboardData?.internation?.[0],
+          sampleAssist: dashboardData?.assistance?.[0],
+        });
+      }
       const tipo = activeTab === "internacao" ? "Internacao" : "NaoInternacao";
       const chartData =
         activeTab === "global"
