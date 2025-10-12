@@ -7,7 +7,6 @@ import {
   getQuestionarios,
   getColetasPorHospital,
   Unidade,
-  Questionario,
   Coleta,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -44,7 +43,7 @@ export default function ColetasPage() {
   const { toast } = useToast();
 
   const [unidades, setUnidades] = useState<Unidade[]>([]);
-  const [questionarios, setQuestionarios] = useState<Questionario[]>([]);
+  const [questionarios, setQuestionarios] = useState<any[]>([]);
   const [coletas, setColetas] = useState<Coleta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

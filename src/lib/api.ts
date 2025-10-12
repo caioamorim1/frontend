@@ -9,8 +9,9 @@ import {
 } from "@/features/qualitativo/types";
 import axios from "axios";
 
-export const API_BASE_URL = "http://127.0.0.1:3110";
-//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/api";
+//export const API_BASE_URL = "http://127.0.0.1:3110";
+//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/api"; //api docker
+export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode"; //api local
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
