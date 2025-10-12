@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { MinusCircle, PlusCircle } from "lucide-react";
+import { BarChart3, Brain, MinusCircle, PlusCircle, Settings, Target } from "lucide-react";
 import { LinhaAnalise } from "@/components/shared/AnaliseFinanceira";
 import { EvaluationsTab } from "@/features/qualitativo/components/EvaluationsTab";
 import { useAlert } from "@/contexts/AlertContext";
@@ -162,18 +162,47 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
           <div className="border rounded-lg overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="h-20">
                   <TableHead className="w-[30%]">Função</TableHead>
-                  <TableHead className="text-center">Atual</TableHead>
+
                   <TableHead className="text-center">
-                    Projetado (Sistema)
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="flex items-center justify-center">
+                        <BarChart3 className="h-7 w-7 text-gray-700" />
+                        <span className="ml-2 text-sm font-medium">Atual</span>
+                      </div>
+                    </div>
                   </TableHead>
+
+                  <TableHead className="text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="flex items-center justify-center">
+                        <Brain className="h-7 w-7 text-gray-700" />
+                        <span className="ml-2 text-sm font-medium">Projetado (Sistema)</span>
+                      </div>
+                    </div>
+                  </TableHead>
+
                   <TableHead className="text-center w-[200px]">
-                    Ajuste Qualitativo
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="flex items-center justify-center">
+                        <Settings className="h-7 w-7 text-gray-700" />
+                        <span className="ml-2 text-sm font-medium">Ajuste Qualitativo</span>
+                      </div>
+                    </div>
                   </TableHead>
-                  <TableHead className="text-center">Projetado Final</TableHead>
+
+                  <TableHead className="text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="flex items-center justify-center">
+                        <Target className="h-7 w-7 text-gray-700" />
+                        <span className="ml-2 text-sm font-medium">Projetado Final</span>
+                      </div>
+                    </div>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {/* Cargos com Projetado (Enfermeiro/Técnico) */}
                 {cargosComProjetado.map((linha) => {

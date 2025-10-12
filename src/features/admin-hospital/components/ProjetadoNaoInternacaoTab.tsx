@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { MinusCircle, PlusCircle } from "lucide-react";
+import { BarChart3, Brain, MinusCircle, PlusCircle, Settings, Target, TrendingUp } from "lucide-react";
 import { GrupoDeCargos } from "@/components/shared/AnaliseFinanceira";
 import { EvaluationsTab } from "@/features/qualitativo/components/EvaluationsTab";
 import React from "react";
@@ -188,22 +188,50 @@ export default function ProjetadoNaoInternacaoTab({
     ) : (
       <Card className="animate-fade-in-down">
         <CardHeader>
-          <CardTitle>Ajuste Qualitativo do Quadro Projetado</CardTitle>
+          <CardTitle className="mb-3">Ajuste Qualitativo do Quadro Projetado</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="border rounded-lg overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="h-20"> {/* aumenta a altura da linha do cabeçalho */}
                   <TableHead className="w-[30%]">Cargo</TableHead>
-                  <TableHead className="text-center">Atual</TableHead>
+
                   <TableHead className="text-center">
-                    Projetado (Sistema)
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="flex items-center justify-center">
+                        <BarChart3 className="h-7 w-7 text-gray-700" />
+                        <span className="ml-2 text-sm font-medium">Atual</span>
+                      </div>
+                    </div>
                   </TableHead>
+
+                  <TableHead className="text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="flex items-center justify-center">
+                        <Brain className="h-7 w-7 text-gray-700" />
+                        <span className="ml-2 text-sm font-medium">Projetado (Sistema)</span>
+                      </div>
+                    </div>
+                  </TableHead>
+
                   <TableHead className="text-center w-[200px]">
-                    Ajuste Qualitativo
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="flex items-center justify-center">
+                        <Settings className="h-7 w-7 text-gray-700" />
+                        <span className="ml-2 text-sm font-medium">Ajuste Qualitativo</span>
+                      </div>
+                    </div>
                   </TableHead>
-                  <TableHead className="text-center">Projetado Final</TableHead>
+
+                  <TableHead className="text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="flex items-center justify-center">
+                        <Target className="h-7 w-7 text-gray-700" />
+                        <span className="ml-2 text-sm font-medium">Projetado Final</span>
+                      </div>
+                    </div>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
