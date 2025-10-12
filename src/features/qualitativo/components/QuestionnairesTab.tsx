@@ -243,22 +243,7 @@ export const QuestionnairesTab: React.FC = () => {
   // --- RENDER ---
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">
-          Gestão de Questionários
-        </h2>
-        {!isFormOpen && (
-          <button
-            onClick={() => setIsFormOpen(true)}
-            className="bg-secondary text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2 hover:bg-secondary/90"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Novo Questionário</span>
-          </button>
-        )}
-      </div>
-
-      {/* Formulário de Criação/Edição */}
+      {/* Formulário de Questionário */}
       {isFormOpen && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-fade-in">
           <div className="flex justify-between items-center mb-6">
