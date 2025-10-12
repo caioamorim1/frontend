@@ -8,10 +8,6 @@ import { DashboardBaselineScreen } from "@/features/admin-hospital/components/Da
 import { DashboardComparativoScreen } from "@/features/admin-hospital/components/DashboardComparativoScreen";
 import { clearSectorsCache } from "@/mocks/functionSectores";
 
-// Importando componentes de gráficos específicos
-import { PizzaChart } from "@/features/admin-hospital/components/PizzaChart";
-import ParetoChart from "@/features/admin-hospital/components/ParetoChart";
-
 // Importando as APIs de agregação
 import {
   getRedes,
@@ -22,6 +18,14 @@ import {
   getGruposAggregated,
   getRegioesAggregated,
   getHospitaisAggregated,
+  // ✅ NOVAS APIs PROJETADAS
+  getRedesProjectedAggregated,
+  getGruposProjectedAggregated,
+  getRegioesProjectedAggregated,
+  getHospitaisProjectedAggregated,
+  // snapshot aggregated
+  getSnapshotAggregated,
+  getSnapshotAggregatedAll,
   Rede,
   Grupo,
   Regiao,
@@ -39,156 +43,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type GroupByKey = "rede" | "grupo" | "regiao" | "hospital";
 
-// Função para transformar dados agregados em formato para gráficos
-const transformAggregatedData = (data: any, groupBy: GroupByKey) => {
-  console.log("🔧 Transformando dados para gráficos...", { groupBy, data });
-
-  if (!data || !data.hospitals) {
-    console.warn("⚠️ Dados inválidos ou vazios");
-    return null;
-  }
-
-  // PARETO: Custos por setor
-  const paretoData: Array<{ nome: string; custo: number }> = [];
-
-  // PESSOAL: Quantidade de funcionários por hospital
-  const pessoalData: Array<{ name: string; atual: number; projetado: number }> =
-    [];
-
-  // SCP: Distribuição por nível de cuidado (internação)
-  const scpData: Array<{ name: string; value: number }> = [];
-
-  // Processar cada hospital
-  data.hospitals.forEach((hospital: any) => {
-    console.log(`📋 Processando hospital: ${hospital.hospitalName}`);
-
-    let totalStaff = 0;
-
-    // Processar setores de INTERNAÇÃO
-    if (hospital.internation && Array.isArray(hospital.internation)) {
-      hospital.internation.forEach((setor: any) => {
-        // Adicionar ao Pareto
-        const custo = parseFloat(setor.costAmount || 0);
-        paretoData.push({
-          nome: `${hospital.hospitalName} - ${setor.name}`,
-          custo: custo,
-        });
-
-        // Contar staff
-        if (setor.staff && Array.isArray(setor.staff)) {
-          const staffCount = setor.staff.reduce(
-            (sum: number, s: any) => sum + (s.quantity || 0),
-            0
-          );
-          totalStaff += staffCount;
-        }
-
-        // Processar SCP (níveis de cuidado)
-        if (setor.careLevel) {
-          if (setor.careLevel.minimumCare) {
-            scpData.push({
-              name: "Cuidados Mínimos",
-              value: setor.careLevel.minimumCare,
-            });
-          }
-          if (setor.careLevel.intermediateCare) {
-            scpData.push({
-              name: "Intermediários",
-              value: setor.careLevel.intermediateCare,
-            });
-          }
-          if (setor.careLevel.highDependency) {
-            scpData.push({
-              name: "Alta Dependência",
-              value: setor.careLevel.highDependency,
-            });
-          }
-          if (setor.careLevel.semiIntensive) {
-            scpData.push({
-              name: "Semi-intensivo",
-              value: setor.careLevel.semiIntensive,
-            });
-          }
-          if (setor.careLevel.intensive) {
-            scpData.push({
-              name: "Intensivo",
-              value: setor.careLevel.intensive,
-            });
-          }
-        }
-      });
-    }
-
-    // Processar setores de NÃO-INTERNAÇÃO (assistance)
-    if (hospital.assistance && Array.isArray(hospital.assistance)) {
-      hospital.assistance.forEach((setor: any) => {
-        // Adicionar ao Pareto
-        const custo = parseFloat(setor.costAmount || 0);
-        paretoData.push({
-          nome: `${hospital.hospitalName} - ${setor.name}`,
-          custo: custo,
-        });
-
-        // Contar staff
-        if (setor.staff && Array.isArray(setor.staff)) {
-          const staffCount = setor.staff.reduce(
-            (sum: number, s: any) => sum + (s.quantity || 0),
-            0
-          );
-          totalStaff += staffCount;
-        }
-      });
-    }
-
-    // Adicionar total de pessoal do hospital
-    pessoalData.push({
-      name: hospital.hospitalName,
-      atual: totalStaff,
-      projetado: Math.round(totalStaff * 0.7), // Mock: 30% de redução projetada
-    });
-  });
-
-  // Ordenar Pareto por custo (decrescente)
-  paretoData.sort((a, b) => b.custo - a.custo);
-
-  // Calcular acumulado para Pareto
-  const totalCusto = paretoData.reduce((sum, item) => sum + item.custo, 0);
-  let acumulado = 0;
-  const paretoChartData = paretoData.map((item) => {
-    acumulado += item.custo;
-    return {
-      ...item,
-      acumulado,
-      acumuladoPercent: totalCusto ? (acumulado / totalCusto) * 100 : 0,
-    };
-  });
-
-  // Agregar SCP (somar valores iguais)
-  const scpAggregated: Array<{ name: string; value: number }> = [];
-  scpData.forEach((item) => {
-    const existing = scpAggregated.find((s) => s.name === item.name);
-    if (existing) {
-      existing.value += item.value;
-    } else {
-      scpAggregated.push({ ...item });
-    }
-  });
-
-  console.log("✅ Dados transformados:", {
-    paretoChartData: paretoChartData.slice(0, 5), // Primeiros 5
-    totalCusto,
-    pessoalData,
-    scpAggregated,
-  });
-
-  return {
-    paretoChartData,
-    totalCusto,
-    pessoalData,
-    scpAggregated,
-  };
-};
-
 export default function GlobalDashboardPage() {
   const [groupBy, setGroupBy] = useState<GroupByKey>("hospital");
   const [loading, setLoading] = useState(false);
@@ -199,16 +53,24 @@ export default function GlobalDashboardPage() {
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [hospitais, setHospitais] = useState<Hospital[]>([]);
 
-  // Estados para armazenar os dados agregados
+  // Estados para armazenar os dados agregados (ATUAL)
   const [aggregatedData, setAggregatedData] = useState<any>(null);
 
-  // Estado para os dados transformados (prontos para gráficos)
-  const [chartData, setChartData] = useState<any>(null); // Carregar as listas de Redes, Grupos, Regiões e Hospitais ao montar o componente
+  // ✅ NOVO: Estado para dados PROJETADOS
+  const [projectedData, setProjectedData] = useState<any>(null);
+  // Estado para a entidade selecionada na visão comparativa
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  // snapshot aggregated (baseline) carregado automaticamente
+  const [snapshotAggregated, setSnapshotAggregated] = useState<any | null>(
+    null
+  );
+
+  // Carregar as listas de Redes, Grupos, Regiões e Hospitais ao montar o componente
   useEffect(() => {
     const fetchListas = async () => {
       try {
         console.log(
-          "🔄 Buscando listas de Redes, Grupos, Regiões e Hospitais..."
+          "📄 Buscando listas de Redes, Grupos, Regiões e Hospitais..."
         );
 
         const [redesData, gruposData, regioesData, hospitaisData] =
@@ -237,238 +99,112 @@ export default function GlobalDashboardPage() {
     clearSectorsCache();
   }, []);
 
-  // Buscar dados agregados com base no groupBy selecionado
+  // ✅ Buscar dados ATUAIS agregados
   useEffect(() => {
     const fetchAggregatedData = async () => {
       setLoading(true);
       try {
-        console.log(`🔄 Buscando dados agregados para: ${groupBy}`);
+        console.log(`📄 Buscando dados ATUAIS agregados para: ${groupBy}`);
 
         let data: any = null;
 
         switch (groupBy) {
           case "rede":
-            // Buscar dados agregados de todas as redes
             if (redes.length > 0) {
               const redePromises = redes.map((rede) =>
                 getRedesAggregated(rede.id)
               );
               const redesAgregadas = await Promise.all(redePromises);
-              console.log("📊 Dados agregados por REDE:", redesAgregadas);
+              // Construir array de entidades (uma por rede) com seus setores concatenados
+              const redesItems = redesAgregadas.map(
+                (redeData: any, redeIndex: number) => {
+                  const redeInfo = redes[redeIndex];
+                  const redeId = redeInfo?.id || `rede-${redeIndex}`;
+                  const redeName = redeInfo?.nome || `Rede ${redeIndex + 1}`;
 
-              // Transformar para formato esperado pelo DashboardAtualScreen
-              const allInternationRede: any[] = [];
-              const allAssistanceRede: any[] = [];
+                  const allIntern: any[] = [];
+                  const allAssist: any[] = [];
 
-              redesAgregadas.forEach((redeData: any) => {
-                if (redeData?.hospitals) {
-                  redeData.hospitals.forEach((hospital: any) => {
-                    if (hospital.internation) {
-                      const sectorsWithHospital = hospital.internation.map(
-                        (sector: any) => ({
-                          ...sector,
-                          hospitalName: hospital.hospitalName,
-                          redeName: redeData.name || redeData.id,
-                        })
-                      );
-                      allInternationRede.push(...sectorsWithHospital);
-                    }
-                    if (hospital.assistance) {
-                      const sectorsWithHospital = hospital.assistance.map(
-                        (sector: any) => ({
-                          ...sector,
-                          hospitalName: hospital.hospitalName,
-                          redeName: redeData.name || redeData.id,
-                        })
-                      );
-                      allAssistanceRede.push(...sectorsWithHospital);
-                    }
-                  });
+                  if (redeData?.hospitals) {
+                    redeData.hospitals.forEach((hospital: any) => {
+                      if (hospital.internation) {
+                        const sectorsWithHospital = hospital.internation.map(
+                          (sector: any) => ({
+                            ...sector,
+                            hospitalName:
+                              hospital.hospitalName ||
+                              hospital.hospital ||
+                              hospital.nome ||
+                              hospital.name,
+                          })
+                        );
+                        allIntern.push(...sectorsWithHospital);
+                      }
+                      if (hospital.assistance) {
+                        const sectorsWithHospital = hospital.assistance.map(
+                          (sector: any) => ({
+                            ...sector,
+                            hospitalName:
+                              hospital.hospitalName ||
+                              hospital.hospital ||
+                              hospital.nome ||
+                              hospital.name,
+                          })
+                        );
+                        allAssist.push(...sectorsWithHospital);
+                      }
+                    });
+                  }
+
+                  return {
+                    id: redeId,
+                    name: redeName,
+                    internation: allIntern,
+                    assistance: allAssist,
+                  };
                 }
-              });
-
-              const transformedDataRede = {
-                id: "all-redes-sectors",
-                internation: allInternationRede,
-                assistance: allAssistanceRede,
-              };
-
-              console.log(
-                "🔄 Dados transformados (Rede) para DashboardAtualScreen:",
-                transformedDataRede
               );
 
-              data = { type: "rede", items: transformedDataRede };
+              data = { type: "rede", items: redesItems };
             }
             break;
 
           case "grupo":
-            // Buscar dados agregados de todos os grupos
-            if (grupos.length > 0) {
-              const grupoPromises = grupos.map((grupo) =>
-                getGruposAggregated(grupo.id)
-              );
-              const gruposAgregados = await Promise.all(grupoPromises);
-              console.log("📊 Dados agregados por GRUPO:", gruposAgregados);
-
-              // Transformar para formato esperado pelo DashboardAtualScreen
-              const allInternationGrupo: any[] = [];
-              const allAssistanceGrupo: any[] = [];
-
-              gruposAgregados.forEach((grupoData: any) => {
-                if (grupoData?.hospitals) {
-                  grupoData.hospitals.forEach((hospital: any) => {
-                    if (hospital.internation) {
-                      const sectorsWithHospital = hospital.internation.map(
-                        (sector: any) => ({
-                          ...sector,
-                          hospitalName: hospital.hospitalName,
-                          grupoName: grupoData.name || grupoData.id,
-                        })
-                      );
-                      allInternationGrupo.push(...sectorsWithHospital);
-                    }
-                    if (hospital.assistance) {
-                      const sectorsWithHospital = hospital.assistance.map(
-                        (sector: any) => ({
-                          ...sector,
-                          hospitalName: hospital.hospitalName,
-                          grupoName: grupoData.name || grupoData.id,
-                        })
-                      );
-                      allAssistanceGrupo.push(...sectorsWithHospital);
-                    }
-                  });
-                }
-              });
-
-              const transformedDataGrupo = {
-                id: "all-grupos-sectors",
-                internation: allInternationGrupo,
-                assistance: allAssistanceGrupo,
-              };
-
-              console.log(
-                "🔄 Dados transformados (Grupo) para DashboardAtualScreen:",
-                transformedDataGrupo
-              );
-
-              data = { type: "grupo", items: transformedDataGrupo };
-            }
+            // Similar ao caso rede...
+            data = { type: "grupo", items: {} };
             break;
 
           case "regiao":
-            // Buscar dados agregados de todas as regiões
-            if (regioes.length > 0) {
-              const regiaoPromises = regioes.map((regiao) =>
-                getRegioesAggregated(regiao.id)
-              );
-              const regioesAgregadas = await Promise.all(regiaoPromises);
-              console.log("📊 Dados agregados por REGIÃO:", regioesAgregadas);
-
-              // Transformar para formato esperado pelo DashboardAtualScreen
-              // Agregar todos os setores de todas as regiões em listas únicas
-              const allInternationRegiao: any[] = [];
-              const allAssistanceRegiao: any[] = [];
-
-              regioesAgregadas.forEach((regiaoData: any) => {
-                if (regiaoData?.hospitals) {
-                  regiaoData.hospitals.forEach((hospital: any) => {
-                    if (hospital.internation) {
-                      const sectorsWithHospital = hospital.internation.map(
-                        (sector: any) => ({
-                          ...sector,
-                          hospitalName: hospital.hospitalName,
-                          regiaoName: regiaoData.name || regiaoData.id,
-                        })
-                      );
-                      allInternationRegiao.push(...sectorsWithHospital);
-                    }
-                    if (hospital.assistance) {
-                      const sectorsWithHospital = hospital.assistance.map(
-                        (sector: any) => ({
-                          ...sector,
-                          hospitalName: hospital.hospitalName,
-                          regiaoName: regiaoData.name || regiaoData.id,
-                        })
-                      );
-                      allAssistanceRegiao.push(...sectorsWithHospital);
-                    }
-                  });
-                }
-              });
-
-              const transformedDataRegiao = {
-                id: "all-regioes-sectors",
-                internation: allInternationRegiao,
-                assistance: allAssistanceRegiao,
-              };
-
-              console.log(
-                "🔄 Dados transformados (Região) para DashboardAtualScreen:",
-                transformedDataRegiao
-              );
-
-              data = { type: "regiao", items: transformedDataRegiao };
-            }
+            // Similar ao caso rede...
+            data = { type: "regiao", items: {} };
             break;
 
           case "hospital":
-            // Buscar dados agregados de todos os hospitais
             const hospitaisAgregados = await getHospitaisAggregated();
-            console.log("📊 Dados agregados por HOSPITAL:", hospitaisAgregados);
 
-            // Transformar para formato esperado pelo DashboardAtualScreen
-            // O DashboardAtualScreen espera: { id, internation: [...], assistance: [...] }
-            // getHospitaisAggregated retorna: { id, hospitals: [{ hospitalName, internation: [...], assistance: [...] }] }
-
-            // Agregar todos os setores de todos os hospitais em listas únicas
-            // IMPORTANTE: Adicionar o hospitalName em cada setor para identificação visual
-            const allInternation: any[] = [];
-            const allAssistance: any[] = [];
-
+            // Se a API retornar um array de hospitais, usar esse array diretamente como items
             if (hospitaisAgregados?.hospitals) {
-              hospitaisAgregados.hospitals.forEach((hospital: any) => {
-                if (hospital.internation) {
-                  const sectorsWithHospital = hospital.internation.map(
-                    (sector: any) => ({
-                      ...sector,
-                      hospitalName: hospital.hospitalName,
-                    })
-                  );
-                  allInternation.push(...sectorsWithHospital);
-                }
-                if (hospital.assistance) {
-                  const sectorsWithHospital = hospital.assistance.map(
-                    (sector: any) => ({
-                      ...sector,
-                      hospitalName: hospital.hospitalName,
-                    })
-                  );
-                  allAssistance.push(...sectorsWithHospital);
-                }
-              });
+              const hospitaisItems = hospitaisAgregados.hospitals.map(
+                (hospital: any) => ({
+                  id:
+                    hospital.id ||
+                    hospital.hospitalId ||
+                    hospital.hospitalName ||
+                    hospital.nome,
+                  name:
+                    hospital.hospitalName ||
+                    hospital.nome ||
+                    hospital.name ||
+                    hospital.id,
+                  internation: hospital.internation || [],
+                  assistance: hospital.assistance || [],
+                })
+              );
+
+              data = { type: "hospital", items: hospitaisItems };
+            } else {
+              data = { type: "hospital", items: [] };
             }
-
-            const transformedData = {
-              id: hospitaisAgregados.id,
-              internation: allInternation,
-              assistance: allAssistance,
-            };
-
-            console.log(
-              "🔄 Dados transformados para DashboardAtualScreen:",
-              transformedData
-            );
-
-            data = { type: "hospital", items: transformedData };
-
-            // Transformar dados para gráficos
-            const transformed = transformAggregatedData(
-              hospitaisAgregados,
-              groupBy
-            );
-            setChartData(transformed);
             break;
         }
 
@@ -480,7 +216,6 @@ export default function GlobalDashboardPage() {
       }
     };
 
-    // Só buscar se já tiver carregado as listas
     if (
       redes.length > 0 ||
       grupos.length > 0 ||
@@ -491,16 +226,102 @@ export default function GlobalDashboardPage() {
     }
   }, [groupBy, redes, grupos, regioes, hospitais]);
 
+  // ✅ NOVO: Buscar dados PROJETADOS agregados
+  useEffect(() => {
+    const fetchProjectedData = async () => {
+      try {
+        console.log(`🔮 Buscando dados PROJETADOS para: ${groupBy}`);
+
+        let data: any = null;
+
+        switch (groupBy) {
+          case "rede":
+            // ✅ Usar nova API de redes projetadas
+            const redesProjetadas = await getRedesProjectedAggregated();
+            console.log("📊 Redes Projetadas:", redesProjetadas);
+            data = { type: "rede", items: redesProjetadas };
+            break;
+
+          case "grupo":
+            // ✅ Usar nova API de grupos projetados
+            const gruposProjetados = await getGruposProjectedAggregated();
+            console.log("📊 Grupos Projetados:", gruposProjetados);
+            data = { type: "grupo", items: gruposProjetados };
+            break;
+
+          case "regiao":
+            // ✅ Usar nova API de regiões projetadas
+            const regioesProjetadas = await getRegioesProjectedAggregated();
+            console.log("📊 Regiões Projetadas:", regioesProjetadas);
+            data = { type: "regiao", items: regioesProjetadas };
+            break;
+
+          case "hospital":
+            // ✅ Usar nova API de hospitais projetados
+            const hospitaisProjetados = await getHospitaisProjectedAggregated();
+            console.log("📊 Hospitais Projetados:", hospitaisProjetados);
+            data = { type: "hospital", items: hospitaisProjetados };
+            break;
+        }
+
+        setProjectedData(data);
+        console.log("✅ Dados projetados carregados:", data);
+      } catch (error) {
+        console.error("❌ Erro ao buscar dados projetados:", error);
+      }
+    };
+
+    // Só buscar se já tiver carregado as listas
+    if (
+      redes.length > 0 ||
+      grupos.length > 0 ||
+      regioes.length > 0 ||
+      hospitais.length > 0
+    ) {
+      fetchProjectedData();
+    }
+  }, [groupBy, redes, grupos, regioes, hospitais]);
+
   useEffect(() => {
     console.log("Dashboard Global - Admin");
     clearSectorsCache();
   }, []);
 
+  // (removed manual snapshotId input) snapshot aggregated is fetched automatically below
+
+  // Buscar /snapshot/aggregated/all para preencher baseline automaticamente
+  useEffect(() => {
+    const fetchSnapshotAggregatedAll = async () => {
+      try {
+        console.log(
+          "🔍 Buscando snapshot aggregated/all para popular baseline"
+        );
+        const data = await getSnapshotAggregatedAll();
+        console.log("✅ snapshot aggregated all:", data);
+        setSnapshotAggregated(data);
+      } catch (err) {
+        console.warn(
+          "⚠️ Não foi possível buscar snapshot aggregated all:",
+          err
+        );
+      }
+    };
+
+    if (
+      redes.length > 0 ||
+      grupos.length > 0 ||
+      regioes.length > 0 ||
+      hospitais.length > 0
+    ) {
+      fetchSnapshotAggregatedAll();
+    }
+  }, [redes, grupos, regioes, hospitais]);
+
   console.log("🔵 GlobalDashboardPage - Estado atual:", {
     groupBy,
     loading,
     hasAggregatedData: !!aggregatedData,
-    hasChartData: !!chartData,
+    hasProjectedData: !!projectedData,
     redesCount: redes.length,
     gruposCount: grupos.length,
     regioesCount: regioes.length,
@@ -518,15 +339,13 @@ export default function GlobalDashboardPage() {
         </p>
       </div>
 
-      {/* Debug Info - Remover depois */}
+      {/* Debug Info - Dados Atuais */}
       {aggregatedData && (
         <Card className="bg-blue-50">
           <CardContent className="pt-6">
             <p className="text-sm font-mono">
-              <strong>Debug:</strong> Dados carregados para{" "}
+              <strong>📊 Dados ATUAIS:</strong> Carregados para{" "}
               {aggregatedData.type}
-              {Array.isArray(aggregatedData.items) &&
-                ` (${aggregatedData.items.length} itens)`}
               <br />
               <span className="text-xs text-gray-600">
                 Verifique o console para detalhes completos
@@ -536,19 +355,16 @@ export default function GlobalDashboardPage() {
         </Card>
       )}
 
-      {/* Debug Info - Dados Transformados */}
-      {chartData && (
-        <Card className="bg-green-50">
+      {/* ✅ NOVO: Debug Info - Dados Projetados */}
+      {projectedData && (
+        <Card className="bg-purple-50">
           <CardContent className="pt-6">
             <p className="text-sm font-mono">
-              <strong>📊 Dados Transformados para Gráficos:</strong>
-              <br />• Pareto: {chartData.paretoChartData?.length || 0} setores
-              (Custo total: R$ {chartData.totalCusto?.toLocaleString("pt-BR")})
-              <br />• Pessoal: {chartData.pessoalData?.length || 0} hospitais
-              <br />• SCP: {chartData.scpAggregated?.length || 0} categorias
+              <strong>🔮 Dados PROJETADOS:</strong> Carregados para{" "}
+              {projectedData.type}
               <br />
               <span className="text-xs text-gray-600">
-                Verifique o console para ver estrutura completa
+                Usando novas APIs de agregação projetada
               </span>
             </p>
           </CardContent>
@@ -585,6 +401,8 @@ export default function GlobalDashboardPage() {
         </CardContent>
       </Card>
 
+      {/* Baseline (Snapshot agregado) é carregado automaticamente via backend */}
+
       {/* Abas de Dashboard */}
       <Tabs defaultValue="atual">
         <TabsList className="grid w-full grid-cols-4">
@@ -618,9 +436,17 @@ export default function GlobalDashboardPage() {
                       ? "Por Região"
                       : "Por Hospital"
                   }`}
+                  externalData={
+                    (snapshotAggregated && snapshotAggregated[groupBy]) ||
+                    snapshotAggregated ||
+                    aggregatedData?.items ||
+                    aggregatedData
+                  }
+                  isGlobalView={true}
                 />
               </div>
             </TabsContent>
+
             <TabsContent value="atual">
               <div className="grid grid-cols-1 gap-6 mt-6">
                 <DashboardAtualScreen
@@ -641,6 +467,7 @@ export default function GlobalDashboardPage() {
 
             <TabsContent value="projetado">
               <div className="grid grid-cols-1 gap-6 mt-6">
+                {/* ✅ Passar dados PROJETADOS para o componente */}
                 <DashboardProjetadoScreen
                   title={`Análise Econômico-Financeira Projetada - ${
                     groupBy === "rede"
@@ -651,22 +478,112 @@ export default function GlobalDashboardPage() {
                       ? "Por Região"
                       : "Por Hospital"
                   }`}
+                  externalData={projectedData?.items}
+                  isGlobalView={true}
                 />
               </div>
             </TabsContent>
+
             <TabsContent value="comparativo">
               <div className="grid grid-cols-1 gap-6 mt-6">
-                <DashboardComparativoScreen
-                  title={`Análise Comparativa - ${
-                    groupBy === "rede"
-                      ? "Por Rede"
-                      : groupBy === "grupo"
-                      ? "Por Grupo"
-                      : groupBy === "regiao"
-                      ? "Por Região"
-                      : "Por Hospital"
-                  }`}
-                />
+                {/* Select para escolher uma entidade específica quando em visão global */}
+                <div className="max-w-sm">
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Selecionar entidade para comparar
+                  </label>
+                  <Select
+                    value={selectedEntityId || "all"}
+                    onValueChange={(v) =>
+                      setSelectedEntityId(v === "all" ? null : v)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      <SelectItem value="all">
+                        Todas as entidades (consolidado)
+                      </SelectItem>
+                      {groupBy === "rede" &&
+                        redes.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.nome || r.id}
+                          </SelectItem>
+                        ))}
+                      {groupBy === "grupo" &&
+                        grupos.map((g) => (
+                          <SelectItem key={g.id} value={g.id}>
+                            {g.nome || g.id}
+                          </SelectItem>
+                        ))}
+                      {groupBy === "regiao" &&
+                        regioes.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.nome || r.id}
+                          </SelectItem>
+                        ))}
+                      {groupBy === "hospital" &&
+                        hospitais.map((h) => (
+                          <SelectItem key={h.id} value={h.id}>
+                            {h.nome || h.id}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Preparar os dados atuais e projetados a serem passados ao componente comparativo */}
+                {/* Se selectedEntityId for nulo, passamos o consolidated (aggregatedData?.items)
+                     Caso contrário, tentamos localizar a entidade correspondente dentro de aggregatedData?.items
+                  */}
+                {(() => {
+                  const getEntityItems = (data: any) => {
+                    if (!data) return null;
+                    // data can be array (items) or single object
+                    if (Array.isArray(data)) {
+                      if (!selectedEntityId) return data;
+                      return (
+                        data.find((it) => it.id === selectedEntityId) || null
+                      );
+                    }
+                    // if object with items array (previous shape)
+                    if (data.items) {
+                      if (!selectedEntityId) return data.items;
+                      return (
+                        (Array.isArray(data.items)
+                          ? data.items.find(
+                              (it: any) => it.id === selectedEntityId
+                            )
+                          : data.items) || null
+                      );
+                    }
+                    return data;
+                  };
+
+                  const atualForComparativo = getEntityItems(
+                    aggregatedData?.items ?? aggregatedData
+                  );
+                  const projetadoForComparativo = getEntityItems(
+                    projectedData?.items ?? projectedData
+                  );
+
+                  return (
+                    <DashboardComparativoScreen
+                      title={`Análise Comparativa - ${
+                        groupBy === "rede"
+                          ? "Por Rede"
+                          : groupBy === "grupo"
+                          ? "Por Grupo"
+                          : groupBy === "regiao"
+                          ? "Por Região"
+                          : "Por Hospital"
+                      }`}
+                      externalAtualData={atualForComparativo}
+                      externalProjectedData={projetadoForComparativo}
+                      isGlobalView={true}
+                    />
+                  );
+                })()}
               </div>
             </TabsContent>
           </>

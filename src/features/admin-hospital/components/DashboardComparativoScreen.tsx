@@ -24,106 +24,190 @@ import {
   getAllHospitalSectors,
   HospitalSector,
 } from "@/mocks/functionSectores";
+import {
+  parseCost as parseCostUtil,
+  getStaffArray,
+  sumStaff as sumStaffUtil,
+} from "@/lib/dataUtils";
 import { SectorAssistance } from "@/mocks/noInternationDatabase";
 import { SectorInternation } from "@/mocks/internationDatabase";
 
 type SectorType = "global" | "internacao" | "nao-internacao";
-
-export const DashboardComparativoScreen: React.FC<{ title: string }> = ({
-  title,
-}) => {
+export const DashboardComparativoScreen: React.FC<{
+  title: string;
+  externalAtualData?: any;
+  externalProjectedData?: any;
+  isGlobalView?: boolean;
+}> = ({ title, externalAtualData, externalProjectedData, isGlobalView }) => {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const [hospitalData, setHospitalData] = useState<HospitalSector | null>(null);
   const [activeTab, setActiveTab] = useState<SectorType>("global");
   const [selectedSector, setSelectedSector] = useState<string>("all");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadData = async () => {
-      console.log(
-        "🔄 DashboardComparativoScreen - loadData chamado, hospitalId:",
-        hospitalId
-      );
-
-      if (!hospitalId) {
-        console.warn("⚠️ Hospital ID não encontrado na URL");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        console.log("🚀 Iniciando carregamento para hospital:", hospitalId);
-
-        const data = await getAllHospitalSectors(hospitalId);
-        console.log("✅ Dados carregados com sucesso:", data);
-        setHospitalData(data);
-      } catch (error) {
-        console.error("❌ Erro ao carregar dados:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [hospitalId]);
+  // quando em visão global iremos usar estes estados para conter os dados atual e projetado
+  const [globalAtualData, setGlobalAtualData] = useState<any | null>(
+    externalAtualData || null
+  );
+  const [globalProjectedData, setGlobalProjectedData] = useState<any | null>(
+    externalProjectedData || null
+  );
 
   useEffect(() => {
     setSelectedSector("all");
   }, [activeTab]);
 
-  const processedData = useMemo(() => {
-    if (!hospitalData) return null;
-
-    let baseSectors: (SectorInternation | SectorAssistance)[] = [];
-    let setorList: { id: string; name: string }[] = [];
-
-    if (activeTab === "global") {
-      baseSectors = [...hospitalData.internation, ...hospitalData.assistance];
-    } else if (activeTab === "internacao") {
-      baseSectors = hospitalData.internation;
+  // Ensure we exit loading state when we have data to render.
+  useEffect(() => {
+    if (isGlobalView) {
+      // For global view, we rely on external data being passed in.
+      if (externalAtualData || externalProjectedData) setLoading(false);
+      else setLoading(false); // still clear loading so debug logs can surface
     } else {
-      baseSectors = hospitalData.assistance;
+      if (hospitalData) setLoading(false);
     }
-    setorList = baseSectors.map((s) => ({ id: s.id, name: s.name }));
+  }, [isGlobalView, externalAtualData, externalProjectedData, hospitalData]);
 
-    const filteredSectors =
-      selectedSector === "all"
-        ? baseSectors
-        : baseSectors.filter((s) => s.id === selectedSector);
+  // Single processedData useMemo that handles both hospital view and global view
+  const processedData = useMemo(() => {
+    console.log("🔁 processedData - inputs:", {
+      hospitalDataExists: !!hospitalData,
+      externalAtualDataExists: !!externalAtualData,
+      externalProjectedDataExists: !!externalProjectedData,
+      isGlobalView,
+      activeTab,
+      selectedSector,
+    });
 
-    const costReductionFactor = 0.85;
-    const staffReductionFactor = 0.9;
+    // choose sources depending on view
+    const atualSource = isGlobalView
+      ? externalAtualData ?? globalAtualData
+      : hospitalData;
+    const projectedSource = isGlobalView
+      ? externalProjectedData ?? globalProjectedData
+      : null;
 
-    const custoAtual = filteredSectors.reduce(
-      (sum, sector) => sum + sector.costAmount,
-      0
+    if (!atualSource && !projectedSource) {
+      console.log(
+        "⚠️ processedData: no data source available (atual/projected)"
+      );
+      return null;
+    }
+
+    const extract = (src: any) => {
+      if (!src) return { internation: [], assistance: [] };
+      if (Array.isArray(src)) {
+        const allIntern: any[] = [];
+        const allAssist: any[] = [];
+        src.forEach((entity) => {
+          if (Array.isArray(entity.internation))
+            allIntern.push(...entity.internation);
+          if (Array.isArray(entity.assistance))
+            allAssist.push(...entity.assistance);
+        });
+        return { internation: allIntern, assistance: allAssist };
+      }
+      return {
+        internation: src.internation || [],
+        assistance: src.assistance || [],
+      };
+    };
+
+    const atual = extract(atualSource);
+    const projetado = extract(projectedSource);
+
+    let baseSectors: any[] = [];
+    if (activeTab === "global")
+      baseSectors = [...(atual.internation || []), ...(atual.assistance || [])];
+    else if (activeTab === "internacao") baseSectors = atual.internation || [];
+    else baseSectors = atual.assistance || [];
+
+    const projectedBase =
+      activeTab === "global"
+        ? [...(projetado.internation || []), ...(projetado.assistance || [])]
+        : activeTab === "internacao"
+        ? projetado.internation || []
+        : projetado.assistance || [];
+
+    const setorMap: Map<string, { id: string; name: string }> = new Map();
+    baseSectors.forEach((s: any) =>
+      setorMap.set(s.id, { id: s.id, name: s.name })
     );
-    const custoProjetado = custoAtual * costReductionFactor;
+    projectedBase.forEach((s: any) =>
+      setorMap.set(s.id, { id: s.id, name: s.name })
+    );
+    const setorList = Array.from(setorMap.values());
+
+    const filterBySelected = (arr: any[]) =>
+      selectedSector === "all"
+        ? arr
+        : arr.filter((s) => s.id === selectedSector);
+
+    const filteredAtual = filterBySelected(baseSectors);
+    const filteredProjected = filterBySelected(projectedBase);
+
+    console.log("🔎 setores:", {
+      baseSectors: baseSectors.length,
+      projectedBase: projectedBase.length,
+      filteredAtual: filteredAtual.length,
+      filteredProjected: filteredProjected.length,
+    });
+
+    const sumCost = (arr: any[], useProjected = false) =>
+      arr.reduce((sum, sector) => {
+        const raw = useProjected
+          ? sector.projectedCostAmount ?? sector.costAmount ?? 0
+          : sector.costAmount ?? 0;
+        return sum + parseCostUtil(raw);
+      }, 0);
+
+    const sumStaff = (arr: any[], useProjected = false) =>
+      arr.reduce((sum, sector) => {
+        if (useProjected) {
+          const staffArr =
+            sector.projectedStaff && Array.isArray(sector.projectedStaff)
+              ? sector.projectedStaff
+              : getStaffArray(sector);
+          return (
+            sum +
+            staffArr.reduce((s: number, it: any) => s + (it.quantity || 0), 0)
+          );
+        }
+        return sum + sumStaffUtil(sector);
+      }, 0);
+
+    const custoAtual = sumCost(filteredAtual, false);
+    const custoProjetado = sumCost(filteredProjected, true);
     const variacaoCusto = custoProjetado - custoAtual;
 
-    const pessoalAtual = filteredSectors.reduce(
-      (sum, sector) =>
-        sum + sector.staff.reduce((staffSum, s) => staffSum + s.quantity, 0),
-      0
-    );
-    const pessoalProjetado = Math.round(pessoalAtual * staffReductionFactor);
+    const pessoalAtual = sumStaff(filteredAtual, false);
+    const pessoalProjetado = sumStaff(filteredProjected, true);
     const variacaoPessoal = pessoalProjetado - pessoalAtual;
 
     const financialWaterfall = [
       { name: "Custo Atual", value: custoAtual },
-      { name: "Redução", value: variacaoCusto },
+      { name: "Variação", value: variacaoCusto },
       { name: "Custo Projetado", value: custoProjetado },
     ];
 
     const personnelWaterfall = [
       { name: "Pessoal Atual", value: pessoalAtual },
-      { name: "Redução", value: variacaoPessoal },
+      { name: "Variação", value: variacaoPessoal },
       { name: "Pessoal Projetado", value: pessoalProjetado },
     ];
 
     const variacaoPercentual =
       custoAtual > 0 ? (variacaoCusto / custoAtual) * 100 : 0;
+
+    console.log("✅ processedData result:", {
+      custoAtual,
+      custoProjetado,
+      variacaoCusto,
+      pessoalAtual,
+      pessoalProjetado,
+      variacaoPessoal,
+      setorListLength: setorList.length,
+    });
 
     return {
       financialWaterfall,
@@ -132,7 +216,16 @@ export const DashboardComparativoScreen: React.FC<{ title: string }> = ({
       variacaoPercentual,
       setorList,
     };
-  }, [hospitalData, activeTab, selectedSector]);
+  }, [
+    hospitalData,
+    externalAtualData,
+    externalProjectedData,
+    globalAtualData,
+    globalProjectedData,
+    activeTab,
+    selectedSector,
+    isGlobalView,
+  ]);
 
   if (loading) {
     return (
@@ -207,7 +300,7 @@ export const DashboardComparativoScreen: React.FC<{ title: string }> = ({
           data={financialWaterfall}
           unit="currency"
           title="Comparativo Financeiro (R$)"
-          description="Análise de variação de custos"
+          description="Comparação entre cenário atual e projetado"
         />
         <ReusableWaterfall
           data={personnelWaterfall}

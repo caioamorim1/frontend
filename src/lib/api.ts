@@ -9,8 +9,8 @@ import {
 } from "@/features/qualitativo/types";
 import axios from "axios";
 
-//export const API_BASE_URL = "http://127.0.0.1:3110";
-export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/api";
+export const API_BASE_URL = "http://127.0.0.1:3110";
+//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/api";
 
 // Re-exportar tipos do qualitativo para facilitar importação
 export type {
@@ -591,6 +591,23 @@ export const getSnapshotHospitalSectors = async (
   hospitalId: string
 ): Promise<HospitalSectorsData> => {
   const response = await api.get(`/snapshot/hospital/${hospitalId}/ultimo`);
+  return response.data;
+};
+
+// Fetch aggregated snapshot by snapshotId and groupBy (rede|grupo|regiao|hospital)
+export const getSnapshotAggregated = async (
+  snapshotId: string,
+  groupBy: string = "hospital"
+): Promise<any> => {
+  const response = await api.get(`/snapshot/aggregated`, {
+    params: { snapshotId, groupBy },
+  });
+  return response.data;
+};
+
+// Fetch aggregated snapshots for all groupings (hospital, regiao, grupo, rede)
+export const getSnapshotAggregatedAll = async (): Promise<any> => {
+  const response = await api.get(`/snapshot/aggregated/all`);
   return response.data;
 };
 
@@ -1199,4 +1216,87 @@ export const saveAjustesQualitativos = async (
   localStorage.setItem(`ajustes_${unidadeId}`, JSON.stringify(data));
   return Promise.resolve();
 };
+
+// --- NOVAS ROTAS DE AGREGAÇÃO OTIMIZADAS ---
+export interface GlobalMetricsSimplified {
+  totalFuncionarios: number;
+  totalFuncionariosProjetado: number;
+  custoTotal: number;
+  custoTotalProjetado: number;
+  hospitaisCount: number;
+  unidadesInternacao: number;
+  unidadesNaoInternacao: number;
+}
+
+export interface GlobalEntity {
+  id: string;
+  name: string;
+  tipo: "global";
+  metrics: GlobalMetricsSimplified;
+}
+
+export interface GlobalAggregatedList {
+  aggregatedBy: "network" | "group" | "region" | "hospital";
+  items: GlobalEntity[];
+}
+
+// Busca TODAS as redes agregadas (1 única chamada)
+export const getAllNetworksAggregated =
+  async (): Promise<GlobalAggregatedList> => {
+    const response = await api.get("/hospital-sectors/networks/all-aggregated");
+    return response.data;
+  };
+
+// Busca TODOS os grupos agregados (1 única chamada)
+export const getAllGroupsAggregated =
+  async (): Promise<GlobalAggregatedList> => {
+    const response = await api.get("/hospital-sectors/groups/all-aggregated");
+    return response.data;
+  };
+
+// Busca TODAS as regiões agregadas (1 única chamada)
+export const getAllRegionsAggregated =
+  async (): Promise<GlobalAggregatedList> => {
+    const response = await api.get("/hospital-sectors/regions/all-aggregated");
+    return response.data;
+  };
+
+// Busca TODOS os hospitais agregados (1 única chamada)
+export const getAllHospitalsAggregated =
+  async (): Promise<GlobalAggregatedList> => {
+    const response = await api.get(
+      "/hospital-sectors/hospitals/all-aggregated"
+    );
+    return response.data;
+  };
+// Adicionar estas funções no seu arquivo api.ts
+
+export async function getRedesProjectedAggregated() {
+  const response = await api.get(
+    "/hospital-sectors-aggregate/networks/all-projected-aggregated"
+  );
+  return response.data;
+}
+
+export async function getGruposProjectedAggregated() {
+  const response = await api.get(
+    "/hospital-sectors-aggregate/groups/all-projected-aggregated"
+  );
+  return response.data;
+}
+
+export async function getRegioesProjectedAggregated() {
+  const response = await api.get(
+    "/hospital-sectors-aggregate/regions/all-projected-aggregated"
+  );
+  return response.data;
+}
+
+export async function getHospitaisProjectedAggregated() {
+  const response = await api.get(
+    "/hospital-sectors-aggregate/hospitals/all-projected-aggregated"
+  );
+  return response.data;
+}
+
 export default api;
