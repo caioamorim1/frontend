@@ -5,7 +5,7 @@ import { Globe, Layers } from "lucide-react";
 import { DashboardAtualScreen } from "@/features/admin-hospital/components/DashboardAtualScreen";
 import { DashboardProjetadoScreen } from "@/features/admin-hospital/components/DashboardProjetadoScreen";
 import { DashboardBaselineScreen } from "@/features/admin-hospital/components/DashboardBaselineScreen";
-import { DashboardComparativoScreen } from "@/features/admin-hospital/components/DashboardComparativoScreen";
+import { DashboardComparativoGlobalScreen } from "@/features/admin-hospital/components/DashboardComparativoGlobalScreen";
 import { clearSectorsCache } from "@/mocks/functionSectores";
 
 // Importando as APIs de agregação
@@ -568,7 +568,7 @@ export default function GlobalDashboardPage() {
                   );
 
                   return (
-                    <DashboardComparativoScreen
+                    <DashboardComparativoGlobalScreen
                       title={`Análise Comparativa - ${
                         groupBy === "rede"
                           ? "Por Rede"
@@ -580,7 +580,6 @@ export default function GlobalDashboardPage() {
                       }`}
                       externalAtualData={atualForComparativo}
                       externalProjectedData={projetadoForComparativo}
-                      isGlobalView={true}
                     />
                   );
                 })()}

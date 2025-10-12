@@ -20,14 +20,17 @@ import {
 import { DollarSign, Percent, Calendar } from "lucide-react";
 import { ReusableWaterfall } from "./graphicsComponents/ReusableWaterfall";
 import { VariationCard } from "./VariationCard";
-import {
-  getAllHospitalSectors,
-  HospitalSector,
-} from "@/mocks/functionSectores";
+import { HospitalSector } from "@/mocks/functionSectores";
+import { getHospitalComparative } from "@/lib/api";
 import {
   parseCost as parseCostUtil,
   getStaffArray,
   sumStaff as sumStaffUtil,
+} from "@/lib/dataUtils";
+import {
+  isProjectedBySitio,
+  flattenProjectedBySitio,
+  computeProjectedCostFromSitios,
 } from "@/lib/dataUtils";
 import { SectorAssistance } from "@/mocks/noInternationDatabase";
 import { SectorInternation } from "@/mocks/internationDatabase";
@@ -40,6 +43,13 @@ export const DashboardComparativoScreen: React.FC<{
   isGlobalView?: boolean;
 }> = ({ title, externalAtualData, externalProjectedData, isGlobalView }) => {
   const { hospitalId } = useParams<{ hospitalId: string }>();
+  console.log("[DashboardComparativoScreen] render start", {
+    title,
+    hospitalId,
+    isGlobalView,
+    hasExternalAtual: !!externalAtualData,
+    hasExternalProjected: !!externalProjectedData,
+  });
   const [hospitalData, setHospitalData] = useState<HospitalSector | null>(null);
   const [activeTab, setActiveTab] = useState<SectorType>("global");
   const [selectedSector, setSelectedSector] = useState<string>("all");
@@ -57,6 +67,15 @@ export const DashboardComparativoScreen: React.FC<{
     setSelectedSector("all");
   }, [activeTab]);
 
+  useEffect(() => {
+    console.log("[DashboardComparativoScreen] mount/effect - deps", {
+      hospitalId,
+      isGlobalView,
+      externalAtualDataExists: !!externalAtualData,
+      externalProjectedDataExists: !!externalProjectedData,
+    });
+  }, [hospitalId, isGlobalView, externalAtualData, externalProjectedData]);
+
   // Ensure we exit loading state when we have data to render.
   useEffect(() => {
     if (isGlobalView) {
@@ -68,9 +87,89 @@ export const DashboardComparativoScreen: React.FC<{
     }
   }, [isGlobalView, externalAtualData, externalProjectedData, hospitalData]);
 
+  // Se estivermos na visão de hospital (não global) e tivermos um hospitalId,
+  // buscar os setores do hospital para popular `hospitalData`.
+  useEffect(() => {
+    let mounted = true;
+    const shouldFetch = !isGlobalView && hospitalId;
+    if (!shouldFetch) return;
+
+    const fetchHospital = async () => {
+      try {
+        console.log(
+          "[DashboardComparativoScreen] fetching hospital sectors for id:",
+          hospitalId
+        );
+        setLoading(true);
+        const resp = await getHospitalComparative(hospitalId as string, {
+          includeProjected: true,
+        });
+        if (!mounted) return;
+        console.log("✅ Dados recebidos da API:", resp);
+        let atual = resp?.atual ?? {
+          id: hospitalId,
+          internation: [],
+          assistance: [],
+        };
+        let projetado = resp?.projetado ?? {
+          id: hospitalId,
+          internation: [],
+          assistance: [],
+        };
+
+        console.log(
+          "[DashboardComparativoScreen] fetched hospitalData (atual):",
+          {
+            id: atual?.id,
+            internation: atual?.internation?.length,
+            assistance: atual?.assistance?.length,
+          }
+        );
+        console.log(
+          "[DashboardComparativoScreen] fetched hospitalData (projetado):",
+          {
+            id: projetado?.id,
+            internation: projetado?.internation?.length,
+            assistance: projetado?.assistance?.length,
+          }
+        );
+
+        setHospitalData(atual as HospitalSector);
+        // store projected in globalProjectedData so processedData can pick it when isGlobalView true
+        setGlobalProjectedData(projetado);
+      } catch (err) {
+        console.error(
+          "[DashboardComparativoScreen] error fetching hospital sectors:",
+          err
+        );
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchHospital();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isGlobalView, hospitalId]);
+
+  useEffect(() => {
+    console.log("[DashboardComparativoScreen] loading state changed", {
+      loading,
+    });
+  }, [loading]);
+
+  useEffect(() => {
+    console.log(
+      "[DashboardComparativoScreen] selectedSector changed:",
+      selectedSector
+    );
+  }, [selectedSector]);
+
   // Single processedData useMemo that handles both hospital view and global view
   const processedData = useMemo(() => {
-    console.log("🔁 processedData - inputs:", {
+    console.log("[DashboardComparativoScreen] processedData - inputs:", {
       hospitalDataExists: !!hospitalData,
       externalAtualDataExists: !!externalAtualData,
       externalProjectedDataExists: !!externalProjectedData,
@@ -146,7 +245,7 @@ export const DashboardComparativoScreen: React.FC<{
     const filteredAtual = filterBySelected(baseSectors);
     const filteredProjected = filterBySelected(projectedBase);
 
-    console.log("🔎 setores:", {
+    console.log("[DashboardComparativoScreen] setores:", {
       baseSectors: baseSectors.length,
       projectedBase: projectedBase.length,
       filteredAtual: filteredAtual.length,
@@ -155,15 +254,36 @@ export const DashboardComparativoScreen: React.FC<{
 
     const sumCost = (arr: any[], useProjected = false) =>
       arr.reduce((sum, sector) => {
-        const raw = useProjected
-          ? sector.projectedCostAmount ?? sector.costAmount ?? 0
-          : sector.costAmount ?? 0;
-        return sum + parseCostUtil(raw);
+        if (useProjected) {
+          // Prefer explicit projectedCostAmount from backend when available
+          if (sector.projectedCostAmount !== undefined && sector.projectedCostAmount !== null) {
+            const val = parseCostUtil(sector.projectedCostAmount);
+            console.log(`💰 sumCost (projectedCostAmount) for ${sector.name}:`, val);
+            return sum + val;
+          }
+
+          // If projectedCostAmount not provided, but projectedStaff comes per-sitio with custoPorFuncionario, compute cost from sitios
+          if (sector.projectedStaff && isProjectedBySitio(sector.projectedStaff)) {
+            const fromSitios = computeProjectedCostFromSitios(sector);
+            if (fromSitios > 0) {
+              console.log(`💰 sumCost (from sitios) for ${sector.name}:`, fromSitios);
+              return sum + fromSitios;
+            }
+          }
+
+          const raw = sector.costAmount ?? 0;
+          return sum + parseCostUtil(raw);
+        }
+        return sum + parseCostUtil(sector.costAmount ?? 0);
       }, 0);
 
     const sumStaff = (arr: any[], useProjected = false) =>
       arr.reduce((sum, sector) => {
         if (useProjected) {
+          if (sector.projectedStaff && isProjectedBySitio(sector.projectedStaff)) {
+            const flattened = flattenProjectedBySitio(sector.projectedStaff);
+            return sum + flattened.reduce((s, it) => s + (it.quantity || 0), 0);
+          }
           const staffArr =
             sector.projectedStaff && Array.isArray(sector.projectedStaff)
               ? sector.projectedStaff
@@ -199,7 +319,7 @@ export const DashboardComparativoScreen: React.FC<{
     const variacaoPercentual =
       custoAtual > 0 ? (variacaoCusto / custoAtual) * 100 : 0;
 
-    console.log("✅ processedData result:", {
+    console.log("[DashboardComparativoScreen] processedData result:", {
       custoAtual,
       custoProjetado,
       variacaoCusto,
@@ -253,6 +373,17 @@ export const DashboardComparativoScreen: React.FC<{
     variacaoPercentual,
     setorList,
   } = processedData;
+
+  // Log data passed to charts (moved out of JSX to avoid ReactNode issues)
+  console.log("[DashboardComparativoScreen] prepared chart data:", {
+    financialWaterfall,
+    personnelWaterfall,
+    variacaoCusto,
+    variacaoPercentual,
+    setorListLength: setorList.length,
+    selectedSector,
+    activeTab,
+  });
 
   const renderContent = () => (
     <div className="space-y-6">

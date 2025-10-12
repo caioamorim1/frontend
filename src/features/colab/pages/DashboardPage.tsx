@@ -6,18 +6,15 @@ import { DashboardAtualScreen } from "@/features/admin-hospital/components/Dashb
 import { DashboardBaselineScreen } from "@/features/admin-hospital/components/DashboardBaselineScreen";
 import { DashboardProjetadoScreen } from "@/features/admin-hospital/components/DashboardProjetadoScreen";
 // ✅ NOVO IMPORT
-import { DashboardComparativoScreen } from "@/features/admin-hospital/components/DashboardComparativoScreen";
+import { DashboardComparativoHospitalScreen } from "@/features/admin-hospital/components/DashboardComparativoHospitalScreen";
 import { useEffect } from "react";
 import { clearSectorsCache } from "@/mocks/functionSectores";
 
 export default function HospitalDashboardPage() {
-
-
   useEffect(() => {
     console.log("Dashboard Hospitalar - Colab");
     clearSectorsCache();
   }, []);
-
 
   return (
     <div className="space-y-8 pb-10">
@@ -59,11 +56,10 @@ export default function HospitalDashboardPage() {
         {/* ✅ CONTEÚDO DA ABA "COMPARATIVO" ATUALIZADO */}
         <TabsContent value="comparativo">
           <div className="grid grid-cols-1 gap-6 mt-6">
-            <DashboardComparativoScreen title="Análise Comparativa" />
+            <DashboardComparativoHospitalScreen title="Análise Comparativa" />
           </div>
         </TabsContent>
       </Tabs>
     </div>
   );
 }
-

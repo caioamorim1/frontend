@@ -17,15 +17,51 @@ export type {
   QuestionOption,
 };
 
+// --- New: comparative endpoint for hospital (frontend helper) ---
+export interface HospitalComparativeResponse {
+  hospitalId: string;
+  atual: any; // shape: { id, name, internation: [], assistance: [] }
+  projetado: any; // same shape
+}
+
+export async function getHospitalComparative(
+  hospitalId: string,
+  params?: Record<string, any>
+): Promise<HospitalComparativeResponse> {
+  const res = await api.get(`/hospitais/${hospitalId}/comparative`, {
+    params,
+  });
+  return res.data as HospitalComparativeResponse;
+}
+
+// --- New: projected sectors aggregated endpoint ---
+export interface HospitalProjectedResponse {
+  aggregatedBy?: string;
+  items?: Array<any>;
+  internation?: any[];
+  assistance?: any[];
+}
+
+export async function getHospitalProjectedSectors(
+  hospitalId: string,
+  params?: Record<string, any>
+): Promise<HospitalProjectedResponse> {
+  const res = await api.get(
+    `/hospital-sectors-aggregate/hospitals/${hospitalId}/projected`,
+    { params }
+  );
+  return res.data as HospitalProjectedResponse;
+}
+
 // DTO para criar questionário
 export interface CreateQuestionarioDTO {
   name: string;
   questions: Question[];
 }
 
-//export const API_BASE_URL = "http://127.0.0.1:3110";
+export const API_BASE_URL = "http://127.0.0.1:3110";
 //export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/api"; //api docker
-export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode"; //api local
+//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode"; //api local
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
