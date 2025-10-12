@@ -8,6 +8,20 @@ import {
   UpdateCategoryDTO,
 } from "@/features/qualitativo/types";
 import axios from "axios";
+// Re-exportar tipos do qualitativo para facilitar importação
+export type {
+  Questionnaire as Questionario,
+  CreateCategoryDTO,
+  QualitativeCategory,
+  Question as Pergunta,
+  QuestionOption,
+};
+
+// DTO para criar questionário
+export interface CreateQuestionarioDTO {
+  name: string;
+  questions: Question[];
+}
 
 export const API_BASE_URL = "http://127.0.0.1:3110";
 //export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/api";
@@ -1121,8 +1135,12 @@ export const getAvaliacoes = async (): Promise<Evaluation[]> => {
   const response = await api.get("/qualitative/evaluations");
   return response.data;
 };
-export const getAvaliacoesBySector = async (sectorId: string): Promise<Evaluation[]> => {
-  const response = await api.get(`/qualitative/evaluations-by-sector?sectorId=${sectorId}`);
+export const getAvaliacoesBySector = async (
+  sectorId: string
+): Promise<Evaluation[]> => {
+  const response = await api.get(
+    `/qualitative/evaluations-by-sector?sectorId=${sectorId}`
+  );
   return response.data;
 };
 
