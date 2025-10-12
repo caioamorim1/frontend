@@ -19,6 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import { MinusCircle, PlusCircle } from "lucide-react";
 import { GrupoDeCargos } from "@/components/shared/AnaliseFinanceira";
 import { EvaluationsTab } from "@/features/qualitativo/components/EvaluationsTab";
+import React from "react";
+import { useAlert } from "@/contexts/AlertContext";
 
 // Componente para o input de ajuste
 const AjusteInput = ({
@@ -56,6 +58,7 @@ interface ProjetadoNaoInternacaoTabProps {
 export default function ProjetadoNaoInternacaoTab({
   unidade,
 }: ProjetadoNaoInternacaoTabProps) {
+  const { showAlert } = useAlert()
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -68,7 +71,7 @@ export default function ProjetadoNaoInternacaoTab({
       setLoading(true);
       try {
         const analiseData = await getAnaliseNaoInternacao(unidade.id);
-
+        console.log("Dados da análise financeira:", analiseData);
         if (analiseData && analiseData.tabela) {
           setAnaliseBase(analiseData.tabela);
         }
@@ -106,16 +109,10 @@ export default function ProjetadoNaoInternacaoTab({
         `ajustes_nao_internacao_${unidade.id}`,
         JSON.stringify(ajustes)
       );
-      toast({
-        title: "Sucesso!",
-        description: "Ajustes qualitativos salvos com sucesso.",
-      });
+      showAlert("success", "Sucesso", "Ajustes salvos com sucesso.");
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Não foi possível salvar os ajustes.",
-      });
+      showAlert("destructive", "Erro", "Não foi possível salvar os ajustes.");
+
     } finally {
       setSaving(false);
     }
@@ -198,7 +195,7 @@ export default function ProjetadoNaoInternacaoTab({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[30%]">Função</TableHead>
+                  <TableHead className="w-[30%]">Cargo</TableHead>
                   <TableHead className="text-center">Atual</TableHead>
                   <TableHead className="text-center">
                     Projetado (Sistema)
@@ -210,78 +207,102 @@ export default function ProjetadoNaoInternacaoTab({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {/* Cargos com Projetado (Enfermeiro/Técnico) */}
-                {cargosComProjetado.map((linha) => {
-                  const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
-                  const ajusteAtual = ajustes[linha.cargoId] || 0;
-                  const projetadoFinal = linha.quantidadeProjetada + ajusteAtual;
+                {/* Renderizar cargos */}
+                {analiseBase.map((sitio) => {
+                  const cargosDoSitio = sitio.cargos || [];
+
                   return (
-                    <TableRow key={linha.cargoId}>
-                      <TableCell className="font-medium">
-                        {linha.cargoNome}
-                      </TableCell>
-                      <TableCell className="text-center font-medium text-gray-500">
-                        {quantidadeAtual}
-                      </TableCell>
-                      <TableCell className="text-center font-medium text-gray-600">
-                        {linha.quantidadeProjetada}
-                      </TableCell>
-                      <TableCell>
-                        <AjusteInput
-                          value={ajusteAtual}
-                          onChange={(novoValor) =>
-                            handleAjusteChange(linha.cargoId, novoValor)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="text-center font-bold text-xl text-primary">
-                        {projetadoFinal}
-                      </TableCell>
-                    </TableRow>
+                    <React.Fragment key={`sitio-fragment-${sitio.id}`}>
+                      {/* Linha de Subtítulo do Sítio */}
+                      <TableRow
+                        key={`sitio-${sitio.id}`}
+                        className="bg-muted/50 hover:bg-muted/50"
+                      >
+                        <TableCell
+                          colSpan={2}
+                          className="font-semibold text-primary"
+                        >
+                          {sitio.nome}
+                          <span className="ml-2 text-sm text-muted-foreground font-normal">
+                            ({cargosDoSitio.length} cargo
+                            {cargosDoSitio.length !== 1 ? "s" : ""})
+                          </span>
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Linhas de Cargos do Sítio */}
+                      {cargosDoSitio.map((cargoSitio) => {
+                        const idAjusteKey = cargoSitio.cargoId + sitio.id;
+                        //const quantidadeAtual = getQuantidadeAtual(cargoSitio.cargoId);
+                        const ajusteAtual = ajustes[idAjusteKey] || 0;
+                        const projetadoFinal = cargoSitio.isScpCargo ? cargoSitio.quantidadeProjetada + ajusteAtual : 0 + ajusteAtual;
+                        // const cargo = cargosHospital.find(
+                        //   (c) => c.id === cargoSitio.cargoUnidade.cargo.id
+                        // );
+                        // if (!cargo) return null;
+
+                        // // Busca a quantidade no estado específico do sítio
+                        // const cargoNoEstado = cargosSitioState.find(
+                        //   (c) => c.sitioId === sitio.id && c.cargoId === cargo.id
+                        // );
+                        // const quantidade = cargoNoEstado
+                        //   ? cargoNoEstado.quantidade_funcionarios
+                        //   : cargoSitio.quantidade_funcionarios;
+
+                        return (
+                          <TableRow key={`cargo-${cargoSitio.cargoId}-${sitio.id}`}>
+                            <TableCell className="font-medium pl-8">
+                              {cargoSitio.cargoNome}
+                            </TableCell>
+                            <TableCell className="text-center font-semibold">
+                              {cargoSitio.quantidadeAtual}
+                            </TableCell>
+                            <TableCell className="text-center font-bold">
+                              {cargoSitio.isScpCargo ? cargoSitio.quantidadeProjetada : '-'}
+                            </TableCell>
+                            <TableCell>
+                              <AjusteInput
+                                value={ajusteAtual}
+                                onChange={(novoValor) =>
+                                  handleAjusteChange(idAjusteKey, novoValor)
+                                }
+                              />
+                            </TableCell>
+                            <TableCell className="text-center font-bold text-xl text-primary">
+                              {projetadoFinal}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+
+                      {/* Mensagem se não houver cargos no sítio */}
+                      {cargosDoSitio.length === 0 && (
+                        <TableRow>
+                          <TableCell
+                            colSpan={2}
+                            className="text-center text-muted-foreground h-12 pl-8 italic"
+                          >
+                            Nenhum cargo associado a este sítio.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
                   );
                 })}
 
-                {/* Outros Cargos (sem projetado - usa Atual) */}
-                {cargosAtuais.map((linha) => {
-                  const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
-                  const ajusteAtual = ajustes[linha.cargoId] || 0;
-                  const projetadoFinal = quantidadeAtual + ajusteAtual;
-                  return (
-                    <TableRow key={linha.cargoId}>
-                      <TableCell className="font-medium">
-                        {linha.cargoNome}
-                      </TableCell>
-                      <TableCell className="text-center font-medium text-gray-600">
-                        {quantidadeAtual}
-                      </TableCell>
-                      <TableCell className="text-center font-medium text-gray-400">
-                        -
-                      </TableCell>
-                      <TableCell>
-                        <AjusteInput
-                          value={ajusteAtual}
-                          onChange={(novoValor) =>
-                            handleAjusteChange(linha.cargoId, novoValor)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="text-center font-bold text-xl text-primary">
-                        {projetadoFinal}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-
-                {todasAsLinhas.length === 0 && (
+                {analiseBase.length === 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={2}
                       className="text-center text-muted-foreground h-24"
                     >
-                      Nenhum cargo encontrado para dimensionamento.
+                      Nenhum sítio funcional cadastrado nesta unidade.
                     </TableCell>
                   </TableRow>
                 )}
+
+
+
               </TableBody>
             </Table>
           </div>

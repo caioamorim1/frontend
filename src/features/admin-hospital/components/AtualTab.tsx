@@ -22,6 +22,7 @@ import { MinusCircle, PlusCircle, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import _ from "lodash"; // Import lodash for deep comparison
+import { useAlert } from "@/contexts/AlertContext";
 
 interface AtualTabProps {
   unidade: Unidade;
@@ -77,6 +78,7 @@ export default function AtualTab({
   hospitalId,
   onUpdate,
 }: AtualTabProps) {
+  const { showAlert } = useAlert();
   const { toast } = useToast();
   const [cargosHospital, setCargosHospital] = useState<Cargo[]>([]);
   const [cargosNaUnidade, setCargosNaUnidade] = useState<CargoUnidadeState[]>(
@@ -172,11 +174,12 @@ export default function AtualTab({
         }
       } catch (error) {
         console.error("❌ Erro ao carregar cargos:", error);
-        toast({
-          title: "Erro",
-          description: "Falha ao carregar cargos do hospital.",
-          variant: "destructive",
-        });
+        showAlert("destructive", "Erro", "Falha ao carregar cargos do hospital.");
+        // toast({
+        //   title: "Erro",
+        //   description: "Falha ao carregar cargos do hospital.",
+        //   variant: "destructive",
+        // });
       } finally {
         setLoading(false);
       }
@@ -248,11 +251,8 @@ export default function AtualTab({
         console.log("✅ Unidade atualizada com sucesso:", resultado);
       }
 
-      toast({
-        title: "Sucesso!",
-        description: "Quadro de cargos atualizado com sucesso.",
-      });
-      onUpdate(); // Recarrega os dados na página pai
+      showAlert("success", "Sucesso", "Alterações salvas com sucesso.");
+      //onUpdate(); // Recarrega os dados na página pai
     } catch (error: any) {
       console.error("❌ ERRO AO SALVAR:", error);
       console.error("Detalhes do erro:", {

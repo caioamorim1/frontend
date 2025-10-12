@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MinusCircle, PlusCircle } from "lucide-react";
 import { LinhaAnalise } from "@/components/shared/AnaliseFinanceira";
 import { EvaluationsTab } from "@/features/qualitativo/components/EvaluationsTab";
+import { useAlert } from "@/contexts/AlertContext";
 
 // Componente para o input de ajuste
 const AjusteInput = ({
@@ -57,6 +58,7 @@ interface ProjetadoTabProps {
 }
 
 export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
+  const { showAlert } = useAlert()
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -80,12 +82,7 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
           setAjustes(ajustesSalvos);
         }
       } catch (error) {
-        toast({
-          variant: "destructive",
-          title: "Erro",
-          description:
-            "Não foi possível carregar os dados para o ajuste projetado.",
-        });
+        showAlert("destructive", "Erro", "Não foi possível carregar os dados.");
       } finally {
         setLoading(false);
       }
@@ -101,16 +98,9 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
     setSaving(true);
     try {
       await saveAjustesQualitativos(unidade.id, ajustes);
-      toast({
-        title: "Sucesso!",
-        description: "Ajustes qualitativos salvos com sucesso.",
-      });
+      showAlert("success", "Sucesso", "Ajustes salvos com sucesso.");
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Não foi possível salvar os ajustes.",
-      });
+      showAlert("destructive", "Erro", "Não foi possível salvar os ajustes.");
     } finally {
       setSaving(false);
     }

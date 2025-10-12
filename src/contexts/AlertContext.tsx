@@ -38,7 +38,7 @@ export function AlertProvider({ children }: { children: ReactNode }) {
             {children}
             {alert.open && (
                 <div className="fixed bottom-5 right-5 max-w-sm z-50">
-                    <Alert variant={alert.type}>
+                    <Alert variant={alert.type} className="bg-white/90 backdrop-blur-md shadow-lg border border-gray-300">
                         <AlertCircle className="h-4 w-4" />
                         <div>
                             <AlertTitle>{alert.title}</AlertTitle>
