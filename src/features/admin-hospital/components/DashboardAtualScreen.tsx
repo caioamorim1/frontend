@@ -267,38 +267,57 @@ const GlobalTabContent: React.FC<{
   const { internation, assistance } = sourceData;
 
   const occupationData = useMemo(() => {
-    if (!internation) return { data: [], summary: { name: 'Global' } };
+    if (!internation || internation.length === 0) {
+      return {
+        data: [],
+        summary: {
+          name: "Global",
+          "Taxa de Ocupação": 0,
+          Ociosidade: 0,
+          Superlotação: 0,
+          "Capacidade Produtiva": 100,
+        },
+      };
+    }
 
     const data = internation.map((sector) => {
       const totalBeds = sector.bedCount || 0;
       const evaluatedBeds = sector.bedStatus?.evaluated || 0;
-      const occupancyRate = totalBeds > 0 ? (evaluatedBeds / totalBeds) * 100 : 0;
+      const occupancyRate =
+        totalBeds > 0 ? (evaluatedBeds / totalBeds) * 100 : 0;
       const ociosidade = Math.max(0, 85 - occupancyRate);
       const superlotacao = Math.max(0, occupancyRate - 100);
 
       return {
         name: sector.name,
-        'Taxa de Ocupação': occupancyRate,
-        'Ociosidade': ociosidade,
-        'Superlotação': superlotacao,
-        'Capacidade Produtiva': 100,
+        "Taxa de Ocupação": occupancyRate,
+        Ociosidade: ociosidade,
+        Superlotação: superlotacao,
+        "Capacidade Produtiva": 100,
       };
     });
 
-    const totalBeds = internation.reduce((sum, s) => sum + (s.bedCount || 0), 0);
-    const totalEvaluated = internation.reduce((sum, s) => sum + (s.bedStatus?.evaluated || 0), 0);
-    const globalOccupancy = totalBeds > 0 ? (totalEvaluated / totalBeds) * 100 : 0;
+    const totalBeds = internation.reduce(
+      (sum, s) => sum + (s.bedCount || 0),
+      0
+    );
+    const totalEvaluated = internation.reduce(
+      (sum, s) => sum + (s.bedStatus?.evaluated || 0),
+      0
+    );
+    const globalOccupancy =
+      totalBeds > 0 ? (totalEvaluated / totalBeds) * 100 : 0;
 
     const summary = {
-        name: 'Global',
-        'Taxa de Ocupação': globalOccupancy,
-        'Ociosidade': Math.max(0, 85 - globalOccupancy),
-        'Superlotação': Math.max(0, globalOccupancy - 100),
-        'Capacidade Produtiva': 100,
+      name: "Global",
+      "Taxa de Ocupação": globalOccupancy,
+      Ociosidade: Math.max(0, 85 - globalOccupancy),
+      Superlotação: Math.max(0, globalOccupancy - 100),
+      "Capacidade Produtiva": 100,
     };
 
     return { data, summary };
-}, [internation]);
+  }, [internation]);
 
   console.log("🔍 GlobalTabContent - sourceData:", {
     hasInternation: !!internation,
@@ -463,7 +482,10 @@ const GlobalTabContent: React.FC<{
         data={chartDataAtual}
         title="Análise de Custo por Setor"
       />
-      <OccupationRateChart data={occupationData.data} summary={occupationData.summary} />
+      <OccupationRateChart
+        data={occupationData.data}
+        summary={occupationData.summary}
+      />
       <RadarChartComponent
         data={radarData}
         title="Análise Qualitativa"
@@ -480,34 +502,50 @@ const TabContentInternacao: React.FC<{
   const [selectedSector, setSelectedSector] = useState<string>("all");
 
   const occupationData = useMemo(() => {
-    if (!sourceData) return { data: [], summary: { name: 'Global' } };
+    if (!sourceData || sourceData.length === 0) {
+      return {
+        data: [],
+        summary: {
+          name: "Global",
+          "Taxa de Ocupação": 0,
+          Ociosidade: 0,
+          Superlotação: 0,
+          "Capacidade Produtiva": 100,
+        },
+      };
+    }
 
     const data = sourceData.map((sector) => {
       const totalBeds = sector.bedCount || 0;
       const evaluatedBeds = sector.bedStatus?.evaluated || 0;
-      const occupancyRate = totalBeds > 0 ? (evaluatedBeds / totalBeds) * 100 : 0;
+      const occupancyRate =
+        totalBeds > 0 ? (evaluatedBeds / totalBeds) * 100 : 0;
       const ociosidade = Math.max(0, 85 - occupancyRate);
       const superlotacao = Math.max(0, occupancyRate - 100);
 
       return {
         name: sector.name,
-        'Taxa de Ocupação': occupancyRate,
-        'Ociosidade': ociosidade,
-        'Superlotação': superlotacao,
-        'Capacidade Produtiva': 100,
+        "Taxa de Ocupação": occupancyRate,
+        Ociosidade: ociosidade,
+        Superlotação: superlotacao,
+        "Capacidade Produtiva": 100,
       };
     });
 
     const totalBeds = sourceData.reduce((sum, s) => sum + (s.bedCount || 0), 0);
-    const totalEvaluated = sourceData.reduce((sum, s) => sum + (s.bedStatus?.evaluated || 0), 0);
-    const globalOccupancy = totalBeds > 0 ? (totalEvaluated / totalBeds) * 100 : 0;
+    const totalEvaluated = sourceData.reduce(
+      (sum, s) => sum + (s.bedStatus?.evaluated || 0),
+      0
+    );
+    const globalOccupancy =
+      totalBeds > 0 ? (totalEvaluated / totalBeds) * 100 : 0;
 
     const summary = {
-        name: 'Global',
-        'Taxa de Ocupação': globalOccupancy,
-        'Ociosidade': Math.max(0, 85 - globalOccupancy),
-        'Superlotação': Math.max(0, globalOccupancy - 100),
-        'Capacidade Produtiva': 100,
+      name: "Global",
+      "Taxa de Ocupação": globalOccupancy,
+      Ociosidade: Math.max(0, 85 - globalOccupancy),
+      Superlotação: Math.max(0, globalOccupancy - 100),
+      "Capacidade Produtiva": 100,
     };
 
     return { data, summary };
@@ -747,7 +785,10 @@ const TabContentInternacao: React.FC<{
           title="Análise de Custo por Setor"
         />
       )}
-      <OccupationRateChart data={occupationData.data} summary={occupationData.summary} />
+      <OccupationRateChart
+        data={occupationData.data}
+        summary={occupationData.summary}
+      />
       <RadarChartComponent
         data={radarData}
         title="Análise Qualitativa"

@@ -1,4 +1,12 @@
-import { CreateCategoryDTO, Evaluation, QualitativeCategory, Questionnaire, UpdateCategoryDTO } from "@/features/qualitativo/types";
+import {
+  CreateCategoryDTO,
+  Evaluation,
+  QualitativeCategory,
+  Question,
+  Questionnaire,
+  QuestionOption,
+  UpdateCategoryDTO,
+} from "@/features/qualitativo/types";
 import axios from "axios";
 
 export const API_BASE_URL = "http://127.0.0.1:3110";
@@ -330,8 +338,8 @@ export type ParametrosNaoInternacao = CreateParametrosNaoInternacaoDTO & {
   id: string;
 };
 
-// Interfaces para Questionários e Coletas
-export interface Pergunta {
+// Interfaces para Questionários e Coletas (sistema legado)
+export interface PerguntaColeta {
   id: string;
   categoria: string;
   texto: string;
@@ -339,7 +347,6 @@ export interface Pergunta {
   opcoes?: string[];
   obrigatoria: boolean;
 }
-
 
 export interface RespostaColeta {
   perguntaId: string;
@@ -351,7 +358,11 @@ export interface Coleta {
   id: string;
   localNome: string;
   respostas: RespostaColeta[];
-  questionario: { id: string; nome: string };
+  questionario: {
+    id: string;
+    nome: string;
+    perguntas?: Question[];
+  };
   colaborador?: { id: string; nome: string };
   created_at: string;
 }
@@ -1045,12 +1056,17 @@ export const getListQualitativesCategories = async (): Promise<
   return response.data;
 };
 
-export const createCategory = async (data: CreateCategoryDTO): Promise<QualitativeCategory> => {
+export const createCategory = async (
+  data: CreateCategoryDTO
+): Promise<QualitativeCategory> => {
   const response = await api.post("/qualitative/categories", data);
   return response.data;
 };
 
-export const updateCategory = async (id: number, data: UpdateCategoryDTO): Promise<void> => {
+export const updateCategory = async (
+  id: number,
+  data: UpdateCategoryDTO
+): Promise<void> => {
   await api.put(`/qualitative/categories/${id}`, data);
 };
 
@@ -1058,14 +1074,12 @@ export const deleteCategory = async (id: number): Promise<void> => {
   await api.delete(`/qualitative/categories/${id}`);
 };
 
-// QUESTIONÁRIOS 
+// QUESTIONÁRIOS
 export const getQuestionarios = async (): Promise<Questionnaire[]> => {
   const response = await api.get("/qualitative/questionnaires");
   return response.data;
 };
-export const createQuestionario = async (
-  data: any
-): Promise<Questionnaire> => {
+export const createQuestionario = async (data: any): Promise<Questionnaire> => {
   const response = await api.post("/qualitative/questionnaires", data);
   return response.data;
 };
@@ -1073,16 +1087,19 @@ export const updateQuestionario = async (
   questionarioId: number,
   data: any
 ): Promise<Questionnaire> => {
-  const response = await api.put(`/qualitative/questionnaires/${questionarioId}`, data);
+  const response = await api.put(
+    `/qualitative/questionnaires/${questionarioId}`,
+    data
+  );
   return response.data;
 };
 export const deleteQuestionario = async (
-  questionarioId: number
+  questionarioId: number | string
 ): Promise<void> => {
   await api.delete(`/qualitative/questionnaires/${questionarioId}`);
 };
 
-// AVALIAÇÕES 
+// AVALIAÇÕES
 export const getAvaliacoes = async (): Promise<Evaluation[]> => {
   const response = await api.get("/qualitative/evaluations");
   return response.data;
@@ -1092,17 +1109,12 @@ export const getAvaliacoesBySector = async (sectorId: string): Promise<Evaluatio
   return response.data;
 };
 
-export const getAvaliacaoById = async (
-  id: number
-): Promise<Evaluation> => {
+export const getAvaliacaoById = async (id: number): Promise<Evaluation> => {
   const response = await api.get(`/qualitative/evaluations/${id}`);
   return response.data;
 };
 
-
-export const createAvaliacao = async (
-  data: any
-): Promise<Evaluation> => {
+export const createAvaliacao = async (data: any): Promise<Evaluation> => {
   const response = await api.post("/qualitative/evaluations", data);
   return response.data;
 };

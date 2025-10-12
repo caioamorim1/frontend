@@ -9,7 +9,10 @@ import { calculateQuestionScoreByCategory } from '../calculate';
 interface QuestionInputRendererProps {
   question: Question;
   answer: Answer | undefined;
-  onAnswerChange: (questionId: number, value: string | number | boolean) => void;
+  onAnswerChange: (
+    questionId: number,
+    value: string | number | boolean
+  ) => void;
   onObservationChange: (questionId: number, observation: string) => void;
   onFileUpload: (questionId: number, files: FileList | null) => void;
   onRemoveAttachment: (questionId: number, attachmentIndex: number) => void;
@@ -21,48 +24,57 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
   onAnswerChange,
   onObservationChange,
   onFileUpload,
-  onRemoveAttachment
+  onRemoveAttachment,
 }) => {
   const [showObservation, setShowObservation] = useState(!!answer?.observation);
-  const value = answer?.value || '';
-  const observation = answer?.observation || '';
+  const value = answer?.value || "";
+  const observation = answer?.observation || "";
   const attachments = answer?.attachments || [];
 
   switch (question.type) {
-    case 'sim-nao-na':
+    case "sim-nao-na":
       return (
         <div className="space-y-3">
           {/* Botões Sim/Não/N/A */}
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => onAnswerChange(question.id, question.options[0]?.label)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${value === question.options[0]?.label
-                ? 'bg-green-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-green-100 hover:text-green-700'
-                }`}
+              onClick={() =>
+                onAnswerChange(question.id, question.options[0]?.label)
+              }
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                value === question.options[0]?.label
+                  ? "bg-green-600 text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-green-100 hover:text-green-700"
+              }`}
             >
-              {question.options[0]?.label || 'Sim'}
+              {question.options[0]?.label || "Sim"}
             </button>
             <button
               type="button"
-              onClick={() => onAnswerChange(question.id, question.options[1]?.label)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${value === question.options[1]?.label
-                ? 'bg-red-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-red-100 hover:text-red-700'
-                }`}
+              onClick={() =>
+                onAnswerChange(question.id, question.options[1]?.label)
+              }
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                value === question.options[1]?.label
+                  ? "bg-red-600 text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-red-100 hover:text-red-700"
+              }`}
             >
-              {question.options[1]?.label || 'Não'}
+              {question.options[1]?.label || "Não"}
             </button>
             <button
               type="button"
-              onClick={() => onAnswerChange(question.id, question.options[2]?.label)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${value === question.options[2]?.label
-                ? 'bg-yellow-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-yellow-100 hover:text-yellow-700'
-                }`}
+              onClick={() =>
+                onAnswerChange(question.id, question.options[2]?.label)
+              }
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                value === question.options[2]?.label
+                  ? "bg-yellow-600 text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-yellow-100 hover:text-yellow-700"
+              }`}
             >
-              {question.options[2]?.label || 'N/A'}
+              {question.options[2]?.label || "N/A"}
             </button>
           </div>
 
@@ -100,7 +112,9 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
               </label>
               <textarea
                 value={observation}
-                onChange={(e) => onObservationChange(question.id, e.target.value)}
+                onChange={(e) =>
+                  onObservationChange(question.id, e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[60px]"
                 placeholder="Digite sua observação..."
               />
@@ -115,10 +129,15 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
               </label>
               <div className="space-y-1">
                 {attachments.map((attachment, index) => (
-                  <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
+                  >
                     <div className="flex items-center space-x-2">
                       <FileText className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-700">{attachment}</span>
+                      <span className="text-sm text-gray-700">
+                        {attachment}
+                      </span>
                     </div>
                     <button
                       type="button"
@@ -136,7 +155,7 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
         </div>
       );
 
-    case 'texto':
+    case "texto":
       return (
         <div className="space-y-3">
           <textarea
@@ -181,7 +200,9 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
               </label>
               <textarea
                 value={observation}
-                onChange={(e) => onObservationChange(question.id, e.target.value)}
+                onChange={(e) =>
+                  onObservationChange(question.id, e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[60px]"
                 placeholder="Digite sua observação..."
               />
@@ -196,10 +217,15 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
               </label>
               <div className="space-y-1">
                 {attachments.map((attachment, index) => (
-                  <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
+                  >
                     <div className="flex items-center space-x-2">
                       <FileText className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-700">{attachment}</span>
+                      <span className="text-sm text-gray-700">
+                        {attachment}
+                      </span>
                     </div>
                     <button
                       type="button"
@@ -217,13 +243,15 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
         </div>
       );
 
-    case 'numero':
+    case "numero":
       return (
         <div className="space-y-3">
           <input
             type="number"
             value={value as number}
-            onChange={(e) => onAnswerChange(question.id, parseFloat(e.target.value) || 0)}
+            onChange={(e) =>
+              onAnswerChange(question.id, parseFloat(e.target.value) || 0)
+            }
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Digite um número..."
             required
@@ -263,7 +291,9 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
               </label>
               <textarea
                 value={observation}
-                onChange={(e) => onObservationChange(question.id, e.target.value)}
+                onChange={(e) =>
+                  onObservationChange(question.id, e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[60px]"
                 placeholder="Digite sua observação..."
               />
@@ -278,10 +308,15 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
               </label>
               <div className="space-y-1">
                 {attachments.map((attachment, index) => (
-                  <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
+                  >
                     <div className="flex items-center space-x-2">
                       <FileText className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-700">{attachment}</span>
+                      <span className="text-sm text-gray-700">
+                        {attachment}
+                      </span>
                     </div>
                     <button
                       type="button"
@@ -299,7 +334,7 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
         </div>
       );
 
-    case 'data':
+    case "data":
       return (
         <div className="space-y-3">
           <input
@@ -344,7 +379,9 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
               </label>
               <textarea
                 value={observation}
-                onChange={(e) => onObservationChange(question.id, e.target.value)}
+                onChange={(e) =>
+                  onObservationChange(question.id, e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[60px]"
                 placeholder="Digite sua observação..."
               />
@@ -359,10 +396,15 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
               </label>
               <div className="space-y-1">
                 {attachments.map((attachment, index) => (
-                  <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
+                  >
                     <div className="flex items-center space-x-2">
                       <FileText className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-700">{attachment}</span>
+                      <span className="text-sm text-gray-700">
+                        {attachment}
+                      </span>
                     </div>
                     <button
                       type="button"
@@ -380,7 +422,7 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
         </div>
       );
 
-    case 'multipla-escolha':
+    case "multipla-escolha":
       return (
         <div className="space-y-3">
           <select
@@ -431,7 +473,9 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
               </label>
               <textarea
                 value={observation}
-                onChange={(e) => onObservationChange(question.id, e.target.value)}
+                onChange={(e) =>
+                  onObservationChange(question.id, e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[60px]"
                 placeholder="Digite sua observação..."
               />
@@ -446,10 +490,15 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
               </label>
               <div className="space-y-1">
                 {attachments.map((attachment, index) => (
-                  <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
+                  >
                     <div className="flex items-center space-x-2">
                       <FileText className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-700">{attachment}</span>
+                      <span className="text-sm text-gray-700">
+                        {attachment}
+                      </span>
                     </div>
                     <button
                       type="button"
@@ -486,39 +535,40 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
   const { showModal } = useModal()
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
   const [categories, setCategories] = useState<QualitativeCategory[]>([]);
-  const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<Questionnaire | null>(null);
+  const [selectedQuestionnaire, setSelectedQuestionnaire] =
+    useState<Questionnaire | null>(null);
   const [formData, setFormData] = useState({
-    title: '',
-    evaluator: '',
+    title: "",
+    evaluator: "",
     questionnaireId: 0,
-    questionnaire: ''
+    questionnaire: "",
   });
-  const [answers, setAnswers] = useState<Answer[]>([]); `
+  const [answers, setAnswers] = useState<Answer[]>([]);
   `
-
+  `;
 
   const showModalAviso = (title: string, message: string) => {
     showModal({
       type: "info",
       title: title,
       message: message,
-    })
-  }
+    });
+  };
 
   const loadQuestionnaires = async () => {
-    getQuestionarios().then(setQuestionnaires)
-      .catch(err => {
+    getQuestionarios()
+      .then(setQuestionnaires)
+      .catch((err) => {
         console.error("Falha ao buscar questionários:", err);
         showAlert("destructive", "Erro", "Falha ao buscar questionários.");
       });
     getListQualitativesCategories()
       .then(setCategories)
-      .catch(err => {
+      .catch((err) => {
         console.error("Falha ao buscar categorias:", err);
         showAlert("destructive", "Erro", "Falha ao buscar categorias.");
       });
-
-  }
+  };
 
   useEffect(() => {
     // Se estiver editando, carregar os dados da avaliação
@@ -527,10 +577,12 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
         title: editingEvaluation.title,
         evaluator: editingEvaluation.evaluator,
         questionnaireId: editingEvaluation.questionnaireId,
-        questionnaire: editingEvaluation.questionnaire
+        questionnaire: editingEvaluation.questionnaire,
       });
 
-      const questionnaire = questionnaires.find(q => q.id === editingEvaluation.questionnaireId);
+      const questionnaire = questionnaires.find(
+        (q) => q.id === editingEvaluation.questionnaireId
+      );
       if (questionnaire) {
         setSelectedQuestionnaire(questionnaire);
         setAnswers(editingEvaluation.answers || []);
@@ -543,100 +595,130 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
   }, []);
 
   const getCategoryName = (categoryId: number) => {
-    const category = categories.find(c => c.id === categoryId);
-    return category ? category.name : 'Categoria não encontrada';
+    const category = categories.find((c) => c.id === categoryId);
+    return category ? category.name : "Categoria não encontrada";
   };
   const handleQuestionnaireSelect = (questionnaireId: number) => {
-    const questionnaire = questionnaires.find(q => q.id === questionnaireId);
+    const questionnaire = questionnaires.find((q) => q.id === questionnaireId);
     if (questionnaire) {
       setSelectedQuestionnaire(questionnaire);
       setFormData({ ...formData, questionnaireId });
       // Inicializar respostas vazias
-      const initialAnswers: Answer[] = questionnaire.questions.map(q => ({
+      const initialAnswers: Answer[] = questionnaire.questions.map((q) => ({
         questionId: q.id,
-        value: q.type === 'sim-nao-na' ? '' : q.type === 'numero' ? 0 : '',
-        observation: '',
-        attachments: []
+        value: q.type === "sim-nao-na" ? "" : q.type === "numero" ? 0 : "",
+        observation: "",
+        attachments: [],
       }));
       setAnswers(initialAnswers);
     }
   };
 
-  const handleAnswerChange = (questionId: number, value: string | number | boolean) => {
-    setAnswers(prev => prev.map(answer =>
-      answer.questionId === questionId
-        ? { ...answer, value }
-        : answer
-    ));
+  const handleAnswerChange = (
+    questionId: number,
+    value: string | number | boolean
+  ) => {
+    setAnswers((prev) =>
+      prev.map((answer) =>
+        answer.questionId === questionId ? { ...answer, value } : answer
+      )
+    );
   };
 
   const handleObservationChange = (questionId: number, observation: string) => {
-    setAnswers(prev => prev.map(answer =>
-      answer.questionId === questionId
-        ? { ...answer, observation }
-        : answer
-    ));
+    setAnswers((prev) =>
+      prev.map((answer) =>
+        answer.questionId === questionId ? { ...answer, observation } : answer
+      )
+    );
   };
 
   const handleFileUpload = (questionId: number, files: FileList | null) => {
     if (!files) return;
 
-    const currentAttachments = answers.find(a => a.questionId === questionId)?.attachments || [];
+    const currentAttachments =
+      answers.find((a) => a.questionId === questionId)?.attachments || [];
     if (currentAttachments.length >= 3) {
-      showModalAviso("Limite de anexos atingido", "Você já atingiu o limite máximo de 3 anexos para esta pergunta.");
+      showModalAviso(
+        "Limite de anexos atingido",
+        "Você já atingiu o limite máximo de 3 anexos para esta pergunta."
+      );
       return;
     }
 
-    const fileNames = Array.from(files).map(file => file.name);
+    const fileNames = Array.from(files).map((file) => file.name);
     const totalFiles = currentAttachments.length + fileNames.length;
 
     if (totalFiles > 3) {
-      showModalAviso("Limite de anexos atingido", `Você pode anexar no máximo 3 arquivos por pergunta. Atualmente há ${currentAttachments.length} arquivo(s) anexado(s).`);
+      showModalAviso(
+        "Limite de anexos atingido",
+        `Você pode anexar no máximo 3 arquivos por pergunta. Atualmente há ${currentAttachments.length} arquivo(s) anexado(s).`
+      );
       return;
     }
 
-    setAnswers(prev => prev.map(answer =>
-      answer.questionId === questionId
-        ? { ...answer, attachments: [...currentAttachments, ...fileNames] }
-        : answer
-    ));
+    setAnswers((prev) =>
+      prev.map((answer) =>
+        answer.questionId === questionId
+          ? { ...answer, attachments: [...currentAttachments, ...fileNames] }
+          : answer
+      )
+    );
   };
 
   const removeAttachment = (questionId: number, attachmentIndex: number) => {
-    setAnswers(prev => prev.map(answer =>
-      answer.questionId === questionId
-        ? { ...answer, attachments: answer.attachments?.filter((_, index) => index !== attachmentIndex) }
-        : answer
-    ));
+    setAnswers((prev) =>
+      prev.map((answer) =>
+        answer.questionId === questionId
+          ? {
+              ...answer,
+              attachments: answer.attachments?.filter(
+                (_, index) => index !== attachmentIndex
+              ),
+            }
+          : answer
+      )
+    );
   };
 
   const handleNext = () => {
-    if (!formData.title.trim() || !formData.evaluator.trim() || !selectedQuestionnaire) {
-      showModalAviso("Informações incompletas", "Por favor, preencha todas as informações básicas e selecione um questionário.");
+    if (
+      !formData.title.trim() ||
+      !formData.evaluator.trim() ||
+      !selectedQuestionnaire
+    ) {
+      showModalAviso(
+        "Informações incompletas",
+        "Por favor, preencha todas as informações básicas e selecione um questionário."
+      );
       return;
     }
 
     // Validar se todas as perguntas foram respondidas
-    const unansweredQuestions = selectedQuestionnaire.questions.filter(question => {
-      const answer = answers.find(a => a.questionId === question.id);
+    const unansweredQuestions = selectedQuestionnaire.questions.filter(
+      (question) => {
+        const answer = answers.find((a) => a.questionId === question.id);
 
-      if (!answer) return true;
+        if (!answer) return true;
 
-      // Para perguntas sim-nao-na, verificar se foi selecionada uma opção
-      if (question.type === 'sim-nao-na') {
-        return !answer.value || answer.value === '';
+        // Para perguntas sim-nao-na, verificar se foi selecionada uma opção
+        if (question.type === "sim-nao-na") {
+          return !answer.value || answer.value === "";
+        }
+
+        // Para outros tipos, verificar se há valor
+        if (question.type === "numero") {
+          return (
+            answer.value === null ||
+            answer.value === undefined ||
+            answer.value === ""
+          );
+        }
+
+        // Para texto, data e múltipla escolha
+        return !answer.value || answer.value === "";
       }
-
-      // Para outros tipos, verificar se há valor
-      if (question.type === 'numero') {
-        return answer.value === null || answer.value === undefined || answer.value === '';
-      }
-
-      // Para texto, data e múltipla escolha
-      return !answer.value || answer.value === '';
-    });
-
-
+    );
 
     // if (unansweredQuestions.length > 0) {
     //   const questionNumbers = unansweredQuestions.map(q =>
@@ -676,7 +758,7 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-semibold text-gray-900">
-          {editingEvaluation ? 'Editar Avaliação' : 'Nova Avaliação'}
+          {editingEvaluation ? "Editar Avaliação" : "Nova Avaliação"}
         </h3>
         <div className="flex items-center space-x-3">
           <button
@@ -692,20 +774,24 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
             <Save className="h-5 w-5" />
           </button>
         </div>
-
       </div>
 
       {/* Informações básicas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
         <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="title"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Título da Avaliação *
           </label>
           <input
             type="text"
             id="title"
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, title: e.target.value })
+            }
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Digite o título da avaliação"
             required
@@ -713,14 +799,19 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
         </div>
 
         <div>
-          <label htmlFor="evaluator" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="evaluator"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Avaliador *
           </label>
           <input
             type="text"
             id="evaluator"
             value={formData.evaluator}
-            onChange={(e) => setFormData({ ...formData, evaluator: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, evaluator: e.target.value })
+            }
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Nome do avaliador"
             required
@@ -728,13 +819,18 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
         </div>
 
         <div>
-          <label htmlFor="questionnaire" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="questionnaire"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Questionário *
           </label>
           <select
             id="questionnaire"
             value={formData.questionnaireId}
-            onChange={(e) => handleQuestionnaireSelect(parseInt(e.target.value))}
+            onChange={(e) =>
+              handleQuestionnaireSelect(parseInt(e.target.value))
+            }
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             disabled={!!editingEvaluation}
             required
@@ -742,7 +838,8 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
             <option value={0}>Selecione um questionário</option>
             {questionnaires.map((questionnaire) => (
               <option key={questionnaire.id} value={questionnaire.id}>
-                {questionnaire.name} ({questionnaire.questions.length} pergunta{questionnaire.questions.length !== 1 ? 's' : ''})
+                {questionnaire.name} ({questionnaire.questions.length} pergunta
+                {questionnaire.questions.length !== 1 ? "s" : ""})
               </option>
             ))}
           </select>
@@ -757,22 +854,31 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
               Questionário: {selectedQuestionnaire.name}
             </h4>
             <p className="text-sm text-gray-600">
-              Responda todas as {selectedQuestionnaire.questions.length} pergunta{selectedQuestionnaire.questions.length !== 1 ? 's' : ''} abaixo:
+              Responda todas as {selectedQuestionnaire.questions.length}{" "}
+              pergunta{selectedQuestionnaire.questions.length !== 1 ? "s" : ""}{" "}
+              abaixo:
             </p>
           </div>
 
           <div className="space-y-6">
             {selectedQuestionnaire?.questions.map((question, index) => (
-              <div key={question.id} className="border border-gray-200 rounded-lg p-4">
+              <div
+                key={question.id}
+                className="border border-gray-200 rounded-lg p-4"
+              >
                 <div className="mb-3">
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     {index + 1} - {question.text}
                   </label>
-                  <p className="text-gray-700 mb-3"><span className="text-gray-500">{getCategoryName(question.categoryId)}</span></p>
+                  <p className="text-gray-700 mb-3">
+                    <span className="text-gray-500">
+                      {getCategoryName(question.categoryId)}
+                    </span>
+                  </p>
                 </div>
                 <QuestionInputRenderer
                   question={question}
-                  answer={answers.find(a => a.questionId === question.id)}
+                  answer={answers.find((a) => a.questionId === question.id)}
                   onAnswerChange={handleAnswerChange}
                   onObservationChange={handleObservationChange}
                   onFileUpload={handleFileUpload}
@@ -797,7 +903,9 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
         >
           <Save className="h-4 w-4" />
-          <span>{editingEvaluation ? 'Atualizar Avaliação' : 'Finalizar Avaliação'}</span>
+          <span>
+            {editingEvaluation ? "Atualizar Avaliação" : "Finalizar Avaliação"}
+          </span>
         </button>
       </div>
     </div>
