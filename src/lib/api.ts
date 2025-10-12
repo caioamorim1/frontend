@@ -1087,6 +1087,10 @@ export const getAvaliacoes = async (): Promise<Evaluation[]> => {
   const response = await api.get("/qualitative/evaluations");
   return response.data;
 };
+export const getAvaliacoesBySector = async (sectorId: string): Promise<Evaluation[]> => {
+  const response = await api.get(`/qualitative/evaluations-by-sector?sectorId=${sectorId}`);
+  return response.data;
+};
 
 export const getAvaliacaoById = async (
   id: number

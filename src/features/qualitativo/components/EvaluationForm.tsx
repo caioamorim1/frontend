@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, X, MessageSquare, Paperclip, Upload, FileText, Trash2 } from 'lucide-react';
-import { Questionnaire, Question, Answer, Evaluation, QualitativeCategory } from '../types';
+import { Questionnaire, Question, Answer, Evaluation, QualitativeCategory, EvaluationDTO } from '../types';
 import { getListQualitativesCategories, getQuestionarios } from '@/lib/api';
 import { useAlert } from '@/contexts/AlertContext';
 import { useModal } from '@/contexts/ModalContext';
@@ -474,11 +474,14 @@ const QuestionInputRenderer: React.FC<QuestionInputRendererProps> = ({
 
 interface EvaluationFormProps {
   onClose: () => void;
-  onSave: (evaluationData: any) => void;
+  onSave: (evaluationData: EvaluationDTO) => void;
   editingEvaluation?: Evaluation | null;
+  sectorId: string;
+  hospitalId: string;
+  unidadeType: 'internacao' | 'assistencial';
 }
 
-export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave, editingEvaluation }) => {
+export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave, editingEvaluation, sectorId, hospitalId, unidadeType }) => {
   const { showAlert } = useAlert()
   const { showModal } = useModal()
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
@@ -646,15 +649,20 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({ onClose, onSave,
     const calculateRate = calculateQuestionScoreByCategory(selectedQuestionnaire.questions, answers || []);
     console.log("calculateRate", calculateRate);
 
-    const evaluationData = {
+    const evaluationData: EvaluationDTO = {
       title: formData.title,
       evaluator: formData.evaluator,
       date: new Date().toISOString().split('T')[0],
-      status: unansweredQuestions.length > 0 ? 'incompleto' : 'completo',
+      status: unansweredQuestions.length > 0 ? 'in-progress' : 'completed',
       questionnaire: selectedQuestionnaire!.name,
       questionnaireId: selectedQuestionnaire!.id,
       answers,
-      calculateRate: calculateRate.totalRate
+      calculateRate: calculateRate.categories,
+      sectorId: sectorId,
+      hospitalId: hospitalId,
+      rate: calculateRate.totalRate,
+      unidadeType: unidadeType
+
     };
 
     if (editingEvaluation) {

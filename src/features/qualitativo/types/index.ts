@@ -11,6 +11,31 @@ export interface Evaluation {
   sectorId: string;
 }
 
+export interface RateItem {
+  score: number;
+  categoryId: number;
+}
+export interface EvaluationDTO {
+  id?: number;
+  title: string;
+  evaluator: string;
+  date: string;
+  status: 'completed' | 'pending' | 'in-progress';
+  questionnaire: string;
+  questionnaireId: number;
+  answers?: Answer[];
+  calculateRate: RateItem[];
+  rate: number;
+  sectorId: string;
+  hospitalId: string;
+  unidadeType: 'internacao' | 'assistencial';
+}
+
+export interface RateItem {
+  score: number;
+  categoryId: number;
+}
+
 
 
 export interface Answer {

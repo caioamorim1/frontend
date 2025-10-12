@@ -1,9 +1,9 @@
 import React from 'react';
 import { useState } from 'react';
 import { Eye, CreditCard as Edit, Calendar, User, Edit2, Trash2 } from 'lucide-react';
-import { Evaluation, Questionnaire } from '../types';
+import { Evaluation, EvaluationDTO, Questionnaire } from '../types';
 import { EvaluationForm } from './EvaluationForm';
-import { createAvaliacao, deleteAvaliacao, getAvaliacoes, getQuestionarios, UnidadeInternacao, UnidadeNaoInternacao, updateAvaliacao } from '@/lib/api';
+import { createAvaliacao, deleteAvaliacao, getAvaliacaoById, getAvaliacoes, getAvaliacoesBySector, getQuestionarios, UnidadeInternacao, UnidadeNaoInternacao, updateAvaliacao } from '@/lib/api';
 import { useAlert } from '@/contexts/AlertContext';
 import { useModal } from '@/contexts/ModalContext';
 
@@ -25,7 +25,12 @@ export const EvaluationsTab: React.FC<{
   }, []);
 
   const loadEvaluations = () => {
-    getAvaliacoes().then(data => {
+    const sectorId = unidadeInternacao ? unidadeInternacao.id : (unidadeNaoInternacao ? unidadeNaoInternacao.id : null);
+    if (!sectorId) {
+      showAlert('destructive', 'Setor inválido para carregar avaliações.', 'error');
+      return;
+    }
+    getAvaliacoesBySector(sectorId).then(data => {
       setEvaluations(data);
     }).catch(error => {
       showAlert('destructive', 'Erro ao carregar avaliações: ' + error.message, 'error');
@@ -33,7 +38,7 @@ export const EvaluationsTab: React.FC<{
   };
 
 
-  const handleSaveEvaluation = (evaluationData: any) => {
+  const handleSaveEvaluation = (evaluationData: EvaluationDTO) => {
     if (!evaluationData || !evaluationData.questionnaireId) {
       showAlert('destructive', 'Dados da avaliação inválidos.', 'error');
       return;
@@ -104,11 +109,11 @@ export const EvaluationsTab: React.FC<{
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completo':
+      case 'completed':
         return 'bg-green-100 text-green-800';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
-      case 'incompleto':
+      case 'in-progress':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -117,11 +122,11 @@ export const EvaluationsTab: React.FC<{
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'completo':
+      case 'completed':
         return 'Concluída';
       case 'pending':
         return 'Pendente';
-      case 'incompleto':
+      case 'in-progress':
         return 'Em Andamento';
       default:
         return 'Desconhecido';
@@ -157,6 +162,9 @@ export const EvaluationsTab: React.FC<{
           onClose={handleCloseForm}
           onSave={handleSaveEvaluation}
           editingEvaluation={editingEvaluation}
+          sectorId={unidadeInternacao ? unidadeInternacao.id : (unidadeNaoInternacao ? unidadeNaoInternacao.id : '')}
+          hospitalId={unidadeInternacao ? unidadeInternacao.hospitalId : (unidadeNaoInternacao ? unidadeNaoInternacao.hospitalId : '')}
+          unidadeType={unidadeInternacao ? 'internacao' : 'assistencial'}
         />
       ) : (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
