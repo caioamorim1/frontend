@@ -288,7 +288,7 @@ export default function BaselinePareto({
               />
               <StatCard
                 title="Foco (80%)"
-                value={`${chartData.findIndex((d) => d.acumuladoPercent >= 80) + 1
+                value={`${chartData.findIndex((d) => d.acumuladoPercent >= 80)
                   } setores`}
                 icon={<Activity />}
               />
