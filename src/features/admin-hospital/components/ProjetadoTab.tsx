@@ -23,6 +23,10 @@ import { BarChart3, Brain, MinusCircle, PlusCircle, Settings, Target } from "luc
 import { LinhaAnalise } from "@/components/shared/AnaliseFinanceira";
 import { EvaluationsTab } from "@/features/qualitativo/components/EvaluationsTab";
 import { useAlert } from "@/contexts/AlertContext";
+import brainIcon from '@/assets/artificial-intelligence.png';
+import target from '@/assets/target.png';
+import invite from '@/assets/setting.png';
+import barchart from '@/assets/report.png';
 
 // Componente para o input de ajuste
 const AjusteInput = ({
@@ -162,42 +166,49 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
           <div className="border rounded-lg overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="h-20">
-                  <TableHead className="w-[30%]">Função</TableHead>
+                <TableRow className="h-20"> {/* aumenta a altura da linha do cabeçalho */}
+                  <TableHead className="w-[30%]">Cargo</TableHead>
 
                   <TableHead className="text-center">
                     <div className="flex flex-col items-center justify-center">
-                      <div className="flex items-center justify-center">
-                        <BarChart3 className="h-7 w-7 text-gray-700" />
-                        <span className="ml-2 text-sm font-medium">Atual</span>
-                      </div>
+                      <img
+                        src={barchart}
+                        alt="Projetado (Sistema)"
+                        className="h-12 w-12 object-contain mb-1"
+                      />
+                      <span className="text-sm font-medium">Atual</span>
                     </div>
                   </TableHead>
 
                   <TableHead className="text-center">
                     <div className="flex flex-col items-center justify-center">
-                      <div className="flex items-center justify-center">
-                        <Brain className="h-7 w-7 text-gray-700" />
-                        <span className="ml-2 text-sm font-medium">Projetado (Sistema)</span>
-                      </div>
+                      <img
+                        src={brainIcon}
+                        alt="Projetado (Sistema)"
+                        className="h-12 w-12 object-contain mb-1"
+                      />
+                      <span className="text-sm font-medium">Projetado (Sistema)</span>
                     </div>
                   </TableHead>
-
-                  <TableHead className="text-center w-[200px]">
+                  <TableHead className="text-center">
                     <div className="flex flex-col items-center justify-center">
-                      <div className="flex items-center justify-center">
-                        <Settings className="h-7 w-7 text-gray-700" />
-                        <span className="ml-2 text-sm font-medium">Ajuste Qualitativo</span>
-                      </div>
+                      <img
+                        src={invite}
+                        alt="Projetado (Sistema)"
+                        className="h-12 w-12 object-contain mb-1"
+                      />
+                      <span className="text-sm font-medium">Ajuste Qualitativo</span>
                     </div>
                   </TableHead>
 
                   <TableHead className="text-center">
                     <div className="flex flex-col items-center justify-center">
-                      <div className="flex items-center justify-center">
-                        <Target className="h-7 w-7 text-gray-700" />
-                        <span className="ml-2 text-sm font-medium">Projetado Final</span>
-                      </div>
+                      <img
+                        src={target}
+                        alt="Projetado (Sistema)"
+                        className="h-12 w-12 object-contain mb-1"
+                      />
+                      <span className="text-sm font-medium">Projetado Final</span>
                     </div>
                   </TableHead>
                 </TableRow>
