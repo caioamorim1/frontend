@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   List,
+  TrendingDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import ParetoChart from "./ParetoChart";
 import { useToast } from "@/hooks/use-toast";
 import CostAnalyticsPanel from "./CostAnalyticsPanel";
+import { Card, CardContent } from "@/components/ui/card";
 
 // Simulação de uma chamada de API - substitua pela sua implementação real
 const hospitaisApi = {
@@ -286,9 +288,8 @@ export default function BaselinePareto({
               />
               <StatCard
                 title="Foco (80%)"
-                value={`${
-                  chartData.findIndex((d) => d.acumuladoPercent >= 80) + 1
-                } setores`}
+                value={`${chartData.findIndex((d) => d.acumuladoPercent >= 80) + 1
+                  } setores`}
                 icon={<Activity />}
               />
               <StatCard
@@ -375,14 +376,20 @@ const StatCard = ({
 }) => (
   <div className="bg-slate-50 p-3 rounded-lg border">
     <div className="flex items-center justify-between">
-      <div>
+      <div className="min-w-0"> {/* garante que o truncate funcione */}
         <p className="text-xs font-medium text-gray-600">{title}</p>
-        <p className="text-xl font-bold text-gray-800 truncate">{value}</p>
+        <p
+          className="text-xl font-bold text-gray-800 truncate max-w-[180px] sm:max-w-[220px] md:max-w-[250px] overflow-hidden"
+          title={String(value)} // mostra o valor completo ao passar o mouse
+        >
+          {value}
+        </p>
       </div>
-      <div className="w-8 h-8">{icon}</div>
+      <div className="w-8 h-8 flex-shrink-0">{icon}</div>
     </div>
   </div>
 );
+
 
 const ChartContainer = ({
   title,
@@ -391,7 +398,7 @@ const ChartContainer = ({
   title: string;
   chart: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-lg border h-[450px] flex flex-col">
+  <div className="bg-white rounded-lg border h-[650px] flex flex-col">
     <div className="p-4 border-b">
       <h3 className="font-semibold text-gray-800">{title}</h3>
     </div>
@@ -412,7 +419,7 @@ const CostTable = ({
   toggleAtivo: (nome: string) => void;
   isSelectionTable?: boolean;
 }) => (
-  <div className="bg-white rounded-lg border h-[450px] flex flex-col">
+  <div className="bg-white rounded-lg border h-[650px] flex flex-col">
     <div className="p-4 border-b">
       <h3 className="font-semibold text-gray-800">{title}</h3>
     </div>
@@ -476,4 +483,34 @@ const NoDataSelected = () => (
       Marque os setores na tabela ao lado para analisar.
     </p>
   </div>
+);
+
+
+const MetricCard = ({
+  title,
+  value,
+  icon: Icon,
+  colorClass = "bg-primary",
+  textColorClass = "text-primary-foreground",
+}: {
+  title: string;
+  value: string;
+  icon: any;
+  colorClass?: string;
+  textColorClass?: string;
+}) => (
+  <Card className="relative overflow-hidden shadow-soft">
+    <CardContent className="p-4">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="text-2xl font-bold">{value}</p>
+
+        </div>
+        <div className={`p-3 rounded-full ${colorClass}`}>
+          <Icon className={`h-6 w-6 ${textColorClass}`} />
+        </div>
+      </div>
+    </CardContent>
+  </Card>
 );
