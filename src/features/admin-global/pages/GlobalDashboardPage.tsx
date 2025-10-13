@@ -170,13 +170,125 @@ export default function GlobalDashboardPage() {
             break;
 
           case "grupo":
-            // Similar ao caso rede...
-            data = { type: "grupo", items: {} };
+            if (grupos.length > 0) {
+              const grupoPromises = grupos.map((grupo) =>
+                getGruposAggregated(grupo.id)
+              );
+              const gruposAgregados = await Promise.all(grupoPromises);
+
+              const gruposItems = gruposAgregados.map(
+                (grupoData: any, grupoIndex: number) => {
+                  const grupoInfo = grupos[grupoIndex];
+                  const grupoId = grupoInfo?.id || `grupo-${grupoIndex}`;
+                  const grupoName =
+                    grupoInfo?.nome || `Grupo ${grupoIndex + 1}`;
+
+                  const allIntern: any[] = [];
+                  const allAssist: any[] = [];
+
+                  if (grupoData?.hospitals) {
+                    grupoData.hospitals.forEach((hospital: any) => {
+                      if (hospital.internation) {
+                        const sectorsWithHospital = hospital.internation.map(
+                          (sector: any) => ({
+                            ...sector,
+                            hospitalName:
+                              hospital.hospitalName ||
+                              hospital.hospital ||
+                              hospital.nome ||
+                              hospital.name,
+                          })
+                        );
+                        allIntern.push(...sectorsWithHospital);
+                      }
+                      if (hospital.assistance) {
+                        const sectorsWithHospital = hospital.assistance.map(
+                          (sector: any) => ({
+                            ...sector,
+                            hospitalName:
+                              hospital.hospitalName ||
+                              hospital.hospital ||
+                              hospital.nome ||
+                              hospital.name,
+                          })
+                        );
+                        allAssist.push(...sectorsWithHospital);
+                      }
+                    });
+                  }
+
+                  return {
+                    id: grupoId,
+                    name: grupoName,
+                    internation: allIntern,
+                    assistance: allAssist,
+                  };
+                }
+              );
+
+              data = { type: "grupo", items: gruposItems };
+            }
             break;
 
           case "regiao":
-            // Similar ao caso rede...
-            data = { type: "regiao", items: {} };
+            if (regioes.length > 0) {
+              const regiaoPromises = regioes.map((regiao) =>
+                getRegioesAggregated(regiao.id)
+              );
+              const regioesAgregadas = await Promise.all(regiaoPromises);
+
+              const regioesItems = regioesAgregadas.map(
+                (regiaoData: any, regiaoIndex: number) => {
+                  const regiaoInfo = regioes[regiaoIndex];
+                  const regiaoId = regiaoInfo?.id || `regiao-${regiaoIndex}`;
+                  const regiaoName =
+                    regiaoInfo?.nome || `Região ${regiaoIndex + 1}`;
+
+                  const allIntern: any[] = [];
+                  const allAssist: any[] = [];
+
+                  if (regiaoData?.hospitals) {
+                    regiaoData.hospitals.forEach((hospital: any) => {
+                      if (hospital.internation) {
+                        const sectorsWithHospital = hospital.internation.map(
+                          (sector: any) => ({
+                            ...sector,
+                            hospitalName:
+                              hospital.hospitalName ||
+                              hospital.hospital ||
+                              hospital.nome ||
+                              hospital.name,
+                          })
+                        );
+                        allIntern.push(...sectorsWithHospital);
+                      }
+                      if (hospital.assistance) {
+                        const sectorsWithHospital = hospital.assistance.map(
+                          (sector: any) => ({
+                            ...sector,
+                            hospitalName:
+                              hospital.hospitalName ||
+                              hospital.hospital ||
+                              hospital.nome ||
+                              hospital.name,
+                          })
+                        );
+                        allAssist.push(...sectorsWithHospital);
+                      }
+                    });
+                  }
+
+                  return {
+                    id: regiaoId,
+                    name: regiaoName,
+                    internation: allIntern,
+                    assistance: allAssist,
+                  };
+                }
+              );
+
+              data = { type: "regiao", items: regioesItems };
+            }
             break;
 
           case "hospital":
@@ -429,6 +541,7 @@ export default function GlobalDashboardPage() {
                   }`}
                   externalData={aggregatedData?.items}
                   isGlobalView={true}
+                  aggregationType={groupBy}
                 />
               </div>
             </TabsContent>

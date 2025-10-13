@@ -38,7 +38,11 @@ import { calcularPerformanceParaGrafico } from "@/mocks/filterMocksRadar";
 
 import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import BargraphicChart from "./graphicsComponents/BarChartComp";
-import { COLORS, generateMultiColorScale } from "@/lib/generateMultiColorScale";
+import {
+  COLORS,
+  generateMultiColorScale,
+  generateBlueMonochromaticScale,
+} from "@/lib/generateMultiColorScale";
 import { formatAmountBRL } from "@/lib/utils";
 import {
   parseCost as parseCostUtil,
@@ -259,7 +263,7 @@ const GlobalTabContent: React.FC<{
         key: item.id,
         name: item.name,
         value: parseCostUtil(item.costAmount),
-        color: generateMultiColorScale(
+        color: generateBlueMonochromaticScale(
           parseCostUtil(item.costAmount),
           0,
           Math.max(...internation.map((i) => parseCostUtil(i.costAmount)))
@@ -272,7 +276,7 @@ const GlobalTabContent: React.FC<{
         key: item.id,
         name: item.name,
         value: parseCostUtil(item.costAmount),
-        color: generateMultiColorScale(
+        color: generateBlueMonochromaticScale(
           parseCostUtil(item.costAmount),
           0,
           Math.max(...assistance.map((i) => parseCostUtil(i.costAmount)))
@@ -397,7 +401,7 @@ const TabContentInternacao: React.FC<{
           key: item.id,
           name: item.name,
           value: parseCostUtil(item.costAmount),
-          color: generateMultiColorScale(
+          color: generateBlueMonochromaticScale(
             parseCostUtil(item.costAmount),
             0,
             Math.max(...detailedData.map((i) => parseCostUtil(i.costAmount)))
@@ -545,7 +549,7 @@ const TabContentNoInternacao: React.FC<{
           key: item.id,
           name: item.name,
           value: parseCostUtil(item.costAmount),
-          color: generateMultiColorScale(
+          color: generateBlueMonochromaticScale(
             parseCostUtil(item.costAmount),
             0,
             Math.max(...detailedData.map((i) => parseCostUtil(i.costAmount)))

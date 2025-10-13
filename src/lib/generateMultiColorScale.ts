@@ -9,9 +9,14 @@
  * @param maxValue O maior valor em todo o conjunto de dados.
  * @returns Uma string de cor HSL (ex: 'hsl(120, 90%, 60%)').
  */
-export const generateMultiColorScale = (value: number, minValue: number, maxValue: number): string => { // Evita divisão por zero se todos os valores forem iguais
+export const generateMultiColorScale = (
+  value: number,
+  minValue: number,
+  maxValue: number
+): string => {
+  // Evita divisão por zero se todos os valores forem iguais
   if (maxValue === minValue) {
-    return 'hsl(60, 90%, 60%)'; // Retorna um amarelo (cor do meio do gradiente)
+    return "hsl(60, 90%, 60%)"; // Retorna um amarelo (cor do meio do gradiente)
   }
 
   const percentage = (value - minValue) / (maxValue - minValue);
@@ -32,5 +37,46 @@ export const generateMultiColorScale = (value: number, minValue: number, maxValu
   return `hsl(${hue}, 90%, 60%)`;
 };
 
+export const COLORS = [
+  "#003151",
+  "#0b6f88",
+  "#6497b1",
+  "#a8dadc",
+  "#457b9d",
+  "#1d3557",
+];
 
-export const COLORS = ['#003151', '#0b6f88', '#6497b1', '#a8dadc', '#457b9d', '#1d3557'];
+/**
+ * Gera uma cor em escala monocromática de azul com base em um valor.
+ * - Valores baixos: azul claro
+ * - Valores altos: azul escuro
+ *
+ * @param value O valor do item atual.
+ * @param minValue O menor valor em todo o conjunto de dados.
+ * @param maxValue O maior valor em todo o conjunto de dados.
+ * @returns Uma string de cor HSL (ex: 'hsl(210, 80%, 45%)').
+ */
+export const generateBlueMonochromaticScale = (
+  value: number,
+  minValue: number,
+  maxValue: number
+): string => {
+  // Evita divisão por zero se todos os valores forem iguais
+  if (maxValue === minValue) {
+    return "hsl(210, 70%, 50%)"; // Retorna um azul médio
+  }
+
+  const percentage = (value - minValue) / (maxValue - minValue);
+
+  // Matiz fixo em 210 (azul)
+  const hue = 210;
+
+  // Saturação fixa em 80%
+  const saturation = 80;
+
+  // Luminosidade varia de 75% (azul claro) a 25% (azul escuro)
+  // Valores maiores = mais escuro
+  const lightness = 75 - percentage * 50;
+
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+};
