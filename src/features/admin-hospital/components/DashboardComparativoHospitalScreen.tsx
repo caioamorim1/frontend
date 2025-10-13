@@ -32,7 +32,10 @@ type SectorType = "global" | "internacao" | "nao-internacao";
 export const DashboardComparativoHospitalScreen: React.FC<{
   title: string;
 }> = ({ title }) => {
-  console.log("🟢 [USANDO: DashboardComparativoHospitalScreen - COMPONENTE HOSPITAL ESPECÍFICO]", { title });
+  console.log(
+    "🟢 [USANDO: DashboardComparativoHospitalScreen - COMPONENTE HOSPITAL ESPECÍFICO]",
+    { title }
+  );
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const [hospitalData, setHospitalData] = useState<HospitalSector | null>(null);
   const [hospitalProjectedData, setHospitalProjectedData] = useState<
@@ -58,7 +61,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         });
         console.log("🟢 [HospitalScreen] API Response:", resp);
         if (!mounted) return;
-        
+
         let atual = resp?.atual ?? {
           id: hospitalId,
           internation: [],
@@ -88,10 +91,12 @@ export const DashboardComparativoHospitalScreen: React.FC<{
                   });
                 }
               });
-              const flattened = Array.from(roleMap.entries()).map(([role, quantity]) => ({
-                role,
-                quantity,
-              }));
+              const flattened = Array.from(roleMap.entries()).map(
+                ([role, quantity]) => ({
+                  role,
+                  quantity,
+                })
+              );
               console.log(`🟢 [HospitalScreen] Flattened ${sector.name}:`, {
                 original: sector.projectedStaff,
                 flattened,
@@ -119,10 +124,12 @@ export const DashboardComparativoHospitalScreen: React.FC<{
                   });
                 }
               });
-              const flattened = Array.from(roleMap.entries()).map(([role, quantity]) => ({
-                role,
-                quantity,
-              }));
+              const flattened = Array.from(roleMap.entries()).map(
+                ([role, quantity]) => ({
+                  role,
+                  quantity,
+                })
+              );
               console.log(`🟢 [HospitalScreen] Flattened ${sector.name}:`, {
                 original: sector.projectedStaff,
                 flattened,

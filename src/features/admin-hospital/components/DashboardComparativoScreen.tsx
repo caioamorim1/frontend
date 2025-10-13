@@ -43,13 +43,16 @@ export const DashboardComparativoScreen: React.FC<{
   isGlobalView?: boolean;
 }> = ({ title, externalAtualData, externalProjectedData, isGlobalView }) => {
   const { hospitalId } = useParams<{ hospitalId: string }>();
-  console.log("🔵 [USANDO: DashboardComparativoScreen - COMPONENTE ORIGINAL] render start", {
-    title,
-    hospitalId,
-    isGlobalView,
-    hasExternalAtual: !!externalAtualData,
-    hasExternalProjected: !!externalProjectedData,
-  });
+  console.log(
+    "🔵 [USANDO: DashboardComparativoScreen - COMPONENTE ORIGINAL] render start",
+    {
+      title,
+      hospitalId,
+      isGlobalView,
+      hasExternalAtual: !!externalAtualData,
+      hasExternalProjected: !!externalProjectedData,
+    }
+  );
   const [hospitalData, setHospitalData] = useState<HospitalSector | null>(null);
   const [activeTab, setActiveTab] = useState<SectorType>("global");
   const [selectedSector, setSelectedSector] = useState<string>("all");
