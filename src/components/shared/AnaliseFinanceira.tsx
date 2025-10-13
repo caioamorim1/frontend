@@ -93,49 +93,24 @@ export default function AnaliseFinanceira({
       return calcularTotaisGrupo(dados as LinhaAnalise[]);
     }
 
-    // Para não-internação, precisamos dedupilicar enfermeiros/técnicos
+    // Para não-internação, agora todos os cargos (incluindo enfermeiros/técnicos)
+    // são dimensionados por sítio, então não precisa mais dedupilicar
     const grupos = dados as GrupoDeCargos[];
-    const cargosUnicos = new Map<string, LinhaAnalise>();
+    const todosCargos: LinhaAnalise[] = [];
 
     console.log("=== CALCULANDO TOTAIS GERAIS ===");
 
     grupos.forEach((grupo) => {
       console.log(`Processando grupo: ${grupo.nome}`);
       grupo.cargos.forEach((cargo) => {
-        const isEnfermeiro = cargo.cargoNome
-          .toLowerCase()
-          .includes("enfermeiro");
-        const isTecnico =
-          cargo.cargoNome.toLowerCase().includes("técnico") ||
-          cargo.cargoNome.toLowerCase().includes("tecnico");
-
-        // Se for enfermeiro ou técnico, somar as quantidades atuais
-        if (isEnfermeiro || isTecnico) {
-          const cargoExistente = cargosUnicos.get(cargo.cargoId);
-          if (cargoExistente) {
-            // Somar a quantidadeAtual de todos os sítios
-            cargoExistente.quantidadeAtual += cargo.quantidadeAtual;
-            console.log(
-              `  ✓ Somando ${cargo.cargoNome} (${cargo.cargoId}) - Atual agora: ${cargoExistente.quantidadeAtual}`
-            );
-          } else {
-            console.log(
-              `  ✓ Adicionando ${cargo.cargoNome} (${cargo.cargoId}) - Atual: ${cargo.quantidadeAtual}, Projetada: ${cargo.quantidadeProjetada}`
-            );
-            cargosUnicos.set(cargo.cargoId, { ...cargo });
-          }
-        } else {
-          // Outros cargos podem ser adicionados normalmente (são únicos por grupo)
-          const key = `${grupo.id}-${cargo.cargoId}`;
-          console.log(
-            `  ✓ Adicionando ${cargo.cargoNome} (${key}) - Atual: ${cargo.quantidadeAtual}, Projetada: ${cargo.quantidadeProjetada}`
-          );
-          cargosUnicos.set(key, cargo);
-        }
+        console.log(
+          `  ✓ Adicionando ${cargo.cargoNome} - Atual: ${cargo.quantidadeAtual}, Projetada: ${cargo.quantidadeProjetada}`
+        );
+        todosCargos.push(cargo);
       });
     });
 
-    const totais = calcularTotaisGrupo(Array.from(cargosUnicos.values()));
+    const totais = calcularTotaisGrupo(todosCargos);
     console.log("=== TOTAIS FINAIS ===", totais);
     return totais;
   }, [dados, tipo]);
@@ -150,8 +125,8 @@ export default function AnaliseFinanceira({
       linha.quantidadeAtual > 0
         ? (variacaoQtd / linha.quantidadeAtual) * 100
         : linha.quantidadeProjetada > 0
-          ? Infinity
-          : 0;
+        ? Infinity
+        : 0;
     const horasReais = linha.quantidadeAtual * linha.cargaHoraria;
     const horasCalculadas = linha.quantidadeProjetada * linha.cargaHoraria;
     const variacaoHoras = horasCalculadas - horasReais;
@@ -204,34 +179,37 @@ export default function AnaliseFinanceira({
           })}
         </TableCell>
         <TableCell
-          className={`font-medium ${variacaoQtd > 0
+          className={`font-medium ${
+            variacaoQtd > 0
               ? "text-red-600"
               : variacaoQtd < 0
-                ? "text-green-600"
-                : ""
-            }`}
+              ? "text-green-600"
+              : ""
+          }`}
         >
           {variacaoQtd}
         </TableCell>
         <TableCell
-          className={`font-medium ${variacaoPercent > 0
+          className={`font-medium ${
+            variacaoPercent > 0
               ? "text-red-600"
               : variacaoPercent < 0
-                ? "text-green-600"
-                : ""
-            }`}
+              ? "text-green-600"
+              : ""
+          }`}
         >
           {variacaoPercent === Infinity
             ? "N/A"
             : `${variacaoPercent.toFixed(0)}%`}
         </TableCell>
         <TableCell
-          className={`font-medium ${variacaoCusto > 0
+          className={`font-medium ${
+            variacaoCusto > 0
               ? "text-red-600"
               : variacaoCusto < 0
-                ? "text-green-600"
-                : ""
-            }`}
+              ? "text-green-600"
+              : ""
+          }`}
         >
           {variacaoCusto.toLocaleString("pt-BR", {
             style: "currency",
@@ -241,12 +219,13 @@ export default function AnaliseFinanceira({
         <TableCell>{horasReais.toFixed(0)}h</TableCell>
         <TableCell>{horasCalculadas.toFixed(0)}h</TableCell>
         <TableCell
-          className={`font-medium ${variacaoHoras > 0
+          className={`font-medium ${
+            variacaoHoras > 0
               ? "text-red-600"
               : variacaoHoras < 0
-                ? "text-green-600"
-                : ""
-            }`}
+              ? "text-green-600"
+              : ""
+          }`}
         >
           {variacaoHoras.toFixed(0)}h
         </TableCell>
@@ -281,21 +260,6 @@ export default function AnaliseFinanceira({
         </TableCell>
         <TableCell colSpan={7}></TableCell>
       </TableRow>
-    );
-  };
-
-  const renderSubtotalProjetado = (cargosProjetados: LinhaAnalise[]) => {
-    if (cargosProjetados.length === 0) return null;
-
-    return (
-      <>
-        <TableRow className="bg-slate-200">
-          <TableCell colSpan={16} className="p-2 font-semibold text-slate-800">
-            Subtotal - Projetado
-          </TableCell>
-        </TableRow>
-        {cargosProjetados.map((linha) => renderLinha(linha, "projetado"))}
-      </>
     );
   };
 
@@ -334,67 +298,29 @@ export default function AnaliseFinanceira({
             {tipo === "internacao"
               ? (dados as LinhaAnalise[]).map((linha) => renderLinha(linha))
               : (() => {
-                const grupos = dados as GrupoDeCargos[];
-                // Separar cargos de enfermeiro/técnico dos demais
-                const cargosProjetadosMap = new Map<string, LinhaAnalise>();
-                const gruposComOutrosCargos: GrupoDeCargos[] = [];
+                  const grupos = dados as GrupoDeCargos[];
 
-                grupos.forEach((grupo) => {
-                  const outrosCargos = grupo.cargos.filter((cargo) => {
-                    const isEnfermeiro = cargo.cargoNome
-                      .toLowerCase()
-                      .includes("enfermeiro");
-                    const isTecnico =
-                      cargo.cargoNome.toLowerCase().includes("técnico") ||
-                      cargo.cargoNome.toLowerCase().includes("tecnico");
-
-                    if (isEnfermeiro || isTecnico) {
-                      // Para enfermeiros e técnicos, somar as quantidades atuais de todos os sítios
-                      const cargoExistente = cargosProjetadosMap.get(cargo.cargoId);
-                      if (cargoExistente) {
-                        // Somar apenas a quantidadeAtual, manter a quantidadeProjetada
-                        cargoExistente.quantidadeAtual += cargo.quantidadeAtual;
-                      } else {
-                        // Primeira vez encontrando este cargo, adicionar
-                        cargosProjetadosMap.set(cargo.cargoId, { ...cargo });
-                      }
-                      return false;
-                    }
-                    return true;
-                  });
-
-                  if (outrosCargos.length > 0) {
-                    gruposComOutrosCargos.push({
-                      ...grupo,
-                      cargos: outrosCargos,
-                    });
-                  }
-                });
-
-                const cargosProjetados = Array.from(cargosProjetadosMap.values());
-
-                return (
-                  <>
-                    {gruposComOutrosCargos.map((grupo) => (
-                      <Fragment key={grupo.id}>
-                        <TableRow>
-                          <TableCell
-                            colSpan={16}
-                            className="p-2 bg-slate-200 font-semibold text-slate-800"
-                          >
-                            {grupo.nome}
-                          </TableCell>
-                        </TableRow>
-                        {grupo.cargos.map((cargo) =>
-                          renderLinha(cargo, grupo.id)
-                        )}
-                        {renderSubtotal(grupo)}
-                      </Fragment>
-                    ))}
-                    {renderSubtotalProjetado(cargosProjetados)}
-                  </>
-                );
-              })()}
+                  return (
+                    <>
+                      {grupos.map((grupo) => (
+                        <Fragment key={grupo.id}>
+                          <TableRow>
+                            <TableCell
+                              colSpan={16}
+                              className="p-2 bg-slate-200 font-semibold text-slate-800"
+                            >
+                              {grupo.nome}
+                            </TableCell>
+                          </TableRow>
+                          {grupo.cargos.map((cargo) =>
+                            renderLinha(cargo, grupo.id)
+                          )}
+                          {renderSubtotal(grupo)}
+                        </Fragment>
+                      ))}
+                    </>
+                  );
+                })()}
           </TableBody>
           <TableFooter>
             <TableRow className="font-bold bg-gray-200 text-base">
@@ -422,16 +348,17 @@ export default function AnaliseFinanceira({
               </TableCell>
               <TableCell
                 colSpan={3}
-                className={`text-center ${totaisGerais.custoTotalProjetado -
+                className={`text-center ${
+                  totaisGerais.custoTotalProjetado -
                     totaisGerais.custoTotalAtual >
-                    0
+                  0
                     ? "text-red-600"
                     : totaisGerais.custoTotalProjetado -
-                      totaisGerais.custoTotalAtual <
+                        totaisGerais.custoTotalAtual <
                       0
-                      ? "text-green-600"
-                      : ""
-                  }`}
+                    ? "text-green-600"
+                    : ""
+                }`}
               >
                 {(
                   totaisGerais.custoTotalProjetado -
@@ -444,12 +371,13 @@ export default function AnaliseFinanceira({
               <TableCell>{totaisGerais.horasReais.toFixed(0)}h</TableCell>
               <TableCell>{totaisGerais.horasCalculadas.toFixed(0)}h</TableCell>
               <TableCell
-                className={`text-center ${totaisGerais.horasCalculadas - totaisGerais.horasReais > 0
+                className={`text-center ${
+                  totaisGerais.horasCalculadas - totaisGerais.horasReais > 0
                     ? "text-red-600"
                     : totaisGerais.horasCalculadas - totaisGerais.horasReais < 0
-                      ? "text-green-600"
-                      : ""
-                  }`}
+                    ? "text-green-600"
+                    : ""
+                }`}
               >
                 {(
                   totaisGerais.horasCalculadas - totaisGerais.horasReais

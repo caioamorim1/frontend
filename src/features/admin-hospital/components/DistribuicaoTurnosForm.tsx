@@ -60,6 +60,10 @@ export default function DistribuicaoTurnosForm({
     newEnfData: SitioDistribuicao,
     newTecData: SitioDistribuicao
   ) => {
+    console.log("🔍 [DistribuicaoTurnosForm] notifyChange chamado:", {
+      enfData: newEnfData,
+      tecData: newTecData,
+    });
     onChange([newEnfData, newTecData]);
   };
 
@@ -71,6 +75,12 @@ export default function DistribuicaoTurnosForm({
     if (readonly) return;
 
     const newValue = Math.max(0, value);
+
+    console.log("🔍 [DistribuicaoTurnosForm] updateField:", {
+      categoria,
+      field,
+      value: newValue,
+    });
 
     if (categoria === "ENF") {
       const newEnfData = { ...enfData, [field]: newValue };

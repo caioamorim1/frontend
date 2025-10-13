@@ -650,8 +650,29 @@ export const deleteHospital = async (hospitalId: string): Promise<void> => {
 export const getHospitalSectors = async (
   hospitalId: string
 ): Promise<HospitalSectorsData> => {
-  const response = await api.get(`/hospital-sectors/${hospitalId}`);
-  return response.data;
+  console.log("🌐 [API] getHospitalSectors chamado");
+  console.log("🌐 [API] hospitalId:", hospitalId);
+  console.log("🌐 [API] URL completa:", `/hospital-sectors/${hospitalId}`);
+
+  try {
+    const response = await api.get(`/hospital-sectors/${hospitalId}`);
+    console.log(
+      "✅ [API] getHospitalSectors - Resposta recebida:",
+      response.status
+    );
+    console.log("✅ [API] getHospitalSectors - Dados:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ [API] getHospitalSectors - Erro capturado:", error);
+
+    if ((error as any).response) {
+      console.error("❌ [API] Status:", (error as any).response.status);
+      console.error("❌ [API] Data:", (error as any).response.data);
+      console.error("❌ [API] Headers:", (error as any).response.headers);
+    }
+
+    throw error; // Re-lança o erro
+  }
 };
 
 export const getRedesAggregated = async (redeId: string): Promise<any> => {

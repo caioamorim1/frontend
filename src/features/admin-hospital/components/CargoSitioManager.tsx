@@ -32,18 +32,28 @@ export default function CargoSitioManager({
   );
 
   const handleSaveDistribuicoes = async () => {
+    console.log("🔍 [CargoSitioManager] handleSaveDistribuicoes chamado");
+    console.log("📊 [CargoSitioManager] Dados a serem salvos:", {
+      sitioId,
+      distribuicoes,
+      distribuicoesLength: distribuicoes.length,
+    });
+
     setSaving(true);
     setError(null);
     try {
+      console.log("📡 [CargoSitioManager] Enviando para API...");
       await updateSitioFuncional(sitioId, {
         distribuicoes: distribuicoes,
       });
+      console.log("✅ [CargoSitioManager] Salvo com sucesso!");
       toast({
         title: "Sucesso",
         description: "Distribuição de turnos salva com sucesso!",
       });
       if (onUpdate) onUpdate();
     } catch (err) {
+      console.error("❌ [CargoSitioManager] Erro ao salvar:", err);
       setError("Falha ao salvar distribuições.");
       toast({
         title: "Erro",
@@ -78,11 +88,20 @@ export default function CargoSitioManager({
         <div className="space-y-4">
           <DistribuicaoTurnosForm
             distribuicoes={distribuicoes}
-            onChange={setDistribuicoes}
+            onChange={(novasDistribuicoes) => {
+              console.log(
+                "🔍 [CargoSitioManager] onChange recebido:",
+                novasDistribuicoes
+              );
+              setDistribuicoes(novasDistribuicoes);
+            }}
           />
           <div className="flex justify-end pt-4 border-t">
             <button
-              onClick={handleSaveDistribuicoes}
+              onClick={() => {
+                console.log("🔍 [CargoSitioManager] Botão Salvar clicado!");
+                handleSaveDistribuicoes();
+              }}
               disabled={saving}
               className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
             >
