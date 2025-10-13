@@ -113,10 +113,12 @@ export interface CreateQuestionarioDTO {
   name: string;
   questions: Question[];
 }
-export const API_BASE_URL = "http://127.0.0.1:3110";
-//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/api"; //api docker
-//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode"; //api local
-//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode"; //api local
+
+// Configuração da URL base da API
+// Em desenvolvimento: usa variável de ambiente ou fallback para localhost
+// Em produção (Docker): usa a variável VITE_API_URL injetada no build
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3110";
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {

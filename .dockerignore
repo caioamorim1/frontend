@@ -9,3 +9,5 @@ Dockerfile.*
 README.md
 .vscode
 .env*
+
+./node_modules

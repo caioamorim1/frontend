@@ -12,9 +12,11 @@ export default defineConfig({
   },
   server: {
     port: 8080,
+    host: true, // Permite acesso de fora do container
   },
   preview: {
     host: true,
+    port: 80,
     allowedHosts: ["dimensiona.genustecnologia.com.br"],
   },
 });
