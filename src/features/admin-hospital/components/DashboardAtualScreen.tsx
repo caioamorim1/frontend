@@ -41,7 +41,11 @@ import { DashboardAnalytics } from "@/mocks/mocksDashAtualDatabase";
 import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import { HorizontalBarChartComp } from "./graphicsComponents/HorizontalBarChartComp";
 import BargraphicChart from "./graphicsComponents/BarChartComp";
-import { COLORS, generateMultiColorScale } from "@/lib/generateMultiColorScale";
+import {
+  COLORS,
+  generateMultiColorScale,
+  generateBlueMonochromaticScale,
+} from "@/lib/generateMultiColorScale";
 import { formatAmountBRL } from "@/lib/utils";
 import { parseCost as parseCostUtil, sumStaff } from "@/lib/dataUtils";
 import {
@@ -105,6 +109,8 @@ interface DashboardAtualScreenProps {
   title: string;
   externalData?: any; // Dados externos agregados (opcional)
   isGlobalView?: boolean; // Flag para indicar se é visão global
+  aggregationType?: "hospital" | "grupo" | "regiao" | "rede"; // 🆕 Tipo de agregação
+  entityId?: string; // 🆕 ID da entidade (opcional)
 }
 
 interface ChartDataItem {
@@ -265,7 +271,10 @@ const ReusableWaterfall: React.FC<{
 const GlobalTabContent: React.FC<{
   sourceData: HospitalSector;
   radarData: ChartDataItem[];
-}> = ({ sourceData, radarData }) => {
+  hospitalId?: string;
+  aggregationType?: "hospital" | "grupo" | "regiao" | "rede"; // 🆕
+  entityId?: string; // 🆕
+}> = ({ sourceData, radarData, hospitalId, aggregationType, entityId }) => {
   const { internation, assistance } = sourceData;
 
   const occupationData = useMemo(() => {
@@ -291,16 +300,23 @@ const GlobalTabContent: React.FC<{
         totalBeds > 0 ? (evaluatedBeds / totalBeds) * 100 : 0;
 
       // TODO: Integrar com API de ocupação para obter dados reais
-      // Por ora, usa valores simulados (será substituído pela API)
+      // Por ora, usa a taxa de ocupação atual como taxa diária
       const ocupacaoMaximaAtendivel = 85;
-      const taxaOcupacaoDia = occupancyRate + (Math.random() * 4 - 2); // Simula variação ±2%
+      const taxaOcupacaoDia = occupancyRate; // Taxa de ocupação atual (sem variação)
 
       const ociosidade = Math.max(0, ocupacaoMaximaAtendivel - occupancyRate);
       const superlotacao = Math.max(0, occupancyRate - ocupacaoMaximaAtendivel);
 
+      // Para o gráfico empilhado, a Taxa de Ocupação deve ser limitada à máxima
+      const taxaOcupacaoParaGrafico = Math.min(
+        occupancyRate,
+        ocupacaoMaximaAtendivel
+      );
+
       return {
         name: sector.name,
-        "Taxa de Ocupação": occupancyRate,
+        "Taxa de Ocupação": taxaOcupacaoParaGrafico, // Limitada à máxima para empilhar corretamente
+        "Taxa de Ocupação Real": occupancyRate, // Valor real completo
         "Taxa de Ocupação Diária": taxaOcupacaoDia, // 🆕
         "Ocupação Máxima Atendível": ocupacaoMaximaAtendivel, // 🆕
         Ociosidade: ociosidade,
@@ -322,18 +338,29 @@ const GlobalTabContent: React.FC<{
 
     // TODO: Integrar com API de ocupação para obter dados reais
     const globalOcupacaoMaximaAtendivel = 85;
-    const globalTaxaOcupacaoDia = globalOccupancy + (Math.random() * 4 - 2); // Simula variação ±2%
+    const globalTaxaOcupacaoDia = globalOccupancy; // Taxa de ocupação atual (sem variação)
+
+    const globalOciosidade = Math.max(
+      0,
+      globalOcupacaoMaximaAtendivel - globalOccupancy
+    );
+    const globalSuperlotacao = Math.max(
+      0,
+      globalOccupancy - globalOcupacaoMaximaAtendivel
+    );
+    const globalTaxaOcupacaoParaGrafico = Math.min(
+      globalOccupancy,
+      globalOcupacaoMaximaAtendivel
+    );
 
     const summary = {
       name: "Global",
-      "Taxa de Ocupação": globalOccupancy,
+      "Taxa de Ocupação": globalTaxaOcupacaoParaGrafico, // Limitada à máxima
+      "Taxa de Ocupação Real": globalOccupancy, // Valor real completo
       "Taxa de Ocupação Diária": globalTaxaOcupacaoDia, // 🆕
       "Ocupação Máxima Atendível": globalOcupacaoMaximaAtendivel, // 🆕
-      Ociosidade: Math.max(0, globalOcupacaoMaximaAtendivel - globalOccupancy),
-      Superlotação: Math.max(
-        0,
-        globalOccupancy - globalOcupacaoMaximaAtendivel
-      ),
+      Ociosidade: globalOciosidade,
+      Superlotação: globalSuperlotacao,
       "Capacidade Produtiva": 100,
     };
 
@@ -387,7 +414,7 @@ const GlobalTabContent: React.FC<{
     typeOfAmountTotal: typeof amountTotal,
   });
 
-  // Usar cor por hospital se tiver hospitalName, senão usar escala de calor
+  // Usar escala azul monocromática para todos (remover cores por hospital)
   const chartDataInternation: ChartData[] = safeInternation.map((item: any) => {
     const costValue = parseCostUtil(item.costAmount);
 
@@ -397,22 +424,20 @@ const GlobalTabContent: React.FC<{
         ? `${item.hospitalName} - ${item.name}`
         : item.name,
       value: costValue,
-      color: item.hospitalName
-        ? getHospitalColor(item.hospitalName)
-        : generateMultiColorScale(
-            costValue,
-            0,
-            Math.max(
-              ...safeInternation.map((i) => {
-                const val =
-                  typeof i.costAmount === "string"
-                    ? parseFloat(i.costAmount) || 0
-                    : i.costAmount || 0;
-                return val;
-              }),
-              1
-            )
-          ),
+      color: generateBlueMonochromaticScale(
+        costValue,
+        0,
+        Math.max(
+          ...safeInternation.map((i) => {
+            const val =
+              typeof i.costAmount === "string"
+                ? parseFloat(i.costAmount) || 0
+                : i.costAmount || 0;
+            return val;
+          }),
+          1
+        )
+      ),
     };
   });
 
@@ -425,22 +450,20 @@ const GlobalTabContent: React.FC<{
         ? `${item.hospitalName} - ${item.name}`
         : item.name,
       value: costValue,
-      color: item.hospitalName
-        ? getHospitalColor(item.hospitalName)
-        : generateMultiColorScale(
-            costValue,
-            0,
-            Math.max(
-              ...safeAssistance.map((i) => {
-                const val =
-                  typeof i.costAmount === "string"
-                    ? parseFloat(i.costAmount) || 0
-                    : i.costAmount || 0;
-                return val;
-              }),
-              1
-            )
-          ),
+      color: generateBlueMonochromaticScale(
+        costValue,
+        0,
+        Math.max(
+          ...safeAssistance.map((i) => {
+            const val =
+              typeof i.costAmount === "string"
+                ? parseFloat(i.costAmount) || 0
+                : i.costAmount || 0;
+            return val;
+          }),
+          1
+        )
+      ),
     };
   });
 
@@ -470,6 +493,9 @@ const GlobalTabContent: React.FC<{
       <OccupationRateChart
         data={occupationData.data}
         summary={occupationData.summary}
+        hospitalId={aggregationType ? undefined : hospitalId}
+        aggregationType={aggregationType}
+        entityId={entityId}
       />
       <RadarChartComponent
         data={radarData}
@@ -483,7 +509,9 @@ const GlobalTabContent: React.FC<{
 const TabContentInternacao: React.FC<{
   sourceData: SectorInternation[];
   radarData: ChartDataItem[];
-}> = ({ sourceData, radarData }) => {
+  aggregationType?: "hospital" | "grupo" | "regiao" | "rede"; // 🆕
+  entityId?: string; // 🆕
+}> = ({ sourceData, radarData, aggregationType, entityId }) => {
   const [selectedSector, setSelectedSector] = useState<string>("all");
 
   const occupationData = useMemo(() => {
@@ -511,12 +539,18 @@ const TabContentInternacao: React.FC<{
         totalBeds > 0 ? (evaluatedBeds / totalBeds) * 100 : 0;
 
       // TODO: Integrar com API de ocupação para obter dados reais
-      // Por ora, usa valores simulados (será substituído pela API)
+      // Por ora, usa a taxa de ocupação atual como taxa diária
       const ocupacaoMaximaAtendivel = 85;
-      const taxaOcupacaoDia = occupancyRate + (Math.random() * 4 - 2); // Simula variação ±2%
+      const taxaOcupacaoDia = occupancyRate; // Taxa de ocupação atual (sem variação)
 
       const ociosidade = Math.max(0, ocupacaoMaximaAtendivel - occupancyRate);
       const superlotacao = Math.max(0, occupancyRate - ocupacaoMaximaAtendivel);
+
+      // Para o gráfico empilhado, a Taxa de Ocupação deve ser limitada à máxima
+      const taxaOcupacaoParaGrafico = Math.min(
+        occupancyRate,
+        ocupacaoMaximaAtendivel
+      );
 
       console.log(`📊 [OccupationData] ${sector.name}:`, {
         totalBeds,
@@ -530,7 +564,8 @@ const TabContentInternacao: React.FC<{
 
       return {
         name: sector.name,
-        "Taxa de Ocupação": occupancyRate,
+        "Taxa de Ocupação": taxaOcupacaoParaGrafico, // Limitada à máxima para empilhar corretamente
+        "Taxa de Ocupação Real": occupancyRate, // Valor real completo
         "Taxa de Ocupação Diária": taxaOcupacaoDia, // 🆕
         "Ocupação Máxima Atendível": ocupacaoMaximaAtendivel, // 🆕
         Ociosidade: ociosidade,
@@ -549,7 +584,7 @@ const TabContentInternacao: React.FC<{
 
     // TODO: Integrar com API de ocupação para obter dados reais
     const globalOcupacaoMaximaAtendivel = 85;
-    const globalTaxaOcupacaoDia = globalOccupancy + (Math.random() * 4 - 2); // Simula variação ±2%
+    const globalTaxaOcupacaoDia = globalOccupancy; // Taxa de ocupação atual (sem variação)
 
     console.log("📊 [OccupationData] SUMMARY (Global):", {
       totalBeds,
@@ -568,16 +603,27 @@ const TabContentInternacao: React.FC<{
         ) + "%",
     });
 
+    const globalOciosidade = Math.max(
+      0,
+      globalOcupacaoMaximaAtendivel - globalOccupancy
+    );
+    const globalSuperlotacao = Math.max(
+      0,
+      globalOccupancy - globalOcupacaoMaximaAtendivel
+    );
+    const globalTaxaOcupacaoParaGrafico = Math.min(
+      globalOccupancy,
+      globalOcupacaoMaximaAtendivel
+    );
+
     const summary = {
       name: "Global",
-      "Taxa de Ocupação": globalOccupancy,
+      "Taxa de Ocupação": globalTaxaOcupacaoParaGrafico, // Limitada à máxima
+      "Taxa de Ocupação Real": globalOccupancy, // Valor real completo
       "Taxa de Ocupação Diária": globalTaxaOcupacaoDia, // 🆕
       "Ocupação Máxima Atendível": globalOcupacaoMaximaAtendivel, // 🆕
-      Ociosidade: Math.max(0, globalOcupacaoMaximaAtendivel - globalOccupancy),
-      Superlotação: Math.max(
-        0,
-        globalOccupancy - globalOcupacaoMaximaAtendivel
-      ),
+      Ociosidade: globalOciosidade,
+      Superlotação: globalSuperlotacao,
       "Capacidade Produtiva": 100,
     };
 
@@ -702,22 +748,20 @@ const TabContentInternacao: React.FC<{
               ? `${item.hospitalName} - ${item.name}`
               : item.name,
             value: costValue,
-            color: item.hospitalName
-              ? getHospitalColor(item.hospitalName)
-              : generateMultiColorScale(
-                  costValue,
-                  0,
-                  Math.max(
-                    ...detailedData.map((i: any) => {
-                      const val =
-                        typeof i.costAmount === "string"
-                          ? parseFloat(i.costAmount) || 0
-                          : i.costAmount || 0;
-                      return val;
-                    }),
-                    1
-                  )
-                ),
+            color: generateBlueMonochromaticScale(
+              costValue,
+              0,
+              Math.max(
+                ...detailedData.map((i: any) => {
+                  const val =
+                    typeof i.costAmount === "string"
+                      ? parseFloat(i.costAmount) || 0
+                      : i.costAmount || 0;
+                  return val;
+                }),
+                1
+              )
+            ),
           };
         })
         .sort((a, b) => b.value - a.value) // <--- Adicionado aqui para ordenar
@@ -830,16 +874,20 @@ const TabContentInternacao: React.FC<{
           title="Nº de colaboradores por função"
         />
       </div>
+      <OccupationRateChart
+        data={occupationData.data}
+        summary={occupationData.summary}
+        showViewSelector={false}
+        aggregationType={aggregationType}
+        entityId={entityId}
+      />
       {selectedSector === "all" && (
         <BargraphicChart
           data={chartDataAtual}
           title="Análise de Custo por Setor"
         />
       )}
-      <OccupationRateChart
-        data={occupationData.data}
-        summary={occupationData.summary}
-      />
+
       <RadarChartComponent
         data={radarData}
         title="Análise Qualitativa"
@@ -894,22 +942,20 @@ const TabContentNoInternacao: React.FC<{
               ? `${item.hospitalName} - ${item.name}`
               : item.name,
             value: costValue,
-            color: item.hospitalName
-              ? getHospitalColor(item.hospitalName)
-              : generateMultiColorScale(
-                  costValue,
-                  0,
-                  Math.max(
-                    ...detailedData.map((i: any) => {
-                      const val =
-                        typeof i.costAmount === "string"
-                          ? parseFloat(i.costAmount) || 0
-                          : i.costAmount || 0;
-                      return val;
-                    }),
-                    1
-                  )
-                ),
+            color: generateBlueMonochromaticScale(
+              costValue,
+              0,
+              Math.max(
+                ...detailedData.map((i: any) => {
+                  const val =
+                    typeof i.costAmount === "string"
+                      ? parseFloat(i.costAmount) || 0
+                      : i.costAmount || 0;
+                  return val;
+                }),
+                1
+              )
+            ),
           };
         })
         .sort((a, b) => b.value - a.value) // <--- Adicionado aqui para ordenar
@@ -1037,6 +1083,8 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
     title: props.title,
     hasExternalData: !!props.externalData,
     isGlobalView: props.isGlobalView,
+    aggregationType: props.aggregationType, // 🆕 Log agregação
+    entityId: props.entityId, // 🆕 Log entity ID
   });
 
   const loadData = async () => {
@@ -1165,12 +1213,17 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
                   <GlobalTabContent
                     sourceData={chartDataAtual}
                     radarData={radarData}
+                    hospitalId={hospitalId}
+                    aggregationType={props.aggregationType}
+                    entityId={props.entityId}
                   />
                 </TabsContent>
                 <TabsContent value="internacao" className="mt-4">
                   <TabContentInternacao
                     sourceData={chartDataAtual?.internation}
                     radarData={radarData}
+                    aggregationType={props.aggregationType}
+                    entityId={props.entityId}
                   />
                 </TabsContent>
                 <TabsContent value="nao-internacao" className="mt-4">

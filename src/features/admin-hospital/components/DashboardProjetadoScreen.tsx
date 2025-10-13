@@ -22,7 +22,11 @@ import { calcularPerformanceParaGrafico } from "@/mocks/filterMocksRadar";
 import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import { HorizontalBarChartComp } from "./graphicsComponents/HorizontalBarChartComp";
 import BargraphicChart from "./graphicsComponents/BarChartComp";
-import { COLORS, generateMultiColorScale } from "@/lib/generateMultiColorScale";
+import {
+  COLORS,
+  generateMultiColorScale,
+  generateBlueMonochromaticScale,
+} from "@/lib/generateMultiColorScale";
 import { formatAmountBRL } from "@/lib/utils";
 import {
   parseCost as parseCostUtil,
@@ -209,7 +213,7 @@ const GlobalTabContent: React.FC<{
     key: item.id,
     name: item.name,
     value: getProjectedCost(item),
-    color: generateMultiColorScale(
+    color: generateBlueMonochromaticScale(
       getProjectedCost(item),
       0,
       Math.max(...internation.map((i) => getProjectedCost(i)))
@@ -220,7 +224,7 @@ const GlobalTabContent: React.FC<{
     key: item.id,
     name: item.name,
     value: getProjectedCost(item),
-    color: generateMultiColorScale(
+    color: generateBlueMonochromaticScale(
       getProjectedCost(item),
       0,
       Math.max(...assistance.map((i) => getProjectedCost(i)))
@@ -313,7 +317,7 @@ const TabContentInternacao: React.FC<{
       key: item.id,
       name: item.name,
       value: getProjectedCost(item),
-      color: generateMultiColorScale(
+      color: generateBlueMonochromaticScale(
         getProjectedCost(item),
         0,
         Math.max(...detailedData.map((i) => getProjectedCost(i)))
@@ -440,7 +444,7 @@ const TabContentNoInternacao: React.FC<{
       key: item.id,
       name: item.name,
       value: getProjectedCost(item),
-      color: generateMultiColorScale(
+      color: generateBlueMonochromaticScale(
         getProjectedCost(item),
         0,
         Math.max(...detailedData.map((i) => getProjectedCost(i)))

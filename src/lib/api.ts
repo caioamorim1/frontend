@@ -1418,4 +1418,124 @@ export async function getHospitaisProjectedAggregated() {
   return response.data;
 }
 
+// --- TAXA DE OCUPAÇÃO DO DIA (baseada em avaliações ativas) ---
+
+/**
+ * Taxa de ocupação de uma unidade específica
+ */
+export interface TaxaOcupacaoUnidade {
+  unidadeId: string;
+  totalLeitos: number;
+  leitosOcupados: number;
+  leitosDisponiveis: number;
+  taxaOcupacao: number; // Percentual 0-100 com 2 casas decimais
+  avaliacoesAtivas: number;
+}
+
+/**
+ * Taxa de ocupação consolidada de um hospital
+ */
+export interface TaxaOcupacaoHospital {
+  hospitalId: string;
+  hospitalNome: string;
+  consolidadoHospital: {
+    totalLeitos: number;
+    leitosAtivos: number;
+    leitosVagos: number;
+    leitosPendentes: number;
+    leitosInativos: number;
+    taxaOcupacao: number;
+    totalUnidades: number;
+  };
+  porUnidade: Array<{
+    unidadeId: string;
+    unidadeNome: string;
+    totalLeitos: number;
+    leitosAtivos: number;
+    leitosVagos: number;
+    leitosPendentes: number;
+    leitosInativos: number;
+    taxaOcupacao: number;
+  }>;
+}
+
+/**
+ * Taxa de ocupação geral (todos os hospitais)
+ */
+export interface TaxaOcupacaoGeral {
+  geral: {
+    totalLeitos: number;
+    leitosOcupados: number;
+    leitosDisponiveis: number;
+    taxaOcupacao: number;
+  };
+  porUnidade: Array<{
+    unidadeId: string;
+    unidadeNome: string;
+    hospitalId: string;
+    hospitalNome: string;
+    totalLeitos: number;
+    leitosOcupados: number;
+    leitosDisponiveis: number;
+    taxaOcupacao: number;
+    avaliacoesAtivas: number;
+  }>;
+}
+
+/**
+ * Buscar taxa de ocupação do dia de uma unidade específica
+ * @param unidadeId UUID da unidade
+ * @returns Taxa de ocupação da unidade baseada em avaliações ativas
+ */
+export async function getTaxaOcupacaoUnidade(
+  unidadeId: string
+): Promise<TaxaOcupacaoUnidade> {
+  const response = await api.get("/avaliacoes/taxa-ocupacao-dia", {
+    params: { unidadeId },
+  });
+  return response.data;
+}
+
+/**
+ * Buscar taxa de ocupação do dia de um hospital baseada no status dos leitos
+ * @param hospitalId UUID do hospital
+ * @returns Taxa consolidada do hospital e detalhes de cada unidade
+ */
+export async function getTaxaOcupacaoHospital(
+  hospitalId: string
+): Promise<TaxaOcupacaoHospital> {
+  const response = await api.get("/leitos/taxa-ocupacao-status", {
+    params: { hospitalId },
+  });
+  return response.data;
+}
+
+/**
+ * Buscar taxa de ocupação geral (todos os hospitais e unidades)
+ * @returns Taxa consolidada global e lista de todas as unidades
+ */
+export async function getTaxaOcupacaoGeral(): Promise<TaxaOcupacaoGeral> {
+  const response = await api.get("/avaliacoes/taxa-ocupacao-dia");
+  return response.data;
+}
+
+/**
+ * Buscar taxa de ocupação agregada por tipo de entidade (hospital, grupo, região, rede)
+ * @param aggregationType Tipo de agregação: 'hospital', 'grupo', 'regiao', 'rede'
+ * @param entityId ID opcional da entidade específica (se não fornecido, retorna todas)
+ * @returns Taxa consolidada agregada
+ */
+export async function getTaxaOcupacaoAgregada(
+  aggregationType: "hospital" | "grupo" | "regiao" | "rede",
+  entityId?: string
+): Promise<TaxaOcupacaoHospital[]> {
+  const response = await api.get("/leitos/taxa-ocupacao-agregada", {
+    params: {
+      aggregationType,
+      entityId,
+    },
+  });
+  return response.data;
+}
+
 export default api;
