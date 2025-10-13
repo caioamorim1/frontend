@@ -1,6 +1,6 @@
 import React, { useState, FC, CSSProperties, ChangeEvent, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Radar, RadarChart, PolarGrid, Legend, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+import { Radar, RadarChart, PolarGrid, Legend, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { calcularPerformanceParaGrafico } from '@/mocks/filterMocksRadar';
 
 // 1. Definindo a interface para o tipo de dado do nosso gráfico
@@ -9,6 +9,23 @@ interface ChartDataItem {
     atual: number;
     projetado: number;
 }
+
+// Tooltip customizado
+const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-background border p-3 rounded-lg shadow-lg text-sm">
+                <p className="font-bold text-foreground mb-2 capitalize">{payload[0].payload.subject}</p>
+                {payload.map((entry: any, index: number) => (
+                    <p key={index} className="text-muted-foreground" style={{ color: entry.color }}>
+                        {entry.name}: <span className="font-semibold">{entry.value}%</span>
+                    </p>
+                ))}
+            </div>
+        );
+    }
+    return null;
+};
 
 // 2. Tipando o objeto de estilos
 const styles: { [key: string]: CSSProperties } = {
@@ -109,6 +126,12 @@ const RadarChartComponent: FC<{ data: ChartDataItem[]; title?: string; descripti
     //     </div>
     // );
 
+    // Converter os nomes das categorias para capitalização (primeira letra maiúscula)
+    const dataWithCapitalized = data.map(item => ({
+        ...item,
+        subject: item.subject.charAt(0).toUpperCase() + item.subject.slice(1).toLowerCase()
+    }));
+
     return (
         <Card>
             <CardHeader>
@@ -117,10 +140,18 @@ const RadarChartComponent: FC<{ data: ChartDataItem[]; title?: string; descripti
             </CardHeader>
             <CardContent>
                 <ResponsiveContainer width="100%" height={450}>
-                    <RadarChart cx="50%" cy="50%" outerRadius="89%" data={data}>
+                    <RadarChart cx="50%" cy="50%" outerRadius="89%" data={dataWithCapitalized}>
                         <PolarGrid />
-                        <PolarAngleAxis dataKey="subject" />
-                        <PolarRadiusAxis angle={30} domain={[0, 100]} tickFormatter={(value: number) => `${value}%`} />
+                        <PolarAngleAxis 
+                            dataKey="subject" 
+                            tick={{ fontSize: 14 }}
+                        />
+                        <PolarRadiusAxis 
+                            angle={30} 
+                            domain={[0, 100]} 
+                            tickFormatter={(value: number) => `${value}%`} 
+                        />
+                        <Tooltip content={<CustomTooltip />} />
                         <Radar
                             name="ATUAL"
                             dataKey="atual"
