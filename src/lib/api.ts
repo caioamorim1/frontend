@@ -28,9 +28,13 @@ export async function getHospitalComparative(
   hospitalId: string,
   params?: Record<string, any>
 ): Promise<HospitalComparativeResponse> {
-  const res = await api.get(`/hospitais/${hospitalId}/comparative`, {
-    params,
-  });
+  const res = await api.get(
+    `/hospital-sectors-aggregate/hospitals/${hospitalId}/comparative`,
+    {
+      params,
+    }
+  );
+  console.log(res.data);
   return res.data as HospitalComparativeResponse;
 }
 

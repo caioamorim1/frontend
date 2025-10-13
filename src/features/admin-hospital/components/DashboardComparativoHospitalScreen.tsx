@@ -32,6 +32,7 @@ type SectorType = "global" | "internacao" | "nao-internacao";
 export const DashboardComparativoHospitalScreen: React.FC<{
   title: string;
 }> = ({ title }) => {
+  console.log("🟢 [USANDO: DashboardComparativoHospitalScreen - COMPONENTE HOSPITAL ESPECÍFICO]", { title });
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const [hospitalData, setHospitalData] = useState<HospitalSector | null>(null);
   const [hospitalProjectedData, setHospitalProjectedData] = useState<
@@ -55,17 +56,83 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         const resp = await getHospitalComparative(hospitalId as string, {
           includeProjected: true,
         });
+        console.log("🟢 [HospitalScreen] API Response:", resp);
         if (!mounted) return;
-        const atual = resp?.atual ?? {
+        
+        let atual = resp?.atual ?? {
           id: hospitalId,
           internation: [],
           assistance: [],
         };
-        const projetado = resp?.projetado ?? {
+        let projetado = resp?.projetado ?? {
           id: hospitalId,
           internation: [],
           assistance: [],
         };
+
+        // 🔥 FIX: Flatten per-sitio projectedStaff (aggregate by role)
+        if (Array.isArray(projetado.assistance)) {
+          projetado.assistance = projetado.assistance.map((sector: any) => {
+            if (
+              Array.isArray(sector.projectedStaff) &&
+              sector.projectedStaff.length > 0 &&
+              sector.projectedStaff[0]?.sitioId
+            ) {
+              // Per-sitio format detected - flatten and aggregate
+              const roleMap = new Map<string, number>();
+              sector.projectedStaff.forEach((sitio: any) => {
+                if (Array.isArray(sitio.cargos)) {
+                  sitio.cargos.forEach((cargo: any) => {
+                    const currentQty = roleMap.get(cargo.role) || 0;
+                    roleMap.set(cargo.role, currentQty + (cargo.quantity || 0));
+                  });
+                }
+              });
+              const flattened = Array.from(roleMap.entries()).map(([role, quantity]) => ({
+                role,
+                quantity,
+              }));
+              console.log(`🟢 [HospitalScreen] Flattened ${sector.name}:`, {
+                original: sector.projectedStaff,
+                flattened,
+              });
+              return { ...sector, projectedStaff: flattened };
+            }
+            return sector;
+          });
+        }
+
+        // Also flatten internation sectors if needed
+        if (Array.isArray(projetado.internation)) {
+          projetado.internation = projetado.internation.map((sector: any) => {
+            if (
+              Array.isArray(sector.projectedStaff) &&
+              sector.projectedStaff.length > 0 &&
+              sector.projectedStaff[0]?.sitioId
+            ) {
+              const roleMap = new Map<string, number>();
+              sector.projectedStaff.forEach((sitio: any) => {
+                if (Array.isArray(sitio.cargos)) {
+                  sitio.cargos.forEach((cargo: any) => {
+                    const currentQty = roleMap.get(cargo.role) || 0;
+                    roleMap.set(cargo.role, currentQty + (cargo.quantity || 0));
+                  });
+                }
+              });
+              const flattened = Array.from(roleMap.entries()).map(([role, quantity]) => ({
+                role,
+                quantity,
+              }));
+              console.log(`🟢 [HospitalScreen] Flattened ${sector.name}:`, {
+                original: sector.projectedStaff,
+                flattened,
+              });
+              return { ...sector, projectedStaff: flattened };
+            }
+            return sector;
+          });
+        }
+
         setHospitalData(atual as HospitalSector);
         setHospitalProjectedData(projetado);
       } catch (err) {
@@ -122,6 +189,15 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     const filteredAtual = filterBySelected(baseSectors);
     const filteredProjected = filterBySelected(projectedBase);
 
+    console.log(`🟢 [HospitalScreen] processedData - activeTab: ${activeTab}`, {
+      baseSectorsCount: baseSectors.length,
+      projectedBaseCount: projectedBase.length,
+      filteredAtualCount: filteredAtual.length,
+      filteredProjectedCount: filteredProjected.length,
+      filteredAtualNames: filteredAtual.map((s) => s.name),
+      filteredProjectedNames: filteredProjected.map((s) => s.name),
+    });
+
     const sumCost = (arr: any[], useProjected = false) =>
       arr.reduce((sum, sector) => {
         const raw = useProjected
@@ -152,6 +228,26 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     const pessoalAtual = sumStaff(filteredAtual, false);
     const pessoalProjetado = sumStaff(filteredProjected, true);
     const variacaoPessoal = pessoalProjetado - pessoalAtual;
+
+    // 🟢 Log variation for non-internation units
+    if (activeTab === "nao-internacao") {
+      console.log(`🟢 [HospitalScreen] VARIAÇÃO NÃO INTERNAÇÃO:`, {
+        pessoalAtual,
+        pessoalProjetado,
+        variacaoPessoal,
+        filteredAtualCount: filteredAtual.length,
+        filteredProjectedCount: filteredProjected.length,
+      });
+    }
+
+    console.log(`🟢 [HospitalScreen] Final calculations (${activeTab}):`, {
+      custoAtual,
+      custoProjetado,
+      variacaoCusto,
+      pessoalAtual,
+      pessoalProjetado,
+      variacaoPessoal,
+    });
 
     return {
       financialWaterfall: [

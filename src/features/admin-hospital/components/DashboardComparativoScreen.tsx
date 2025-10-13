@@ -43,7 +43,7 @@ export const DashboardComparativoScreen: React.FC<{
   isGlobalView?: boolean;
 }> = ({ title, externalAtualData, externalProjectedData, isGlobalView }) => {
   const { hospitalId } = useParams<{ hospitalId: string }>();
-  console.log("[DashboardComparativoScreen] render start", {
+  console.log("🔵 [USANDO: DashboardComparativoScreen - COMPONENTE ORIGINAL] render start", {
     title,
     hospitalId,
     isGlobalView,
@@ -96,16 +96,36 @@ export const DashboardComparativoScreen: React.FC<{
 
     const fetchHospital = async () => {
       try {
+        setLoading(true);
         console.log(
-          "[DashboardComparativoScreen] fetching hospital sectors for id:",
+          "[Comparativo] Fetching comparative data for hospital:",
           hospitalId
         );
-        setLoading(true);
-        const resp = await getHospitalComparative(hospitalId as string, {
-          includeProjected: true,
-        });
+        const resp = await getHospitalComparative(hospitalId as string);
+        console.log("[Comparativo] ===== API Response =====");
+        console.log(
+          "[Comparativo] Full Response:",
+          JSON.stringify(resp, null, 2)
+        );
+        console.log(
+          "[Comparativo] Atual internation count:",
+          resp?.atual?.internation?.length || 0
+        );
+        console.log(
+          "[Comparativo] Atual assistance count:",
+          resp?.atual?.assistance?.length || 0
+        );
+        console.log(
+          "[Comparativo] Projetado internation count:",
+          resp?.projetado?.internation?.length || 0
+        );
+        console.log(
+          "[Comparativo] Projetado assistance count:",
+          resp?.projetado?.assistance?.length || 0
+        );
+        console.log("[Comparativo] ==========================");
         if (!mounted) return;
-        console.log("✅ Dados recebidos da API:", resp);
+        // Defensive: ensure arrays for both atual and projetado
         let atual = resp?.atual ?? {
           id: hospitalId,
           internation: [],
@@ -117,31 +137,72 @@ export const DashboardComparativoScreen: React.FC<{
           assistance: [],
         };
 
-        console.log(
-          "[DashboardComparativoScreen] fetched hospitalData (atual):",
-          {
-            id: atual?.id,
-            internation: atual?.internation?.length,
-            assistance: atual?.assistance?.length,
-          }
-        );
-        console.log(
-          "[DashboardComparativoScreen] fetched hospitalData (projetado):",
-          {
-            id: projetado?.id,
-            internation: projetado?.internation?.length,
-            assistance: projetado?.assistance?.length,
-          }
-        );
+        // Patch: normalize assistance.projectedStaff to always be array of cargos (flatten per-sitio if needed)
+        if (Array.isArray(projetado.assistance)) {
+          projetado.assistance = projetado.assistance.map((sector) => {
+            if (
+              Array.isArray(sector.projectedStaff) &&
+              sector.projectedStaff.length > 0 &&
+              sector.projectedStaff[0].sitioId
+            ) {
+              // Per-sitio format: flatten and aggregate by role
+              const roleMap = new Map<string, number>();
+              sector.projectedStaff.forEach((sitio: any) => {
+                if (Array.isArray(sitio.cargos)) {
+                  sitio.cargos.forEach((cargo: any) => {
+                    const currentQty = roleMap.get(cargo.role) || 0;
+                    roleMap.set(cargo.role, currentQty + (cargo.quantity || 0));
+                  });
+                }
+              });
+              const flattened = Array.from(roleMap.entries()).map(
+                ([role, quantity]) => ({
+                  role,
+                  quantity,
+                })
+              );
+              console.log(`[Comparativo] Flattened ${sector.name}:`, flattened);
+              return { ...sector, projectedStaff: flattened };
+            }
+            return sector;
+          });
+        }
+
+        // Also flatten internation if needed
+        if (Array.isArray(projetado.internation)) {
+          projetado.internation = projetado.internation.map((sector) => {
+            if (
+              Array.isArray(sector.projectedStaff) &&
+              sector.projectedStaff.length > 0 &&
+              sector.projectedStaff[0].sitioId
+            ) {
+              // Per-sitio format: flatten and aggregate by role
+              const roleMap = new Map<string, number>();
+              sector.projectedStaff.forEach((sitio: any) => {
+                if (Array.isArray(sitio.cargos)) {
+                  sitio.cargos.forEach((cargo: any) => {
+                    const currentQty = roleMap.get(cargo.role) || 0;
+                    roleMap.set(cargo.role, currentQty + (cargo.quantity || 0));
+                  });
+                }
+              });
+              const flattened = Array.from(roleMap.entries()).map(
+                ([role, quantity]) => ({
+                  role,
+                  quantity,
+                })
+              );
+              console.log(`[Comparativo] Flattened ${sector.name}:`, flattened);
+              return { ...sector, projectedStaff: flattened };
+            }
+            return sector;
+          });
+        }
 
         setHospitalData(atual as HospitalSector);
-        // store projected in globalProjectedData so processedData can pick it when isGlobalView true
         setGlobalProjectedData(projetado);
       } catch (err) {
-        console.error(
-          "[DashboardComparativoScreen] error fetching hospital sectors:",
-          err
-        );
+        console.error("[Comparativo] Error fetching comparative data:", err);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -184,7 +245,7 @@ export const DashboardComparativoScreen: React.FC<{
       : hospitalData;
     const projectedSource = isGlobalView
       ? externalProjectedData ?? globalProjectedData
-      : null;
+      : globalProjectedData; // ← FIX: use globalProjectedData for hospital view too!
 
     if (!atualSource && !projectedSource) {
       console.log(
@@ -228,11 +289,9 @@ export const DashboardComparativoScreen: React.FC<{
         ? projetado.internation || []
         : projetado.assistance || [];
 
+    // Build sector list using atual IDs but matching by name
     const setorMap: Map<string, { id: string; name: string }> = new Map();
     baseSectors.forEach((s: any) =>
-      setorMap.set(s.id, { id: s.id, name: s.name })
-    );
-    projectedBase.forEach((s: any) =>
       setorMap.set(s.id, { id: s.id, name: s.name })
     );
     const setorList = Array.from(setorMap.values());
@@ -243,46 +302,43 @@ export const DashboardComparativoScreen: React.FC<{
         : arr.filter((s) => s.id === selectedSector);
 
     const filteredAtual = filterBySelected(baseSectors);
-    const filteredProjected = filterBySelected(projectedBase);
+
+    // Match projected sectors by NAME instead of ID (since IDs differ between atual and projetado)
+    const filteredProjected =
+      selectedSector === "all"
+        ? projectedBase
+        : projectedBase.filter((s) => {
+            // Find matching atual sector by name
+            const matchingAtual = filteredAtual.find((a) => a.name === s.name);
+            return !!matchingAtual;
+          });
 
     console.log("[DashboardComparativoScreen] setores:", {
       baseSectors: baseSectors.length,
       projectedBase: projectedBase.length,
       filteredAtual: filteredAtual.length,
       filteredProjected: filteredProjected.length,
+      atualNames: filteredAtual.map((s) => s.name),
+      projectedNames: filteredProjected.map((s) => s.name),
     });
 
     const sumCost = (arr: any[], useProjected = false) =>
       arr.reduce((sum, sector) => {
         if (useProjected) {
-          // Prefer explicit projectedCostAmount from backend when available
           if (
             sector.projectedCostAmount !== undefined &&
             sector.projectedCostAmount !== null
           ) {
             const val = parseCostUtil(sector.projectedCostAmount);
-            console.log(
-              `💰 sumCost (projectedCostAmount) for ${sector.name}:`,
-              val
-            );
             return sum + val;
           }
-
-          // If projectedCostAmount not provided, but projectedStaff comes per-sitio with custoPorFuncionario, compute cost from sitios
           if (
             sector.projectedStaff &&
             isProjectedBySitio(sector.projectedStaff)
           ) {
             const fromSitios = computeProjectedCostFromSitios(sector);
-            if (fromSitios > 0) {
-              console.log(
-                `💰 sumCost (from sitios) for ${sector.name}:`,
-                fromSitios
-              );
-              return sum + fromSitios;
-            }
+            return sum + fromSitios;
           }
-
           const raw = sector.costAmount ?? 0;
           return sum + parseCostUtil(raw);
         }
@@ -318,6 +374,13 @@ export const DashboardComparativoScreen: React.FC<{
     const pessoalAtual = sumStaff(filteredAtual, false);
     const pessoalProjetado = sumStaff(filteredProjected, true);
     const variacaoPessoal = pessoalProjetado - pessoalAtual;
+
+    // Log only the variation of projected staff for 'Unidades de Não Internação'
+    if (activeTab === "nao-internacao") {
+      console.log(
+        `[Comparativo] Variação de pessoas (Não Internação): Atual = ${pessoalAtual}, Projetado = ${pessoalProjetado}, Variação = ${variacaoPessoal}`
+      );
+    }
 
     const financialWaterfall = [
       { name: "Custo Atual", value: custoAtual },
