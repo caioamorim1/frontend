@@ -165,7 +165,7 @@ export default function SetorDetailPage() {
           { id: "projetado", label: "Projetado" },
         ]
       : [
-          { id: "analise-financeira", label: "Análise Financeira" },
+          { id: "analise-financeira", label: "Dimensionamento" },
           { id: "sitios", label: "Sítios Funcionais" },
           { id: "funcionarios", label: "Funcionários" },
           { id: "parametros", label: "Parâmetros" },
