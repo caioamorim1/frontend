@@ -73,36 +73,103 @@ export const DashboardComparativoGlobalScreen: React.FC<{
         ? projetado.internation || []
         : projetado.assistance || [];
 
-    const filterBySelected = (arr: any[]) =>
-      selectedSector === "all"
-        ? arr
-        : arr.filter((s) => s.id === selectedSector);
+    console.log(
+      `🟢 [GlobalComparativo] Dados extraídos - activeTab: ${activeTab}`,
+      {
+        atualInternationCount: atual.internation?.length || 0,
+        atualAssistanceCount: atual.assistance?.length || 0,
+        projetadoInternationCount: projetado.internation?.length || 0,
+        projetadoAssistanceCount: projetado.assistance?.length || 0,
+        baseSectorsCount: baseSectors.length,
+        projectedBaseCount: projectedBase.length,
+        baseSectorsNames: baseSectors.map((s) => s.name),
+        projectedBaseNames: projectedBase.map((s) => s.name),
+      }
+    );
+
+    // 🔍 Filtro por NOME ao invés de ID (IDs podem diferir entre atual e projetado)
+    const filterBySelected = (arr: any[]) => {
+      if (selectedSector === "all") return arr;
+
+      const filtered = arr.filter((s) => {
+        const match =
+          s.name?.trim().toLowerCase() === selectedSector.toLowerCase();
+        console.log(
+          `  [GlobalFilter] ${s.name} === ${selectedSector}? ${
+            match ? "✅" : "❌"
+          }`
+        );
+        return match;
+      });
+
+      console.log(
+        `[GlobalComparativo] filterBySelected selectedSector="${selectedSector}", found ${filtered.length} matches`
+      );
+      return filtered;
+    };
 
     const filteredAtual = filterBySelected(baseSectors);
     const filteredProjected = filterBySelected(projectedBase);
 
-    const sumCost = (arr: any[], useProjected = false) =>
-      arr.reduce((sum, sector) => {
+    console.log(`🟢 [GlobalComparativo] Dados filtrados:`, {
+      selectedSector,
+      filteredAtualCount: filteredAtual.length,
+      filteredProjectedCount: filteredProjected.length,
+      filteredAtualNames: filteredAtual.map((s) => s.name),
+      filteredProjectedNames: filteredProjected.map((s) => s.name),
+    });
+
+    const sumCost = (arr: any[], useProjected = false) => {
+      console.log(
+        `[GlobalComparativo sumCost] Calculando ${
+          useProjected ? "PROJETADO" : "ATUAL"
+        }, array length: ${arr.length}`
+      );
+
+      return arr.reduce((sum, sector, index) => {
         const raw = useProjected
           ? sector.projectedCostAmount ?? sector.costAmount ?? 0
           : sector.costAmount ?? 0;
-        return sum + parseCostUtil(raw);
-      }, 0);
+        const parsed = parseCostUtil(raw);
 
-    const sumStaff = (arr: any[], useProjected = false) =>
-      arr.reduce((sum, sector) => {
+        console.log(
+          `  [${index}] ${sector.name} - raw: ${raw}, parsed: ${parsed}`
+        );
+        return sum + parsed;
+      }, 0);
+    };
+
+    const sumStaff = (arr: any[], useProjected = false) => {
+      console.log(
+        `[GlobalComparativo sumStaff] Calculando ${
+          useProjected ? "PROJETADO" : "ATUAL"
+        }, array length: ${arr.length}`
+      );
+
+      return arr.reduce((sum, sector, index) => {
         if (useProjected) {
           const staffArr =
             sector.projectedStaff && Array.isArray(sector.projectedStaff)
               ? sector.projectedStaff
               : getStaffArray(sector);
-          return (
-            sum +
-            staffArr.reduce((s: number, it: any) => s + (it.quantity || 0), 0)
+          const count = staffArr.reduce(
+            (s: number, it: any) => s + (it.quantity || 0),
+            0
           );
+
+          console.log(
+            `  [${index}] ${sector.name} - projectedStaff count: ${count}`
+          );
+          return sum + count;
         }
-        return sum + sumStaffUtil(sector);
+
+        const count = sumStaffUtil(sector);
+        console.log(
+          `  [${index}] ${sector.name} - atual staff count: ${count}`
+        );
+        return sum + count;
       }, 0);
+    };
 
     const custoAtual = sumCost(filteredAtual, false);
     const custoProjetado = sumCost(filteredProjected, true);
@@ -111,6 +178,15 @@ export const DashboardComparativoGlobalScreen: React.FC<{
     const pessoalAtual = sumStaff(filteredAtual, false);
     const pessoalProjetado = sumStaff(filteredProjected, true);
     const variacaoPessoal = pessoalProjetado - pessoalAtual;
+
+    console.log(`🟢 [GlobalComparativo] Cálculos finais (${activeTab}):`, {
+      custoAtual,
+      custoProjetado,
+      variacaoCusto,
+      pessoalAtual,
+      pessoalProjetado,
+      variacaoPessoal,
+    });
 
     return {
       financialWaterfall: [
@@ -128,7 +204,7 @@ export const DashboardComparativoGlobalScreen: React.FC<{
         custoAtual > 0 ? (variacaoCusto / custoAtual) * 100 : 0,
       setorList: Array.from(
         new Map(
-          baseSectors.map((s: any) => [s.id, { id: s.id, name: s.name }])
+          baseSectors.map((s: any) => [s.name, { id: s.id, name: s.name }])
         ).values()
       ),
     };
@@ -157,7 +233,7 @@ export const DashboardComparativoGlobalScreen: React.FC<{
           <SelectContent>
             <SelectItem value="all">Visão Geral</SelectItem>
             {setorList.map((sector) => (
-              <SelectItem key={sector.id} value={sector.id}>
+              <SelectItem key={sector.id} value={sector.name}>
                 {sector.name}
               </SelectItem>
             ))}

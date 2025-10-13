@@ -279,6 +279,18 @@ export const DashboardComparativoScreen: React.FC<{
     const atual = extract(atualSource);
     const projetado = extract(projectedSource);
 
+    console.log("[DashboardComparativoScreen] Dados extraídos:", {
+      atualInternation: atual.internation?.length || 0,
+      atualAssistance: atual.assistance?.length || 0,
+      projetadoInternation: projetado.internation?.length || 0,
+      projetadoAssistance: projetado.assistance?.length || 0,
+      atualInternationNames: atual.internation?.map((s) => s.name) || [],
+      atualAssistanceNames: atual.assistance?.map((s) => s.name) || [],
+      projetadoInternationNames:
+        projetado.internation?.map((s) => s.name) || [],
+      projetadoAssistanceNames: projetado.assistance?.map((s) => s.name) || [],
+    });
+
     let baseSectors: any[] = [];
     if (activeTab === "global")
       baseSectors = [...(atual.internation || []), ...(atual.assistance || [])];
@@ -307,13 +319,39 @@ export const DashboardComparativoScreen: React.FC<{
     const filteredAtual = filterBySelected(baseSectors);
 
     // Match projected sectors by NAME instead of ID (since IDs differ between atual and projetado)
+    // Also try to match by ID if name matching fails
     const filteredProjected =
       selectedSector === "all"
         ? projectedBase
         : projectedBase.filter((s) => {
-            // Find matching atual sector by name
-            const matchingAtual = filteredAtual.find((a) => a.name === s.name);
-            return !!matchingAtual;
+            // First try: match by ID (in case the projected sector has the same ID)
+            if (s.id === selectedSector) {
+              console.log(
+                "[DashboardComparativoScreen] Match direto por ID:",
+                s.name
+              );
+              return true;
+            }
+
+            // Second try: match by NAME (case-insensitive and trim whitespace)
+            const matchingAtual = filteredAtual.find(
+              (a) =>
+                a.name?.trim().toLowerCase() === s.name?.trim().toLowerCase()
+            );
+            const hasMatch = !!matchingAtual;
+
+            if (!hasMatch) {
+              console.warn(
+                "[DashboardComparativoScreen] Setor projetado não encontrou match:",
+                {
+                  projectedName: s.name,
+                  projectedId: s.id,
+                  availableAtualNames: filteredAtual.map((a) => a.name),
+                }
+              );
+            }
+
+            return hasMatch;
           });
 
     console.log("[DashboardComparativoScreen] setores:", {
@@ -323,52 +361,136 @@ export const DashboardComparativoScreen: React.FC<{
       filteredProjected: filteredProjected.length,
       atualNames: filteredAtual.map((s) => s.name),
       projectedNames: filteredProjected.map((s) => s.name),
+      selectedSector,
     });
 
-    const sumCost = (arr: any[], useProjected = false) =>
-      arr.reduce((sum, sector) => {
+    const sumCost = (arr: any[], useProjected = false) => {
+      console.log(
+        `[sumCost] Calculando ${useProjected ? "PROJETADO" : "ATUAL"}:`,
+        {
+          arrayLength: arr.length,
+          sectors: arr.map((s) => ({
+            id: s.id,
+            name: s.name,
+            costAmount: s.costAmount,
+            projectedCostAmount: s.projectedCostAmount,
+            hasProjectedStaff: !!s.projectedStaff,
+            projectedStaffType: s.projectedStaff
+              ? isProjectedBySitio(s.projectedStaff)
+                ? "sitio"
+                : "array"
+              : "none",
+          })),
+        }
+      );
+
+      return arr.reduce((sum, sector, index) => {
+        let sectorCost = 0;
+
         if (useProjected) {
           if (
             sector.projectedCostAmount !== undefined &&
             sector.projectedCostAmount !== null
           ) {
             const val = parseCostUtil(sector.projectedCostAmount);
-            return sum + val;
-          }
-          if (
+            sectorCost = val;
+            console.log(
+              `  [${index}] ${sector.name} - usando projectedCostAmount:`,
+              val
+            );
+          } else if (
             sector.projectedStaff &&
             isProjectedBySitio(sector.projectedStaff)
           ) {
             const fromSitios = computeProjectedCostFromSitios(sector);
-            return sum + fromSitios;
+            sectorCost = fromSitios;
+            console.log(
+              `  [${index}] ${sector.name} - calculando de sítios:`,
+              fromSitios
+            );
+          } else {
+            const raw = sector.costAmount ?? 0;
+            sectorCost = parseCostUtil(raw);
+            console.log(
+              `  [${index}] ${sector.name} - usando costAmount como fallback:`,
+              sectorCost
+            );
           }
-          const raw = sector.costAmount ?? 0;
-          return sum + parseCostUtil(raw);
+        } else {
+          sectorCost = parseCostUtil(sector.costAmount ?? 0);
+          console.log(`  [${index}] ${sector.name} - custo atual:`, sectorCost);
         }
-        return sum + parseCostUtil(sector.costAmount ?? 0);
-      }, 0);
 
-    const sumStaff = (arr: any[], useProjected = false) =>
-      arr.reduce((sum, sector) => {
+        return sum + sectorCost;
+      }, 0);
+    };
+
+    const sumStaff = (arr: any[], useProjected = false) => {
+      console.log(
+        `[sumStaff] Calculando ${useProjected ? "PROJETADO" : "ATUAL"}:`,
+        {
+          arrayLength: arr.length,
+          sectors: arr.map((s) => ({
+            id: s.id,
+            name: s.name,
+            staff: s.staff,
+            projectedStaff: s.projectedStaff,
+            hasProjectedStaff: !!s.projectedStaff,
+            projectedStaffType: s.projectedStaff
+              ? isProjectedBySitio(s.projectedStaff)
+                ? "sitio"
+                : Array.isArray(s.projectedStaff)
+                ? "array"
+                : "other"
+              : "none",
+          })),
+        }
+      );
+
+      return arr.reduce((sum, sector, index) => {
+        let sectorStaff = 0;
+
         if (useProjected) {
           if (
             sector.projectedStaff &&
             isProjectedBySitio(sector.projectedStaff)
           ) {
             const flattened = flattenProjectedBySitio(sector.projectedStaff);
-            return sum + flattened.reduce((s, it) => s + (it.quantity || 0), 0);
+            sectorStaff = flattened.reduce(
+              (s, it) => s + (it.quantity || 0),
+              0
+            );
+            console.log(
+              `  [${index}] ${sector.name} - pessoal de sítios:`,
+              sectorStaff,
+              flattened
+            );
+          } else {
+            const staffArr =
+              sector.projectedStaff && Array.isArray(sector.projectedStaff)
+                ? sector.projectedStaff
+                : getStaffArray(sector);
+            sectorStaff = staffArr.reduce(
+              (s: number, it: any) => s + (it.quantity || 0),
+              0
+            );
+            console.log(
+              `  [${index}] ${sector.name} - pessoal projetado array:`,
+              sectorStaff,
+              staffArr
+            );
           }
-          const staffArr =
-            sector.projectedStaff && Array.isArray(sector.projectedStaff)
-              ? sector.projectedStaff
-              : getStaffArray(sector);
-          return (
-            sum +
-            staffArr.reduce((s: number, it: any) => s + (it.quantity || 0), 0)
+        } else {
+          sectorStaff = sumStaffUtil(sector);
+          console.log(
+            `  [${index}] ${sector.name} - pessoal atual:`,
+            sectorStaff
           );
         }
-        return sum + sumStaffUtil(sector);
+
+        return sum + sectorStaff;
       }, 0);
+    };
 
     const custoAtual = sumCost(filteredAtual, false);
     const custoProjetado = sumCost(filteredProjected, true);
@@ -377,6 +499,29 @@ export const DashboardComparativoScreen: React.FC<{
     const pessoalAtual = sumStaff(filteredAtual, false);
     const pessoalProjetado = sumStaff(filteredProjected, true);
     const variacaoPessoal = pessoalProjetado - pessoalAtual;
+
+    // Log detailed calculation for debugging
+    console.log("[DashboardComparativoScreen] Cálculos detalhados:", {
+      activeTab,
+      selectedSector,
+      filteredAtual: filteredAtual.map((s) => ({
+        id: s.id,
+        name: s.name,
+        cost: s.costAmount,
+      })),
+      filteredProjected: filteredProjected.map((s) => ({
+        id: s.id,
+        name: s.name,
+        projectedCost: s.projectedCostAmount,
+        projectedStaff: s.projectedStaff,
+      })),
+      custoAtual,
+      custoProjetado,
+      variacaoCusto,
+      pessoalAtual,
+      pessoalProjetado,
+      variacaoPessoal,
+    });
 
     // Log only the variation of projected staff for 'Unidades de Não Internação'
     if (activeTab === "nao-internacao") {

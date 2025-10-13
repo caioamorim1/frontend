@@ -57,6 +57,57 @@ export async function getHospitalProjectedSectors(
   return res.data as HospitalProjectedResponse;
 }
 
+// --- New: Occupation Analysis endpoint ---
+export interface SectorOccupation {
+  sectorId: string;
+  sectorName: string;
+  sectorType: "internacao" | "nao_internacao";
+  taxaOcupacao: number; // Taxa no momento atual
+  taxaOcupacaoDia: number; // 🆕 Taxa média do dia inteiro
+  ocupacaoMaximaAtendivel: number; // 🆕 Nova métrica baseada no quadro de pessoal
+  ociosidade: number;
+  superlotacao: number;
+  capacidadeProdutiva: number;
+  totalLeitos: number;
+  leitosOcupados: number;
+  leitosVagos: number;
+  leitosInativos: number;
+  leitosAvaliados: number;
+  quadroAtualEnfermeiros: number; // 🆕 Quantidade de enfermeiros
+  quadroAtualTecnicos: number; // 🆕 Quantidade de técnicos
+}
+
+export interface OccupationSummary {
+  sectorName: string;
+  taxaOcupacao: number; // Taxa no momento atual
+  taxaOcupacaoDia: number; // 🆕 Taxa média do dia inteiro
+  ocupacaoMaximaAtendivel: number; // 🆕 Nova métrica baseada no quadro de pessoal
+  ociosidade: number;
+  superlotacao: number;
+  capacidadeProdutiva: number;
+  totalLeitos: number;
+  leitosOcupados: number;
+  leitosVagos: number;
+  leitosInativos: number;
+  leitosAvaliados: number;
+}
+
+export interface OccupationAnalysisResponse {
+  hospitalId: string;
+  hospitalName: string;
+  sectors: SectorOccupation[];
+  summary: OccupationSummary;
+}
+
+export async function getHospitalOccupationAnalysis(
+  hospitalId: string
+): Promise<OccupationAnalysisResponse> {
+  const res = await api.get(
+    `/hospital-sectors/${hospitalId}/occupation-analysis`
+  );
+  return res.data as OccupationAnalysisResponse;
+}
+
 // DTO para criar questionário
 export interface CreateQuestionarioDTO {
   name: string;

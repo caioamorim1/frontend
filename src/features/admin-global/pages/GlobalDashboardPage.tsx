@@ -339,38 +339,6 @@ export default function GlobalDashboardPage() {
         </p>
       </div>
 
-      {/* Debug Info - Dados Atuais */}
-      {aggregatedData && (
-        <Card className="bg-blue-50">
-          <CardContent className="pt-6">
-            <p className="text-sm font-mono">
-              <strong>📊 Dados ATUAIS:</strong> Carregados para{" "}
-              {aggregatedData.type}
-              <br />
-              <span className="text-xs text-gray-600">
-                Verifique o console para detalhes completos
-              </span>
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ✅ NOVO: Debug Info - Dados Projetados */}
-      {projectedData && (
-        <Card className="bg-purple-50">
-          <CardContent className="pt-6">
-            <p className="text-sm font-mono">
-              <strong>🔮 Dados PROJETADOS:</strong> Carregados para{" "}
-              {projectedData.type}
-              <br />
-              <span className="text-xs text-gray-600">
-                Usando novas APIs de agregação projetada
-              </span>
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Filtro de Agrupamento */}
       <Card>
         <CardHeader>

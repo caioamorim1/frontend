@@ -188,10 +188,24 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         ? projetado.internation || []
         : projetado.assistance || [];
 
-    const filterBySelected = (arr: any[]) =>
-      selectedSector === "all"
-        ? arr
-        : arr.filter((s) => s.id === selectedSector);
+    // 🔍 Filtro por NOME ao invés de ID (IDs podem diferir entre atual e projetado)
+    const filterBySelected = (arr: any[]) => {
+      if (selectedSector === "all") return arr;
+
+      const filtered = arr.filter((s) => {
+        const match =
+          s.name?.trim().toLowerCase() === selectedSector.toLowerCase();
+        console.log(
+          `  [Filter] ${s.name} === ${selectedSector}? ${match ? "✅" : "❌"}`
+        );
+        return match;
+      });
+
+      console.log(
+        `[filterBySelected] selectedSector="${selectedSector}", found ${filtered.length} matches`
+      );
+      return filtered;
+    };
 
     const filteredAtual = filterBySelected(baseSectors);
     const filteredProjected = filterBySelected(projectedBase);
@@ -272,7 +286,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         custoAtual > 0 ? (variacaoCusto / custoAtual) * 100 : 0,
       setorList: Array.from(
         new Map(
-          baseSectors.map((s: any) => [s.id, { id: s.id, name: s.name }])
+          baseSectors.map((s: any) => [s.name, { id: s.id, name: s.name }])
         ).values()
       ),
     };
@@ -316,7 +330,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
           <SelectContent>
             <SelectItem value="all">Visão Geral</SelectItem>
             {setorList.map((sector) => (
-              <SelectItem key={sector.id} value={sector.id}>
+              <SelectItem key={sector.id} value={sector.name}>
                 {sector.name}
               </SelectItem>
             ))}

@@ -95,22 +95,57 @@ export const ReusableWaterfall: React.FC<ReusableWaterfallProps> = ({
   title,
   description,
 }) => {
-  console.log("[ReusableWaterfall] raw data:", data);
-  const chartData = processWaterfallData(data);
-  console.log("[ReusableWaterfall] chartData:", chartData);
+  console.log(`[ReusableWaterfall] ${title} - raw data:`, {
+    data,
+    dataLength: data?.length,
+    values: data?.map((d) => ({ name: d.name, value: d.value })),
+  });
 
-  if (!data || data.length <= 1) {
+  const chartData = processWaterfallData(data);
+
+  console.log(`[ReusableWaterfall] ${title} - chartData:`, {
+    chartData,
+    chartDataLength: chartData?.length,
+    ranges: chartData?.map((d) => ({
+      name: d.name,
+      range: d.range,
+      color: d.color,
+    })),
+  });
+
+  if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[350px] text-muted-foreground">
-        Selecione um setor para ver a análise.
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-[350px] text-muted-foreground">
+            Nenhum dado disponível para análise.
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
-  const yDomain = [
-    0,
-    Math.max(...chartData.map((d) => Math.max(...d.range, 0))) * 1.1,
-  ];
+  // Calculate yDomain with better handling of edge cases
+  const maxValue = Math.max(...chartData.map((d) => Math.max(...d.range, 0)));
+  const minValue = Math.min(...chartData.map((d) => Math.min(...d.range, 0)));
+
+  // If all values are zero or very close to zero, set a minimum domain
+  const effectiveMax = maxValue < 1 ? 10 : maxValue * 1.1;
+  const effectiveMin = minValue < 0 ? minValue * 1.1 : 0;
+
+  const yDomain = [effectiveMin, effectiveMax];
+
+  console.log("[ReusableWaterfall] yDomain:", {
+    maxValue,
+    minValue,
+    effectiveMax,
+    effectiveMin,
+    yDomain,
+  });
 
   const formatYAxisTick = (value: number) => {
     if (unit === "currency") {

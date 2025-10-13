@@ -100,7 +100,11 @@ export default function SitiosFuncionaisAdminPage() {
   // Removido o cálculo de saldosPorCargo pois não controla mais quantidade aqui
 
   const cargosDisponiveisParaAdicionar = useMemo(() => {
-    if (!unidade?.cargos_unidade) return [];
+    if (!unidade?.cargos_unidade) {
+      console.log('⚠️ [cargosDisponiveis] Unidade sem cargos_unidade');
+      return [];
+    }
+    
     const idsCargosJaNoFormulario = new Set(
       cargosParaAlocar.map((c) => c.cargoId)
     );
@@ -111,9 +115,19 @@ export default function SitiosFuncionaisAdminPage() {
         index === self.findIndex((c) => c.cargo.id === cu.cargo.id)
     );
 
-    return cargosUnicos.filter(
+    const disponiveisFiltrados = cargosUnicos.filter(
       (cu) => !idsCargosJaNoFormulario.has(cu.cargo.id)
     );
+    
+    console.log('🔍 [cargosDisponiveis] Calculados:', {
+      totalCargosUnidade: unidade.cargos_unidade.length,
+      cargosUnicos: cargosUnicos.length,
+      cargosJaNoFormulario: idsCargosJaNoFormulario.size,
+      disponiveisFiltrados: disponiveisFiltrados.length,
+      disponiveisNomes: disponiveisFiltrados.map(cu => cu.cargo.nome),
+    });
+    
+    return disponiveisFiltrados;
   }, [unidade?.cargos_unidade, cargosParaAlocar]);
 
   const resetForm = () => {
@@ -160,29 +174,48 @@ export default function SitiosFuncionaisAdminPage() {
 
   const adicionarCargo = () => {
     setError(null);
+    
+    console.log('🔍 [adicionarCargo] Tentando adicionar cargo:', {
+      selectedCargoId,
+      cargosParaAlocar,
+      cargosDisponiveisCount: cargosDisponiveisParaAdicionar.length,
+    });
+    
     if (!selectedCargoId) {
       setError("Selecione um cargo.");
+      console.log('❌ [adicionarCargo] Nenhum cargo selecionado');
       return;
     }
 
     // Verifica se o cargo já foi adicionado
     if (cargosParaAlocar.some((c) => c.cargoId === selectedCargoId)) {
       setError("Este cargo já foi adicionado.");
+      console.log('❌ [adicionarCargo] Cargo já adicionado');
       return;
     }
 
     const cargoInfo = unidade?.cargos_unidade?.find(
       (cu) => cu.cargo.id === selectedCargoId
     );
+    
+    console.log('🔍 [adicionarCargo] cargoInfo encontrado:', cargoInfo);
+    
     if (cargoInfo) {
-      setCargosParaAlocar((prev) => [
-        ...prev,
-        {
-          cargoId: selectedCargoId,
-          nome: cargoInfo.cargo.nome,
-        },
-      ]);
+      setCargosParaAlocar((prev) => {
+        const novosCargosList = [
+          ...prev,
+          {
+            cargoId: selectedCargoId,
+            nome: cargoInfo.cargo.nome,
+          },
+        ];
+        console.log('✅ [adicionarCargo] Cargos atualizados:', novosCargosList);
+        return novosCargosList;
+      });
       setSelectedCargoId("");
+    } else {
+      console.log('❌ [adicionarCargo] cargoInfo não encontrado na unidade');
+      setError("Cargo não encontrado na unidade.");
     }
   };
 
@@ -324,7 +357,10 @@ export default function SitiosFuncionaisAdminPage() {
                 <div className="flex-grow">
                   <label className="text-sm font-medium">Cargo</label>
                   <Select
-                    onValueChange={setSelectedCargoId}
+                    onValueChange={(value) => {
+                      console.log('🔍 [Select] Cargo selecionado:', value);
+                      setSelectedCargoId(value);
+                    }}
                     value={selectedCargoId}
                     disabled={cargosDisponiveisParaAdicionar.length === 0}
                   >
@@ -332,17 +368,23 @@ export default function SitiosFuncionaisAdminPage() {
                       <SelectValue placeholder="Selecione um cargo..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {cargosDisponiveisParaAdicionar.map((cu) => (
-                        <SelectItem key={cu.cargo.id} value={cu.cargo.id}>
-                          {cu.cargo.nome}
-                        </SelectItem>
-                      ))}
+                      {cargosDisponiveisParaAdicionar.map((cu) => {
+                        console.log('🔍 [Select] Opção disponível:', cu.cargo.nome, cu.cargo.id);
+                        return (
+                          <SelectItem key={cu.cargo.id} value={cu.cargo.id}>
+                            {cu.cargo.nome}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
                 <Button
                   type="button"
-                  onClick={adicionarCargo}
+                  onClick={() => {
+                    console.log('🔍 [Button] Botão Adicionar clicado');
+                    adicionarCargo();
+                  }}
                   disabled={
                     !selectedCargoId ||
                     cargosDisponiveisParaAdicionar.length === 0
