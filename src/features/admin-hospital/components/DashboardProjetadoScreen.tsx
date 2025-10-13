@@ -20,6 +20,7 @@ import { DollarSign, Users, Building, CircleDollarSign } from "lucide-react";
 import RadarChartComponent from "./graphicsComponents/RadarChart";
 import { calcularPerformanceParaGrafico } from "@/mocks/filterMocksRadar";
 import { PieChartComp } from "./graphicsComponents/PieChartComp";
+import { HorizontalBarChartComp } from "./graphicsComponents/HorizontalBarChartComp";
 import BargraphicChart from "./graphicsComponents/BarChartComp";
 import { COLORS, generateMultiColorScale } from "@/lib/generateMultiColorScale";
 import { formatAmountBRL } from "@/lib/utils";
@@ -380,16 +381,14 @@ const TabContentInternacao: React.FC<{
           icon={<Building size={24} />}
         />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <PieChartComp
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+        <HorizontalBarChartComp
           data={chartDataColaboradoresPorSetor}
           title="Colaboradores por Setor (Projetado)"
-          labelType="value"
         />
-        <PieChartComp
+        <HorizontalBarChartComp
           data={chartDataColaboradoresPorFuncao}
           title="Colaboradores por Função (Projetado)"
-          labelType="value"
         />
       </div>
       <BargraphicChart
@@ -518,16 +517,14 @@ const TabContentNoInternacao: React.FC<{
           </Select>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <PieChartComp
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+        <HorizontalBarChartComp
           data={chartDataColaboradoresPorSetor}
           title="Colaboradores por Setor (Projetado)"
-          labelType="value"
         />
-        <PieChartComp
+        <HorizontalBarChartComp
           data={chartDataColaboradoresPorFuncao}
           title="Colaboradores por Função (Projetado)"
-          labelType="value"
         />
       </div>
       <BargraphicChart

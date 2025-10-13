@@ -39,6 +39,7 @@ import { calcularPerformanceParaGrafico } from "@/mocks/filterMocksRadar";
 import { fetchDashboardAtualData } from "@/mocks/filterMocksDashAtual";
 import { DashboardAnalytics } from "@/mocks/mocksDashAtualDatabase";
 import { PieChartComp } from "./graphicsComponents/PieChartComp";
+import { HorizontalBarChartComp } from "./graphicsComponents/HorizontalBarChartComp";
 import BargraphicChart from "./graphicsComponents/BarChartComp";
 import { COLORS, generateMultiColorScale } from "@/lib/generateMultiColorScale";
 import { formatAmountBRL } from "@/lib/utils";
@@ -815,18 +816,18 @@ const TabContentInternacao: React.FC<{
           </Select>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <PieChartComp data={chartDataCareLevels} title="Níveis de Cuidado" />
         <PieChartComp data={chartDataBedStates} title="Estados dos Leitos" />
-        <PieChartComp
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+        <HorizontalBarChartComp
           data={chartDataColaboradoresPorSetor}
           title="Nº de colaboradores por unidade"
-          labelType="value"
         />
-        <PieChartComp
+        <HorizontalBarChartComp
           data={chartDataColaboradoresPorFuncao}
           title="Nº de colaboradores por função"
-          labelType="value"
         />
       </div>
       {selectedSector === "all" && (
@@ -996,16 +997,14 @@ const TabContentNoInternacao: React.FC<{
           </Select>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <PieChartComp
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+        <HorizontalBarChartComp
           data={chartDataColaboradoresPorSetor}
           title="Nº de colaboradores"
-          labelType="value"
         />
-        <PieChartComp
+        <HorizontalBarChartComp
           data={chartDataColaboradoresPorFuncao}
           title="Nº de colaboradores por função"
-          labelType="value"
         />
       </div>
       {selectedSector === "all" && (
