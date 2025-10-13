@@ -117,7 +117,8 @@ export interface CreateQuestionarioDTO {
 // Configuração da URL base da API
 // Em desenvolvimento: usa variável de ambiente ou fallback para localhost
 // Em produção (Docker): usa a variável VITE_API_URL injetada no build
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3110";
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3110";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
