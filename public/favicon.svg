@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fundo branco -->
+  <rect width="512" height="512" fill="#ffffff"/>
+  
+  <!-- Letra D em azul escuro (reduzida) -->
+  <path d="M 80 80 L 200 80 C 320 80 400 160 400 256 C 400 352 320 432 200 432 L 80 432 Z M 140 150 L 140 362 L 200 362 C 280 362 330 312 330 256 C 330 200 280 150 200 150 Z" 
+        fill="#1e3a5f" 
+        stroke="#1e3a5f" 
+        stroke-width="5"/>
+  
+  <!-- Cruz verde (símbolo +) -->
+  <g transform="translate(310, 190)">
+    <!-- Vertical da cruz -->
+    <rect x="25" y="0" width="40" height="120" rx="8" fill="#4ade80"/>
+    <!-- Horizontal da cruz -->
+    <rect x="0" y="40" width="90" height="40" rx="8" fill="#4ade80"/>
+  </g>
+</svg>
