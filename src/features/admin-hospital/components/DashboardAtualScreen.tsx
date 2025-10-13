@@ -274,6 +274,8 @@ const GlobalTabContent: React.FC<{
         summary: {
           name: "Global",
           "Taxa de Ocupação": 0,
+          "Taxa de Ocupação Diária": 0, // 🆕 Taxa média do dia
+          "Ocupação Máxima Atendível": 0, // 🆕
           Ociosidade: 0,
           Superlotação: 0,
           "Capacidade Produtiva": 100,
@@ -286,12 +288,20 @@ const GlobalTabContent: React.FC<{
       const evaluatedBeds = sector.bedStatus?.evaluated || 0;
       const occupancyRate =
         totalBeds > 0 ? (evaluatedBeds / totalBeds) * 100 : 0;
-      const ociosidade = Math.max(0, 85 - occupancyRate);
-      const superlotacao = Math.max(0, occupancyRate - 100);
+
+      // TODO: Integrar com API de ocupação para obter dados reais
+      // Por ora, usa valores simulados (será substituído pela API)
+      const ocupacaoMaximaAtendivel = 85;
+      const taxaOcupacaoDia = occupancyRate + (Math.random() * 4 - 2); // Simula variação ±2%
+
+      const ociosidade = Math.max(0, ocupacaoMaximaAtendivel - occupancyRate);
+      const superlotacao = Math.max(0, occupancyRate - ocupacaoMaximaAtendivel);
 
       return {
         name: sector.name,
         "Taxa de Ocupação": occupancyRate,
+        "Taxa de Ocupação Diária": taxaOcupacaoDia, // 🆕
+        "Ocupação Máxima Atendível": ocupacaoMaximaAtendivel, // 🆕
         Ociosidade: ociosidade,
         Superlotação: superlotacao,
         "Capacidade Produtiva": 100,
@@ -309,11 +319,20 @@ const GlobalTabContent: React.FC<{
     const globalOccupancy =
       totalBeds > 0 ? (totalEvaluated / totalBeds) * 100 : 0;
 
+    // TODO: Integrar com API de ocupação para obter dados reais
+    const globalOcupacaoMaximaAtendivel = 85;
+    const globalTaxaOcupacaoDia = globalOccupancy + (Math.random() * 4 - 2); // Simula variação ±2%
+
     const summary = {
       name: "Global",
       "Taxa de Ocupação": globalOccupancy,
-      Ociosidade: Math.max(0, 85 - globalOccupancy),
-      Superlotação: Math.max(0, globalOccupancy - 100),
+      "Taxa de Ocupação Diária": globalTaxaOcupacaoDia, // 🆕
+      "Ocupação Máxima Atendível": globalOcupacaoMaximaAtendivel, // 🆕
+      Ociosidade: Math.max(0, globalOcupacaoMaximaAtendivel - globalOccupancy),
+      Superlotação: Math.max(
+        0,
+        globalOccupancy - globalOcupacaoMaximaAtendivel
+      ),
       "Capacidade Produtiva": 100,
     };
 
@@ -473,6 +492,8 @@ const TabContentInternacao: React.FC<{
         summary: {
           name: "Global",
           "Taxa de Ocupação": 0,
+          "Taxa de Ocupação Diária": 0, // 🆕 Taxa média do dia
+          "Ocupação Máxima Atendível": 0, // 🆕
           Ociosidade: 0,
           Superlotação: 0,
           "Capacidade Produtiva": 100,
@@ -480,17 +501,37 @@ const TabContentInternacao: React.FC<{
       };
     }
 
+    // 🔥 TODO: Migrar para usar a nova API /occupation-analysis
+    // Por enquanto mantém o cálculo local até a API estar pronta
     const data = sourceData.map((sector) => {
       const totalBeds = sector.bedCount || 0;
       const evaluatedBeds = sector.bedStatus?.evaluated || 0;
       const occupancyRate =
         totalBeds > 0 ? (evaluatedBeds / totalBeds) * 100 : 0;
-      const ociosidade = Math.max(0, 85 - occupancyRate);
-      const superlotacao = Math.max(0, occupancyRate - 100);
+
+      // TODO: Integrar com API de ocupação para obter dados reais
+      // Por ora, usa valores simulados (será substituído pela API)
+      const ocupacaoMaximaAtendivel = 85;
+      const taxaOcupacaoDia = occupancyRate + (Math.random() * 4 - 2); // Simula variação ±2%
+
+      const ociosidade = Math.max(0, ocupacaoMaximaAtendivel - occupancyRate);
+      const superlotacao = Math.max(0, occupancyRate - ocupacaoMaximaAtendivel);
+
+      console.log(`📊 [OccupationData] ${sector.name}:`, {
+        totalBeds,
+        evaluatedBeds,
+        occupancyRate: occupancyRate.toFixed(2) + "%",
+        taxaOcupacaoDia: taxaOcupacaoDia.toFixed(2) + "%", // 🆕
+        ocupacaoMaximaAtendivel: ocupacaoMaximaAtendivel.toFixed(2) + "%",
+        ociosidade: ociosidade.toFixed(2) + "%",
+        superlotacao: superlotacao.toFixed(2) + "%",
+      });
 
       return {
         name: sector.name,
         "Taxa de Ocupação": occupancyRate,
+        "Taxa de Ocupação Diária": taxaOcupacaoDia, // 🆕
+        "Ocupação Máxima Atendível": ocupacaoMaximaAtendivel, // 🆕
         Ociosidade: ociosidade,
         Superlotação: superlotacao,
         "Capacidade Produtiva": 100,
@@ -505,11 +546,37 @@ const TabContentInternacao: React.FC<{
     const globalOccupancy =
       totalBeds > 0 ? (totalEvaluated / totalBeds) * 100 : 0;
 
+    // TODO: Integrar com API de ocupação para obter dados reais
+    const globalOcupacaoMaximaAtendivel = 85;
+    const globalTaxaOcupacaoDia = globalOccupancy + (Math.random() * 4 - 2); // Simula variação ±2%
+
+    console.log("📊 [OccupationData] SUMMARY (Global):", {
+      totalBeds,
+      totalEvaluated,
+      globalOccupancy: globalOccupancy.toFixed(2) + "%",
+      globalTaxaOcupacaoDia: globalTaxaOcupacaoDia.toFixed(2) + "%", // 🆕
+      globalOcupacaoMaximaAtendivel:
+        globalOcupacaoMaximaAtendivel.toFixed(2) + "%",
+      ociosidade:
+        Math.max(0, globalOcupacaoMaximaAtendivel - globalOccupancy).toFixed(
+          2
+        ) + "%",
+      superlotacao:
+        Math.max(0, globalOccupancy - globalOcupacaoMaximaAtendivel).toFixed(
+          2
+        ) + "%",
+    });
+
     const summary = {
       name: "Global",
       "Taxa de Ocupação": globalOccupancy,
-      Ociosidade: Math.max(0, 85 - globalOccupancy),
-      Superlotação: Math.max(0, globalOccupancy - 100),
+      "Taxa de Ocupação Diária": globalTaxaOcupacaoDia, // 🆕
+      "Ocupação Máxima Atendível": globalOcupacaoMaximaAtendivel, // 🆕
+      Ociosidade: Math.max(0, globalOcupacaoMaximaAtendivel - globalOccupancy),
+      Superlotação: Math.max(
+        0,
+        globalOccupancy - globalOcupacaoMaximaAtendivel
+      ),
       "Capacidade Produtiva": 100,
     };
 
@@ -1030,7 +1097,9 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
     } else {
       // Senão, busca dados normalmente por hospitalId
       console.log("🏥 Buscando dados por hospitalId", hospitalId);
+
       dashboardData = await getAllHospitalSectors(hospitalId);
+      console.log("✅ Dados buscados da API:", dashboardData);
     }
 
     const tipo = activeTab === "internacao" ? "Internacao" : "NaoInternacao";
@@ -1068,50 +1137,53 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
   return (
     <>
       {chartDataAtual ? (
-        <Card className="transition-shadow hover:shadow-lg">
-          <CardHeader>
-            <CardTitle>{props.title}</CardTitle>
-            <CardDescription>Análise de desempenho</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* 3. Adicione `onValueChange` para atualizar o estado da aba */}
-            <Tabs
-              defaultValue="global"
-              className="w-full"
-              onValueChange={(value) => setActiveTab(value)}
-            >
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="global">Global</TabsTrigger>
-                <TabsTrigger value="internacao">
-                  Unid. de Internação
-                </TabsTrigger>
-                <TabsTrigger value="nao-internacao">
-                  Unidades de Não Internação
-                </TabsTrigger>
-              </TabsList>
+        <>
+          {/* Card Principal do Dashboard */}
+          <Card className="transition-shadow hover:shadow-lg">
+            <CardHeader>
+              <CardTitle>{props.title}</CardTitle>
+              <CardDescription>Análise de desempenho</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* 3. Adicione `onValueChange` para atualizar o estado da aba */}
+              <Tabs
+                defaultValue="global"
+                className="w-full"
+                onValueChange={(value) => setActiveTab(value)}
+              >
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="global">Global</TabsTrigger>
+                  <TabsTrigger value="internacao">
+                    Unid. de Internação
+                  </TabsTrigger>
+                  <TabsTrigger value="nao-internacao">
+                    Unidades de Não Internação
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* O conteúdo das abas permanece o mesmo */}
-              <TabsContent value="global" className="mt-4">
-                <GlobalTabContent
-                  sourceData={chartDataAtual}
-                  radarData={radarData}
-                />
-              </TabsContent>
-              <TabsContent value="internacao" className="mt-4">
-                <TabContentInternacao
-                  sourceData={chartDataAtual?.internation}
-                  radarData={radarData}
-                />
-              </TabsContent>
-              <TabsContent value="nao-internacao" className="mt-4">
-                <TabContentNoInternacao
-                  sourceData={chartDataAtual?.assistance}
-                  radarData={radarData}
-                />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                {/* O conteúdo das abas permanece o mesmo */}
+                <TabsContent value="global" className="mt-4">
+                  <GlobalTabContent
+                    sourceData={chartDataAtual}
+                    radarData={radarData}
+                  />
+                </TabsContent>
+                <TabsContent value="internacao" className="mt-4">
+                  <TabContentInternacao
+                    sourceData={chartDataAtual?.internation}
+                    radarData={radarData}
+                  />
+                </TabsContent>
+                <TabsContent value="nao-internacao" className="mt-4">
+                  <TabContentNoInternacao
+                    sourceData={chartDataAtual?.assistance}
+                    radarData={radarData}
+                  />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </>
       ) : (
         <Card>
           <CardContent className="pt-6">

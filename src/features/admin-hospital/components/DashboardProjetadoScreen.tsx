@@ -23,11 +23,13 @@ import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import BargraphicChart from "./graphicsComponents/BarChartComp";
 import { COLORS, generateMultiColorScale } from "@/lib/generateMultiColorScale";
 import { formatAmountBRL } from "@/lib/utils";
-import { parseCost as parseCostUtil } from "@/lib/dataUtils";
 import {
-  getAllHospitalSectors,
-  HospitalSector,
-} from "@/mocks/functionSectores";
+  parseCost as parseCostUtil,
+  isProjectedBySitio,
+  flattenProjectedBySitio,
+  computeProjectedCostFromSitios,
+} from "@/lib/dataUtils";
+import { getHospitalProjectedSectors } from "@/lib/api";
 import { InfoCard } from "./DashboardAtualScreen";
 
 // --- ESTRUTURA DE DADOS ---
@@ -52,10 +54,38 @@ interface ChartData {
 
 // ✅ Helper para pegar valores projetados (compatível com dados antigos e novos)
 const getProjectedCost = (sector: any): number => {
-  const value =
-    sector.projectedCostAmount !== undefined
-      ? parseCostUtil(sector.projectedCostAmount)
-      : parseCostUtil(sector.costAmount);
+  // Prefer explicit projectedCostAmount from backend when available
+  if (
+    sector &&
+    sector.projectedCostAmount !== undefined &&
+    sector.projectedCostAmount !== null
+  ) {
+    const value = parseCostUtil(sector.projectedCostAmount);
+    console.log(
+      `💰 getProjectedCost (projectedCostAmount) for ${sector.name}:`,
+      value
+    );
+    return value;
+  }
+
+  // If projectedCostAmount not provided, but projectedStaff comes per-sitio with custoPorFuncionario, compute cost from sitios
+  if (
+    sector &&
+    sector.projectedStaff &&
+    isProjectedBySitio(sector.projectedStaff)
+  ) {
+    const fromSitios = computeProjectedCostFromSitios(sector);
+    if (fromSitios > 0) {
+      console.log(
+        `💰 getProjectedCost (from sitios) for ${sector.name}:`,
+        fromSitios
+      );
+      return fromSitios;
+    }
+    // otherwise fallthrough to costAmount
+  }
+
+  const value = parseCostUtil(sector.costAmount);
 
   console.log(`💰 getProjectedCost for ${sector.name}:`, {
     projectedCostAmount: sector.projectedCostAmount,
@@ -69,17 +99,29 @@ const getProjectedCost = (sector: any): number => {
 const getProjectedStaff = (
   sector: any
 ): Array<{ role: string; quantity: number }> => {
-  const staff =
-    sector.projectedStaff && Array.isArray(sector.projectedStaff)
-      ? sector.projectedStaff
-      : sector.staff || [];
+  if (sector && sector.projectedStaff) {
+    if (isProjectedBySitio(sector.projectedStaff)) {
+      const flattened = flattenProjectedBySitio(sector.projectedStaff);
+      console.log(
+        `👥 getProjectedStaff (flattened sitios) for ${sector.name}:`,
+        flattened
+      );
+      return flattened.map((f) => ({ role: f.role, quantity: f.quantity }));
+    }
+    if (Array.isArray(sector.projectedStaff)) {
+      console.log(
+        `👥 getProjectedStaff (simple array) for ${sector.name}:`,
+        sector.projectedStaff
+      );
+      return sector.projectedStaff;
+    }
+  }
 
-  console.log(`👥 getProjectedStaff for ${sector.name}:`, {
-    hasProjectedStaff: !!sector.projectedStaff,
-    hasStaff: !!sector.staff,
-    returned: staff,
-  });
-
+  const staff = sector.staff || [];
+  console.log(
+    `👥 getProjectedStaff fallback to staff for ${sector.name}:`,
+    staff
+  );
   return staff;
 };
 
@@ -616,21 +658,44 @@ export const DashboardProjetadoScreen: React.FC<
         console.log("💾 Setando chartData com:", transformedData);
         setChartData(transformedData);
       } else {
-        console.log("🏥 Carregando dados do hospital:", hospitalId);
-        const dashboardData = await getAllHospitalSectors(hospitalId);
-        console.log("📊 Dados do hospital carregados:", dashboardData);
+        console.log("🏥 Carregando dados projetados do hospital:", hospitalId);
+        const resp = await getHospitalProjectedSectors(hospitalId);
+        console.log("� Resposta /projected:", resp);
 
-        const projectedData: ProjectedData = {
-          internation: dashboardData.internation.map((sector) => ({
-            ...sector,
-          })) as ProjectedSector[],
-          assistance: dashboardData.assistance.map((sector) => ({
-            ...sector,
-          })) as ProjectedSector[],
-        };
+        let transformed: ProjectedData = { internation: [], assistance: [] };
 
-        console.log("💾 Setando chartData do hospital:", projectedData);
-        setChartData(projectedData);
+        if (resp.items && Array.isArray(resp.items)) {
+          // items is an array of regions/hospitals/groups that contain internation/assistance
+          const allInternation: ProjectedSector[] = [];
+          const allAssistance: ProjectedSector[] = [];
+
+          resp.items.forEach((item: any, idx: number) => {
+            if (item.internation && Array.isArray(item.internation)) {
+              allInternation.push(...item.internation);
+            }
+            if (item.assistance && Array.isArray(item.assistance)) {
+              allAssistance.push(...item.assistance);
+            }
+          });
+
+          transformed = {
+            internation: allInternation,
+            assistance: allAssistance,
+          };
+        } else if (resp.internation || resp.assistance) {
+          transformed = {
+            internation: resp.internation || [],
+            assistance: resp.assistance || [],
+          };
+        }
+
+        console.log("💾 Setando chartData do hospital (transformado):", {
+          internationCount: transformed.internation.length,
+          assistanceCount: transformed.assistance.length,
+          sampleInternation: transformed.internation[0],
+        });
+
+        setChartData(transformed);
       }
 
       // ✅ Carregar dados do radar
