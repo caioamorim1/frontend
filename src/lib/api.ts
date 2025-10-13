@@ -17,15 +17,106 @@ export type {
   QuestionOption,
 };
 
+// --- New: comparative endpoint for hospital (frontend helper) ---
+export interface HospitalComparativeResponse {
+  hospitalId: string;
+  atual: any; // shape: { id, name, internation: [], assistance: [] }
+  projetado: any; // same shape
+}
+
+export async function getHospitalComparative(
+  hospitalId: string,
+  params?: Record<string, any>
+): Promise<HospitalComparativeResponse> {
+  const res = await api.get(
+    `/hospital-sectors-aggregate/hospitals/${hospitalId}/comparative`,
+    {
+      params,
+    }
+  );
+  console.log(res.data);
+  return res.data as HospitalComparativeResponse;
+}
+
+// --- New: projected sectors aggregated endpoint ---
+export interface HospitalProjectedResponse {
+  aggregatedBy?: string;
+  items?: Array<any>;
+  internation?: any[];
+  assistance?: any[];
+}
+
+export async function getHospitalProjectedSectors(
+  hospitalId: string,
+  params?: Record<string, any>
+): Promise<HospitalProjectedResponse> {
+  const res = await api.get(
+    `/hospital-sectors-aggregate/hospitals/${hospitalId}/projected`,
+    { params }
+  );
+  return res.data as HospitalProjectedResponse;
+}
+
+// --- New: Occupation Analysis endpoint ---
+export interface SectorOccupation {
+  sectorId: string;
+  sectorName: string;
+  sectorType: "internacao" | "nao_internacao";
+  taxaOcupacao: number; // Taxa no momento atual
+  taxaOcupacaoDia: number; // 🆕 Taxa média do dia inteiro
+  ocupacaoMaximaAtendivel: number; // 🆕 Nova métrica baseada no quadro de pessoal
+  ociosidade: number;
+  superlotacao: number;
+  capacidadeProdutiva: number;
+  totalLeitos: number;
+  leitosOcupados: number;
+  leitosVagos: number;
+  leitosInativos: number;
+  leitosAvaliados: number;
+  quadroAtualEnfermeiros: number; // 🆕 Quantidade de enfermeiros
+  quadroAtualTecnicos: number; // 🆕 Quantidade de técnicos
+}
+
+export interface OccupationSummary {
+  sectorName: string;
+  taxaOcupacao: number; // Taxa no momento atual
+  taxaOcupacaoDia: number; // 🆕 Taxa média do dia inteiro
+  ocupacaoMaximaAtendivel: number; // 🆕 Nova métrica baseada no quadro de pessoal
+  ociosidade: number;
+  superlotacao: number;
+  capacidadeProdutiva: number;
+  totalLeitos: number;
+  leitosOcupados: number;
+  leitosVagos: number;
+  leitosInativos: number;
+  leitosAvaliados: number;
+}
+
+export interface OccupationAnalysisResponse {
+  hospitalId: string;
+  hospitalName: string;
+  sectors: SectorOccupation[];
+  summary: OccupationSummary;
+}
+
+export async function getHospitalOccupationAnalysis(
+  hospitalId: string
+): Promise<OccupationAnalysisResponse> {
+  const res = await api.get(
+    `/hospital-sectors/${hospitalId}/occupation-analysis`
+  );
+  return res.data as OccupationAnalysisResponse;
+}
+
 // DTO para criar questionário
 export interface CreateQuestionarioDTO {
   name: string;
   questions: Question[];
 }
 
-//export const API_BASE_URL = "http://127.0.0.1:3110";
+export const API_BASE_URL = "http://127.0.0.1:3110";
 //export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/api"; //api docker
-export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode"; //api local
+//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode"; //api local
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -559,8 +650,29 @@ export const deleteHospital = async (hospitalId: string): Promise<void> => {
 export const getHospitalSectors = async (
   hospitalId: string
 ): Promise<HospitalSectorsData> => {
-  const response = await api.get(`/hospital-sectors/${hospitalId}`);
-  return response.data;
+  console.log("🌐 [API] getHospitalSectors chamado");
+  console.log("🌐 [API] hospitalId:", hospitalId);
+  console.log("🌐 [API] URL completa:", `/hospital-sectors/${hospitalId}`);
+
+  try {
+    const response = await api.get(`/hospital-sectors/${hospitalId}`);
+    console.log(
+      "✅ [API] getHospitalSectors - Resposta recebida:",
+      response.status
+    );
+    console.log("✅ [API] getHospitalSectors - Dados:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ [API] getHospitalSectors - Erro capturado:", error);
+
+    if ((error as any).response) {
+      console.error("❌ [API] Status:", (error as any).response.status);
+      console.error("❌ [API] Data:", (error as any).response.data);
+      console.error("❌ [API] Headers:", (error as any).response.headers);
+    }
+
+    throw error; // Re-lança o erro
+  }
 };
 
 export const getRedesAggregated = async (redeId: string): Promise<any> => {

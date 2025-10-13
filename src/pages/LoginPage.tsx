@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 
 // Imagem
-import medicalTeamImage from "@/assets/medical-team-topview.jpg";
+import medicalTeamImage from "@/assets/ImagemLogin.png";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -42,7 +42,6 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-
     } catch (err) {
       const errorMsg = "Credenciais inválidas. Verifique seu e-mail e senha.";
       setError(errorMsg);
@@ -171,7 +170,7 @@ export default function LoginPage() {
         <img
           src={medicalTeamImage}
           alt="Equipe médica profissional"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover object-center"
         />
 
         <div className="absolute inset-0 bg-gradient-to-t from-gray-50/20 to-transparent" />

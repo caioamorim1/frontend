@@ -5,7 +5,7 @@ import { Globe, Layers } from "lucide-react";
 import { DashboardAtualScreen } from "@/features/admin-hospital/components/DashboardAtualScreen";
 import { DashboardProjetadoScreen } from "@/features/admin-hospital/components/DashboardProjetadoScreen";
 import { DashboardBaselineScreen } from "@/features/admin-hospital/components/DashboardBaselineScreen";
-import { DashboardComparativoScreen } from "@/features/admin-hospital/components/DashboardComparativoScreen";
+import { DashboardComparativoGlobalScreen } from "@/features/admin-hospital/components/DashboardComparativoGlobalScreen";
 import { clearSectorsCache } from "@/mocks/functionSectores";
 
 // Importando as APIs de agregação
@@ -339,38 +339,6 @@ export default function GlobalDashboardPage() {
         </p>
       </div>
 
-      {/* Debug Info - Dados Atuais */}
-      {aggregatedData && (
-        <Card className="bg-blue-50">
-          <CardContent className="pt-6">
-            <p className="text-sm font-mono">
-              <strong>📊 Dados ATUAIS:</strong> Carregados para{" "}
-              {aggregatedData.type}
-              <br />
-              <span className="text-xs text-gray-600">
-                Verifique o console para detalhes completos
-              </span>
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ✅ NOVO: Debug Info - Dados Projetados */}
-      {projectedData && (
-        <Card className="bg-purple-50">
-          <CardContent className="pt-6">
-            <p className="text-sm font-mono">
-              <strong>🔮 Dados PROJETADOS:</strong> Carregados para{" "}
-              {projectedData.type}
-              <br />
-              <span className="text-xs text-gray-600">
-                Usando novas APIs de agregação projetada
-              </span>
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Filtro de Agrupamento */}
       <Card>
         <CardHeader>
@@ -568,7 +536,7 @@ export default function GlobalDashboardPage() {
                   );
 
                   return (
-                    <DashboardComparativoScreen
+                    <DashboardComparativoGlobalScreen
                       title={`Análise Comparativa - ${
                         groupBy === "rede"
                           ? "Por Rede"
@@ -580,7 +548,6 @@ export default function GlobalDashboardPage() {
                       }`}
                       externalAtualData={atualForComparativo}
                       externalProjectedData={projetadoForComparativo}
-                      isGlobalView={true}
                     />
                   );
                 })()}

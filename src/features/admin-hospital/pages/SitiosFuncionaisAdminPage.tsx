@@ -8,7 +8,9 @@ import {
   UnidadeNaoInternacao,
   SitioFuncional,
   CreateSitioFuncionalDTO,
-  getSitiosFuncionaisByUnidadeId, // Importe a nova função
+  getSitiosFuncionaisByUnidadeId,
+  getCargosByHospitalId, // ✅ NOVO: Buscar todos os cargos do hospital
+  Cargo,
 } from "@/lib/api";
 import {
   Trash2,
@@ -45,6 +47,11 @@ export default function SitiosFuncionaisAdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ NOVO: Estado para todos os cargos do hospital
+  const [todosCargosDosHospital, setTodosCargosDosHospital] = useState<Cargo[]>(
+    []
+  );
+
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [formData, setFormData] = useState<Partial<SitioFuncional>>({});
   const [editingSitio, setEditingSitio] = useState<SitioFuncional | null>(null);
@@ -60,33 +67,45 @@ export default function SitiosFuncionaisAdminPage() {
   const [selectedCargoId, setSelectedCargoId] = useState("");
 
   const fetchData = async () => {
-    if (!unidadeId) return;
+    if (!unidadeId || !hospitalId) {
+      console.log("⚠️ [fetchData] Parâmetros faltando:", {
+        unidadeId,
+        hospitalId,
+      });
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      // 1. Busca os dados da unidade (que contém o total de cargos)
+      // 1. Busca os dados da unidade
       const unidadeData = (await getUnidadeById(
         unidadeId
       )) as UnidadeNaoInternacao;
-      // 2. Busca os sítios com os detalhes de alocação (a correção principal)
+
+      // 2. Busca os sítios com os detalhes de alocação
       const sitiosDetalhados = await getSitiosFuncionaisByUnidadeId(unidadeId);
 
-      // 3. Remove duplicatas de cargos_unidade se existirem
-      const cargosUnicos =
-        unidadeData.cargos_unidade?.filter(
-          (cu, index, self) =>
-            index === self.findIndex((c) => c.cargo.id === cu.cargo.id)
-        ) || [];
+      // 3. ✅ NOVO: Busca TODOS os cargos do hospital (não apenas os da unidade)
+      console.log("🔍 [fetchData] Buscando cargos do hospital:", hospitalId);
+      const cargosDosHospital = await getCargosByHospitalId(hospitalId);
 
-      // 4. Combina os dados para ter o objeto 'unidade' completo
+      console.log("✅ [fetchData] Dados carregados:", {
+        unidade: unidadeData.nome,
+        sitios: sitiosDetalhados.length,
+        cargosDosHospitalTotal: cargosDosHospital.length,
+        cargosDosHospital: cargosDosHospital.map((c) => c.nome),
+      });
+
+      // 4. Combina os dados
       const unidadeCompleta = {
         ...unidadeData,
-        cargos_unidade: cargosUnicos,
         sitiosFuncionais: sitiosDetalhados,
       };
 
       setUnidade(unidadeCompleta);
+      setTodosCargosDosHospital(cargosDosHospital);
     } catch (err) {
+      console.error("❌ [fetchData] Erro:", err);
       setError("Falha ao carregar os dados dos sítios funcionais.");
     } finally {
       setLoading(false);
@@ -95,26 +114,39 @@ export default function SitiosFuncionaisAdminPage() {
 
   useEffect(() => {
     fetchData();
-  }, [unidadeId]);
+  }, [unidadeId, hospitalId]);
 
-  // Removido o cálculo de saldosPorCargo pois não controla mais quantidade aqui
-
+  // ✅ NOVO: Agora usa TODOS os cargos do hospital, não apenas os da unidade
   const cargosDisponiveisParaAdicionar = useMemo(() => {
-    if (!unidade?.cargos_unidade) return [];
+    console.log("🔍 [useMemo cargosDisponiveis] Recalculando...", {
+      todosCargosDosHospitalLength: todosCargosDosHospital?.length || 0,
+      cargosParaAlocarLength: cargosParaAlocar.length,
+    });
+
+    if (!todosCargosDosHospital || todosCargosDosHospital.length === 0) {
+      console.log(
+        "⚠️ [useMemo] Array todosCargosDosHospital está vazio ou undefined"
+      );
+      return [];
+    }
+
     const idsCargosJaNoFormulario = new Set(
       cargosParaAlocar.map((c) => c.cargoId)
     );
 
-    // Remove duplicatas baseado no ID do cargo
-    const cargosUnicos = unidade.cargos_unidade.filter(
-      (cu, index, self) =>
-        index === self.findIndex((c) => c.cargo.id === cu.cargo.id)
+    const disponiveisFiltrados = todosCargosDosHospital.filter(
+      (cargo) => !idsCargosJaNoFormulario.has(cargo.id)
     );
 
-    return cargosUnicos.filter(
-      (cu) => !idsCargosJaNoFormulario.has(cu.cargo.id)
-    );
-  }, [unidade?.cargos_unidade, cargosParaAlocar]);
+    console.log("✅ [useMemo] Cargos disponíveis:", {
+      total: todosCargosDosHospital.length,
+      jaNoFormulario: idsCargosJaNoFormulario.size,
+      disponiveis: disponiveisFiltrados.length,
+      nomes: disponiveisFiltrados.map((c) => c.nome),
+    });
+
+    return disponiveisFiltrados;
+  }, [todosCargosDosHospital, cargosParaAlocar]);
 
   const resetForm = () => {
     setFormData({});
@@ -160,6 +192,7 @@ export default function SitiosFuncionaisAdminPage() {
 
   const adicionarCargo = () => {
     setError(null);
+
     if (!selectedCargoId) {
       setError("Selecione um cargo.");
       return;
@@ -171,18 +204,22 @@ export default function SitiosFuncionaisAdminPage() {
       return;
     }
 
-    const cargoInfo = unidade?.cargos_unidade?.find(
-      (cu) => cu.cargo.id === selectedCargoId
+    // ✅ NOVO: Busca no array de todos os cargos do hospital
+    const cargoInfo = todosCargosDosHospital.find(
+      (cargo) => cargo.id === selectedCargoId
     );
+
     if (cargoInfo) {
       setCargosParaAlocar((prev) => [
         ...prev,
         {
           cargoId: selectedCargoId,
-          nome: cargoInfo.cargo.nome,
+          nome: cargoInfo.nome,
         },
       ]);
       setSelectedCargoId("");
+    } else {
+      setError("Cargo não encontrado.");
     }
   };
 
@@ -332,9 +369,9 @@ export default function SitiosFuncionaisAdminPage() {
                       <SelectValue placeholder="Selecione um cargo..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {cargosDisponiveisParaAdicionar.map((cu) => (
-                        <SelectItem key={cu.cargo.id} value={cu.cargo.id}>
-                          {cu.cargo.nome}
+                      {cargosDisponiveisParaAdicionar.map((cargo) => (
+                        <SelectItem key={cargo.id} value={cargo.id}>
+                          {cargo.nome}
                         </SelectItem>
                       ))}
                     </SelectContent>
