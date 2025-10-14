@@ -89,9 +89,8 @@ export default function HospitalAdminSidebar() {
   return (
     <aside className="w-72 bg-primary text-primary-foreground flex flex-col flex-shrink-0">
       <div className="h-16 flex items-center border-b border-white/20 px-4 gap-x-3">
-        {/* --- BOTÃO DE VOLTAR ADICIONADO --- */}
         <button
-          onClick={() => navigate("/admin/hospitais")} // Ação de voltar para a página anterior
+          onClick={() => navigate("/admin/hospitais")}
           className="p-2 rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
           aria-label="Voltar"
         >
@@ -104,6 +103,8 @@ export default function HospitalAdminSidebar() {
           {hospital?.nome || "A carregar..."}
         </h1>
       </div>
+
+      {/* navegação principal */}
       <nav className="flex-1 px-4 py-6 overflow-y-auto">
         <ul>
           {navItems.map((item) => (
@@ -111,6 +112,16 @@ export default function HospitalAdminSidebar() {
           ))}
         </ul>
       </nav>
+
+      {/* logomarca no rodapé */}
+      <div className="h-20 flex items-center justify-center border-t border-white/20 px-6 py-3 mt-auto">
+        <img
+          src="/logo.png"
+          alt="Dimensiona+"
+          className="h-14 w-auto object-contain opacity-90"
+        />
+      </div>
     </aside>
   );
+
 }
