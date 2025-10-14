@@ -60,6 +60,44 @@ const axisTick = {
   fill: "hsl(var(--muted-foreground))",
 } as const;
 
+// Paleta Monocromática de Azul
+const barConfig = [
+  {
+    key: "Taxa de Ocupação",
+    color: "hsl(210, 100%, 45%)",
+    label: "Taxa Atual",
+  }, // Azul médio-escuro (base)
+  {
+    key: "Ocupação Máxima Atendível",
+    color: "hsl(210, 80%, 55%)",
+    label: "Cobertura de Equipe",
+  }, // Azul médio (referência)
+  {
+    key: "Capacidade Produtiva",
+    color: "hsl(210, 70%, 65%)",
+    label: "Capacidade Produtiva",
+  }, // Azul claro (não usado como barra)
+  {
+    key: "Ociosidade",
+    color: "hsl(0, 55%, 65%)",
+    label: "Deficit de Equipe",
+  }, // Vermelho mais leve e suave (deficit)
+  {
+    key: "Superlotação",
+    color: "hsl(210, 50%, 35%)",
+    label: "Excedente",
+  }, // Azul mais escuro (alerta)
+];
+
+// Mapeamento de chaves técnicas para labels amigáveis
+const labelMap: Record<string, string> = {
+  "Taxa de Ocupação": "Taxa Atual",
+  "Ocupação Máxima Atendível": "Cobertura de Equipe",
+  "Capacidade Produtiva": "Capacidade Produtiva",
+  "Ociosidade": "Deficit de Equipe",
+  "Superlotação": "Excedente",
+};
+
 // --- COMPONENTES AUXILIARES ---
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -87,7 +125,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                   className="w-3 h-3 rounded-full mr-2"
                   style={{ backgroundColor: entry.color }}
                 ></span>
-                {entry.dataKey}:
+                {labelMap[entry.dataKey] || entry.dataKey}:
               </span>
               <span className="font-semibold ml-4">
                 {typeof entry.value === "number"
@@ -102,35 +140,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   }
   return null;
 };
-
-// Paleta Monocromática de Azul
-const barConfig = [
-  {
-    key: "Taxa de Ocupação",
-    color: "hsl(210, 100%, 45%)",
-    label: "Taxa Atual",
-  }, // Azul médio-escuro (base)
-  {
-    key: "Ocupação Máxima Atendível",
-    color: "hsl(210, 80%, 55%)",
-    label: "Cobertura de Equipe",
-  }, // Azul médio (referência)
-  {
-    key: "Capacidade Produtiva",
-    color: "hsl(210, 70%, 65%)",
-    label: "Capacidade Produtiva",
-  }, // Azul claro (não usado como barra)
-  {
-    key: "Ociosidade",
-    color: "hsl(210, 60%, 75%)",
-    label: "Deficit de Equipe",
-  }, // Azul mais claro (complemento)
-  {
-    key: "Superlotação",
-    color: "hsl(210, 50%, 35%)",
-    label: "Excedente",
-  }, // Azul mais escuro (alerta)
-];
 
 // --- COMPONENTE PRINCIPAL ---
 export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({

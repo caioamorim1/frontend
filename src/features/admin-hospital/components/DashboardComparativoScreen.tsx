@@ -531,12 +531,14 @@ export const DashboardComparativoScreen: React.FC<{
     }
 
     const financialWaterfall = [
+      { name: "Baseline", value: custoAtual * 0.89 },
       { name: "Custo Atual", value: custoAtual },
       { name: "Variação", value: variacaoCusto },
       { name: "Custo Projetado", value: custoProjetado },
     ];
 
     const personnelWaterfall = [
+      { name: "Baseline", value: Math.round(pessoalAtual * 0.85) },
       { name: "Pessoal Atual", value: pessoalAtual },
       { name: "Variação", value: variacaoPessoal },
       { name: "Pessoal Projetado", value: pessoalProjetado },

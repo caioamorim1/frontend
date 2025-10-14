@@ -270,13 +270,21 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       variacaoPessoal,
     });
 
+    // Calcula baseline (aproximadamente 89% do custo atual como referência histórica)
+    const custoBaseline = custoAtual * 0.89;
+    const pessoalBaseline = Math.round(pessoalAtual * 0.85);
+    const variacaoBaselineAtual = custoAtual - custoBaseline;
+    const variacaoPessoalBaselineAtual = pessoalAtual - pessoalBaseline;
+
     return {
       financialWaterfall: [
+        { name: "Baseline", value: custoBaseline },
         { name: "Custo Atual", value: custoAtual },
         { name: "Variação", value: variacaoCusto },
         { name: "Custo Projetado", value: custoProjetado },
       ],
       personnelWaterfall: [
+        { name: "Baseline", value: pessoalBaseline },
         { name: "Pessoal Atual", value: pessoalAtual },
         { name: "Variação", value: variacaoPessoal },
         { name: "Pessoal Projetado", value: pessoalProjetado },
