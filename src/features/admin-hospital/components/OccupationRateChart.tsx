@@ -79,9 +79,9 @@ const barConfig = [
   }, // Azul claro (não usado como barra)
   {
     key: "Ociosidade",
-    color: "hsl(210, 90%, 35%)",
+    color: "hsl(142, 71%, 45%)",
     label: "Excedente de Capacidade",
-  }, // Azul escuro (capacidade ociosa/excedente) - destaque
+  }, // Verde (capacidade ociosa/excedente)
   {
     key: "Superlotação",
     color: "hsl(0, 55%, 65%)",

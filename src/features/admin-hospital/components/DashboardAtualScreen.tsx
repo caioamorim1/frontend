@@ -307,15 +307,9 @@ const GlobalTabContent: React.FC<{
       const ociosidade = Math.max(0, ocupacaoMaximaAtendivel - occupancyRate);
       const superlotacao = Math.max(0, occupancyRate - ocupacaoMaximaAtendivel);
 
-      // Para o gráfico empilhado, a Taxa de Ocupação deve ser limitada à máxima
-      const taxaOcupacaoParaGrafico = Math.min(
-        occupancyRate,
-        ocupacaoMaximaAtendivel
-      );
-
       return {
         name: sector.name,
-        "Taxa de Ocupação": taxaOcupacaoParaGrafico, // Limitada à máxima para empilhar corretamente
+        "Taxa de Ocupação": occupancyRate, // Valor real completo (sem limitação)
         "Taxa de Ocupação Real": occupancyRate, // Valor real completo
         "Taxa de Ocupação Diária": taxaOcupacaoDia, // 🆕
         "Ocupação Máxima Atendível": ocupacaoMaximaAtendivel, // 🆕
@@ -348,14 +342,10 @@ const GlobalTabContent: React.FC<{
       0,
       globalOccupancy - globalOcupacaoMaximaAtendivel
     );
-    const globalTaxaOcupacaoParaGrafico = Math.min(
-      globalOccupancy,
-      globalOcupacaoMaximaAtendivel
-    );
 
     const summary = {
       name: "Global",
-      "Taxa de Ocupação": globalTaxaOcupacaoParaGrafico, // Limitada à máxima
+      "Taxa de Ocupação": globalOccupancy, // Valor real completo (sem limitação)
       "Taxa de Ocupação Real": globalOccupancy, // Valor real completo
       "Taxa de Ocupação Diária": globalTaxaOcupacaoDia, // 🆕
       "Ocupação Máxima Atendível": globalOcupacaoMaximaAtendivel, // 🆕
@@ -546,12 +536,6 @@ const TabContentInternacao: React.FC<{
       const ociosidade = Math.max(0, ocupacaoMaximaAtendivel - occupancyRate);
       const superlotacao = Math.max(0, occupancyRate - ocupacaoMaximaAtendivel);
 
-      // Para o gráfico empilhado, a Taxa de Ocupação deve ser limitada à máxima
-      const taxaOcupacaoParaGrafico = Math.min(
-        occupancyRate,
-        ocupacaoMaximaAtendivel
-      );
-
       console.log(`📊 [OccupationData] ${sector.name}:`, {
         totalBeds,
         evaluatedBeds,
@@ -564,7 +548,7 @@ const TabContentInternacao: React.FC<{
 
       return {
         name: sector.name,
-        "Taxa de Ocupação": taxaOcupacaoParaGrafico, // Limitada à máxima para empilhar corretamente
+        "Taxa de Ocupação": occupancyRate, // Valor real completo (sem limitação)
         "Taxa de Ocupação Real": occupancyRate, // Valor real completo
         "Taxa de Ocupação Diária": taxaOcupacaoDia, // 🆕
         "Ocupação Máxima Atendível": ocupacaoMaximaAtendivel, // 🆕
@@ -611,14 +595,10 @@ const TabContentInternacao: React.FC<{
       0,
       globalOccupancy - globalOcupacaoMaximaAtendivel
     );
-    const globalTaxaOcupacaoParaGrafico = Math.min(
-      globalOccupancy,
-      globalOcupacaoMaximaAtendivel
-    );
 
     const summary = {
       name: "Global",
-      "Taxa de Ocupação": globalTaxaOcupacaoParaGrafico, // Limitada à máxima
+      "Taxa de Ocupação": globalOccupancy, // Valor real completo (sem limitação)
       "Taxa de Ocupação Real": globalOccupancy, // Valor real completo
       "Taxa de Ocupação Diária": globalTaxaOcupacaoDia, // 🆕
       "Ocupação Máxima Atendível": globalOcupacaoMaximaAtendivel, // 🆕
