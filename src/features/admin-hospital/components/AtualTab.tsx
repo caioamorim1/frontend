@@ -18,7 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MinusCircle, PlusCircle, Save } from "lucide-react";
+import { MinusCircle, PlusCircle, Save, Building2 } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import _ from "lodash"; // Import lodash for deep comparison
@@ -323,8 +324,41 @@ export default function AtualTab({
     return <Skeleton className="h-64 w-full" />;
   }
 
-  // Render para Unidades de Não-Internação (com Sítios Funcionais)
-  if (isNaoInternacao && sitiosFuncionais.length > 0) {
+  // Render para Unidades de Não-Internação
+  if (isNaoInternacao) {
+    // Caso: não há sítios funcionais cadastrados -> mostrar mensagem instrutiva
+    if (sitiosFuncionais.length === 0) {
+      return (
+        <div className="space-y-6 animate-fade-in-down">
+          <h3 className="font-semibold text-lg text-primary">
+            Gerenciar Quadro de Funcionários por Sítio Funcional
+          </h3>
+
+          <Card className="border-l-4 border-primary">
+            <CardHeader>
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 mt-1">
+                  <div className="rounded-full bg-primary/10 p-2">
+                    <Building2 className="h-5 w-5 text-primary" />
+                  </div>
+                </div>
+                <div>
+                  <CardTitle className="text-base text-foreground">
+                    Ainda não há sítios funcionais
+                  </CardTitle>
+                  <CardDescription className="mt-1 text-sm text-muted-foreground">
+                    Adicione um sítio funcional antes: crie o primeiro sítio funcional
+                    para associar colaboradores a esta unidade.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+        </div>
+      );
+    }
+
+    // Caso: existem sítios, renderiza a tabela normal
     return (
       <div className="space-y-6 animate-fade-in-down">
         <h3 className="font-semibold text-lg text-primary">
@@ -412,17 +446,6 @@ export default function AtualTab({
                   </React.Fragment>
                 );
               })}
-
-              {sitiosFuncionais.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={2}
-                    className="text-center text-muted-foreground h-24"
-                  >
-                    Nenhum sítio funcional cadastrado nesta unidade.
-                  </TableCell>
-                </TableRow>
-              )}
             </TableBody>
           </Table>
         </div>
