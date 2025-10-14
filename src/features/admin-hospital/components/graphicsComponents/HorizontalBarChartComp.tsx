@@ -19,6 +19,9 @@ const CustomTooltip = ({ active, payload }: any) => {
                 <p className="text-muted-foreground">
                     Colaboradores: <span className="font-semibold">{data.value}</span>
                 </p>
+                <p className="text-muted-foreground">
+                    Porcentagem: <span className="font-semibold">{data.percentage?.toFixed(1)}%</span>
+                </p>
             </div>
         );
     }
@@ -46,6 +49,15 @@ export const HorizontalBarChartComp: React.FC<{
         );
     }
 
+    // Calcula o total para porcentagem
+    const total = data.reduce((sum, item) => sum + item.value, 0);
+    
+    // Adiciona porcentagem aos dados
+    const dataWithPercentage = data.map(item => ({
+        ...item,
+        percentage: total > 0 ? (item.value / total) * 100 : 0
+    }));
+
     // Calcula altura dinâmica baseada no número de itens, com mínimo e máximo
     const chartHeight = Math.min(Math.max(250, data.length * 45), 400);
 
@@ -58,7 +70,7 @@ export const HorizontalBarChartComp: React.FC<{
             <CardContent className="pt-2">
                 <ResponsiveContainer width="100%" height={chartHeight}>
                     <BarChart
-                        data={data}
+                        data={dataWithPercentage}
                         layout="vertical"
                         margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
                     >
@@ -73,6 +85,8 @@ export const HorizontalBarChartComp: React.FC<{
                             stroke="hsl(var(--muted-foreground))"
                             fontSize={11}
                             tickLine={false}
+                            tickFormatter={(value) => `${value.toFixed(0)}%`}
+                            domain={[0, 100]}
                         />
                         <YAxis 
                             type="category" 
@@ -85,11 +99,11 @@ export const HorizontalBarChartComp: React.FC<{
                         />
                         <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))' }} />
                         <Bar 
-                            dataKey="value" 
+                            dataKey="percentage" 
                             radius={[0, 6, 6, 0]}
                             maxBarSize={32}
                         >
-                            {data.map((entry, index) => (
+                            {dataWithPercentage.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
                             ))}
                         </Bar>
