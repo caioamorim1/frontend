@@ -863,7 +863,11 @@ const TabContentInternacao: React.FC<{
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <PieChartComp data={chartDataCareLevels} title="Níveis de Cuidado" />
-  <PieChartComp data={chartDataBedStates} title="Estados dos Leitos" totalForPercent={totalBeds} />
+        <PieChartComp
+          data={chartDataBedStates}
+          title="Estados dos Leitos"
+          totalForPercent={totalBeds}
+        />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         <HorizontalBarChartComp
