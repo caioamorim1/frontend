@@ -79,14 +79,14 @@ const barConfig = [
   }, // Azul claro (não usado como barra)
   {
     key: "Ociosidade",
-    color: "hsl(0, 55%, 65%)",
-    label: "Deficit de Equipe",
-  }, // Vermelho mais leve e suave (deficit)
+    color: "hsl(210, 90%, 35%)",
+    label: "Excedente de Capacidade",
+  }, // Azul escuro (capacidade ociosa/excedente) - destaque
   {
     key: "Superlotação",
-    color: "hsl(210, 50%, 35%)",
-    label: "Excedente",
-  }, // Azul mais escuro (alerta)
+    color: "hsl(0, 55%, 65%)",
+    label: "Deficit de Equipe",
+  }, // Vermelho (deficit/sobrecarga)
 ];
 
 // Mapeamento de chaves técnicas para labels amigáveis
@@ -94,8 +94,8 @@ const labelMap: Record<string, string> = {
   "Taxa de Ocupação": "Taxa Atual",
   "Ocupação Máxima Atendível": "Cobertura de Equipe",
   "Capacidade Produtiva": "Capacidade Produtiva",
-  "Ociosidade": "Deficit de Equipe",
-  "Superlotação": "Excedente",
+  "Ociosidade": "Excedente de Capacidade",
+  "Superlotação": "Deficit de Equipe",
 };
 
 // --- COMPONENTES AUXILIARES ---
@@ -349,44 +349,42 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
                 wrapperStyle={{ fontSize: 12, paddingBottom: "20px" }}
               />
 
-              {/* Taxa de Ocupação Atual - Base da pilha */}
+              {/* PRIMEIRA BARRA: Taxa de Ocupação (base) */}
               <Bar
                 dataKey="Taxa de Ocupação"
                 fill={barConfig[0].color}
                 barSize={view === "global" ? 80 : 40}
-                stackId={view === "global" ? undefined : "ocupacao"}
-                radius={view === "global" ? [4, 4, 0, 0] : undefined}
+                stackId="barra1"
                 name={barConfig[0].label}
               />
 
-              {/* Ociosidade - Complemento até a máxima (empilhada em cima) */}
+              {/* PRIMEIRA BARRA: Excedente de capacidade (topo, verde) */}
               <Bar
                 dataKey="Ociosidade"
                 fill={barConfig[3].color}
                 barSize={view === "global" ? 80 : 40}
-                stackId={view === "global" ? undefined : "ocupacao"}
+                stackId="barra1"
                 radius={[4, 4, 0, 0]}
                 name={barConfig[3].label}
               />
 
-              {/* Superlotação - Excedente acima da máxima (empilhada em cima) */}
-              <Bar
-                dataKey="Superlotação"
-                fill={barConfig[4].color}
-                barSize={view === "global" ? 80 : 40}
-                stackId={view === "global" ? undefined : "ocupacao"}
-                radius={[4, 4, 0, 0]}
-                name={barConfig[4].label}
-              />
-
-              {/* Ocupação Máxima Atendível - Barra separada de referência */}
+              {/* SEGUNDA BARRA: Cobertura de Equipe (base) */}
               <Bar
                 dataKey="Ocupação Máxima Atendível"
                 fill={barConfig[1].color}
                 barSize={view === "global" ? 80 : 40}
-                radius={[4, 4, 0, 0]}
+                stackId="barra2"
                 name={barConfig[1].label}
-                opacity={0.6}
+              />
+
+              {/* SEGUNDA BARRA: Deficit de equipe (topo, vermelho) */}
+              <Bar
+                dataKey="Superlotação"
+                fill={barConfig[4].color}
+                barSize={view === "global" ? 80 : 40}
+                stackId="barra2"
+                radius={[4, 4, 0, 0]}
+                name={barConfig[4].label}
               />
             </ComposedChart>
           </ResponsiveContainer>
@@ -429,13 +427,13 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
                 </TableCell>
                 <TableCell
                   className="text-center font-bold text-2xl text-foreground"
-                  title="Percentual de capacidade não utilizada"
+                  title="Percentual de capacidade ociosa (excedente de capacidade disponível)"
                 >
                   {summary["Ociosidade"].toFixed(1)}%
                 </TableCell>
                 <TableCell
                   className="text-center font-bold text-2xl text-foreground"
-                  title="Percentual de sobrecarga acima da capacidade máxima atendível"
+                  title="Percentual de sobrecarga acima da capacidade máxima atendível (deficit de equipe)"
                 >
                   {summary["Superlotação"].toFixed(1)}%
                 </TableCell>

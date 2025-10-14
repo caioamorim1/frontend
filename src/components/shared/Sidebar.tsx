@@ -165,8 +165,12 @@ export default function Sidebar() {
 
   return (
     <aside className="w-72 bg-primary text-primary-foreground flex flex-col flex-shrink-0">
-      <div className="h-16 flex items-center justify-center border-b border-white/20">
-        <h1 className="text-2xl font-bold text-white">Dimensiona+</h1>
+      <div className="h-20 flex items-center justify-center border-b border-white/20 px-6 py-3">
+        <img 
+          src="/logo.png" 
+          alt="Dimensiona+" 
+          className="h-14 w-auto object-contain"
+        />
       </div>
 
       <nav className="flex-1 px-4 py-6 overflow-y-auto">

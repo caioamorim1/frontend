@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 
 // Imagem
-import medicalTeamImage from "@/assets/ImagemLogin.png";
+import medicalTeamImage from "@/assets/medical-team-topview.jpg";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
