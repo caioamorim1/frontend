@@ -642,7 +642,7 @@ export const DashboardComparativoScreen: React.FC<{
           title="VARIAÇÃO MENSAL (%)"
           value={`${Math.abs(variacaoPercentual).toFixed(1)}%`}
           isReduction={variacaoPercentual < 0}
-          icon={<Percent className="h-6 w-6" />}
+          icon={<DollarSign className="h-6 w-6" />}
         />
         <VariationCard
           title="VARIAÇÃO A 12 MESES"
