@@ -19,7 +19,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MinusCircle, PlusCircle, Save, Building2 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import _ from "lodash"; // Import lodash for deep comparison
@@ -175,7 +180,11 @@ export default function AtualTab({
         }
       } catch (error) {
         console.error("❌ Erro ao carregar cargos:", error);
-        showAlert("destructive", "Erro", "Falha ao carregar cargos do hospital.");
+        showAlert(
+          "destructive",
+          "Erro",
+          "Falha ao carregar cargos do hospital."
+        );
         // toast({
         //   title: "Erro",
         //   description: "Falha ao carregar cargos do hospital.",
@@ -347,8 +356,8 @@ export default function AtualTab({
                     Ainda não há sítios funcionais
                   </CardTitle>
                   <CardDescription className="mt-1 text-sm text-muted-foreground">
-                    Adicione um sítio funcional antes: crie o primeiro sítio funcional
-                    para associar colaboradores a esta unidade.
+                    Adicione um sítio funcional antes: crie o primeiro sítio
+                    funcional para associar colaboradores a esta unidade.
                   </CardDescription>
                 </div>
               </div>
