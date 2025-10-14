@@ -33,25 +33,41 @@ const axisTick = {
 const processWaterfallData = (data: WaterfallDataItem[]) => {
   let cumulative = 0;
   return data.map((item, index) => {
+    const isBaseline = item.name.toUpperCase().includes("BASELINE");
+    const isProjetado = item.name.includes("Projetado");
+    const isAtual = item.name.includes("Atual");
     const isStart = index === 0;
     const isEnd = index === data.length - 1;
-    const isTransition = !isStart && !isEnd;
+    const isTotal = item.name.includes("Atual") || item.name.includes("Projetado") || isBaseline;
+    const isTransition = !isTotal;
     let color = "hsl(var(--primary))"; // Cor padrão (azul escuro)
     let range: [number, number];
 
-    if (isStart) {
+    if (isTotal) {
+      // BASELINE, Atual, ou Projetado - barras completas do zero
       range = [0, item.value];
-      cumulative = item.value;
-    } else if (isTransition) {
+      if (!isBaseline) {
+        cumulative = item.value;
+      }
+    } else {
+      // Variação - barra flutuante
       const startValue = cumulative;
       cumulative += item.value;
       range = [startValue, cumulative];
       // Verde para redução (negativo), Vermelho para aumento (positivo)
       color = item.value < 0 ? "#16a34a" : "#dc2626";
-    } else {
-      // isEnd
-      range = [0, item.value];
     }
+    
+    // Cores especiais para baseline, atual e projetado
+    if (isBaseline) {
+      color = "#89A7D6"; // Azul claro para baseline
+      cumulative = item.value;
+    } else if (isAtual) {
+      color = "#0070B9"; // Azul médio para atual
+    } else if (isProjetado) {
+      color = "#003151"; // Azul escuro para projetado
+    }
+    
     return { name: item.name, value: item.value, range: range, color: color };
   });
 };
@@ -60,7 +76,9 @@ const CustomTooltip = ({ active, payload, label, isCurrency }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const isTotal =
-      data.name.includes("Atual") || data.name.includes("Projetado");
+      data.name.includes("Atual") || 
+      data.name.includes("Projetado") || 
+      data.name.toUpperCase().includes("BASELINE");
     const displayValue = isCurrency
       ? data.value.toLocaleString("pt-BR", {
           style: "currency",
