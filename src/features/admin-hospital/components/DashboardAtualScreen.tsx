@@ -728,10 +728,11 @@ const TabContentInternacao: React.FC<{
     { name: "Intensivo", value: totalIntensive, color: COLORS[4] },
   ];
 
+  // Agrupar tudo que não for 'ocupado' como 'Leito Livre'
+  const calculatedFreeBeds = Math.max(0, totalBeds - totalEvaluatedBeds);
   const chartDataBedStates = [
     { name: "Leito Ocupado", value: totalEvaluatedBeds, color: COLORS[1] },
-    { name: "Leito Livre", value: totalVacantBeds, color: COLORS[2] },
-    { name: "Leito em Manutenção", value: totalInactiveBeds, color: COLORS[3] },
+    { name: "Leito Livre", value: calculatedFreeBeds, color: COLORS[2] },
   ];
 
   const chartDataAtual: ChartData[] = detailedData
@@ -862,7 +863,7 @@ const TabContentInternacao: React.FC<{
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <PieChartComp data={chartDataCareLevels} title="Níveis de Cuidado" />
-        <PieChartComp data={chartDataBedStates} title="Estados dos Leitos" />
+  <PieChartComp data={chartDataBedStates} title="Estados dos Leitos" totalForPercent={totalBeds} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         <HorizontalBarChartComp
@@ -1100,10 +1101,7 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
     // Se tem dados externos (visão global), usa eles
     if (props.isGlobalView && props.externalData) {
       console.log("🌍 Usando dados externos (Global View)", props.externalData);
-      // Normalize several possible shapes:
-      // - Array of entities (items) => we expect a single HospitalSector-like object
-      // - Object with .items (array of entities) => concatenate sectors
-      // - Object with internation/assistance directly => use as-is
+
       const ext = props.externalData;
       if (Array.isArray(ext)) {
         // It's an array of entities: concat their sectors

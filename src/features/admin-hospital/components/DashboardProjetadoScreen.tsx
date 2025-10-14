@@ -379,11 +379,7 @@ const TabContentInternacao: React.FC<{
           value={totalStaff}
           icon={<Users size={24} />}
         />
-        <InfoCard
-          title="Total de Leitos"
-          value={totalBeds}
-          icon={<Building size={24} />}
-        />
+        {/* 'Total de Leitos' removido para a aba 'Unid. de Internação' conforme solicitado */}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         <HorizontalBarChartComp

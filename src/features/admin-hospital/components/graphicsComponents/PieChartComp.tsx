@@ -27,7 +27,7 @@ const CustomTooltip = ({ active, payload }: any) => {
     return null;
 };
 
-export const PieChartComp: React.FC<{ data: ChartData[], title?: string, description?: string, labelType?: 'percent' | 'value' }> = ({ data, title, description, labelType = 'percent' }) => {
+export const PieChartComp: React.FC<{ data: ChartData[], title?: string, description?: string, labelType?: 'percent' | 'value', totalForPercent?: number }> = ({ data, title, description, labelType = 'percent', totalForPercent }) => {
     if (!data || data.length === 0) {
         return <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground"><h4 className='font-bold text-lg mb-2'>{title}</h4><p>Sem dados para exibir.</p></div>;
     }
@@ -58,9 +58,19 @@ export const PieChartComp: React.FC<{ data: ChartData[], title?: string, descrip
                                 const y = payload.cy + radius * Math.sin(-payload.midAngle * Math.PI / 180);
 
                                 // Escolhe o texto a ser exibido com base no estado
-                                const textToShow = labelType === 'percent'
-                                    ? `${(payload.percent * 100).toFixed(0)}%`
-                                    : payload.value;
+                                let textToShow: any;
+                                if (labelType === 'percent') {
+                                    if (typeof totalForPercent === 'number' && totalForPercent > 0) {
+                                        // Calcular percentual em relação ao total fornecido (ex: total de leitos)
+                                        const percent = (payload.value / totalForPercent) * 100;
+                                        textToShow = `${percent.toFixed(0)}%`;
+                                    } else {
+                                        // Fallback para o percent calculado pelo recharts
+                                        textToShow = `${(payload.percent * 100).toFixed(0)}%`;
+                                    }
+                                } else {
+                                    textToShow = payload.value;
+                                }
 
                                 return (
                                     <text x={x} y={y} fill="hsl(var(--foreground))" textAnchor={x > payload.cx ? 'start' : 'end'} dominantBaseline="central" fontSize={12}>
