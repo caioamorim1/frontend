@@ -26,8 +26,23 @@ import {
   getStaffArray,
   sumStaff as sumStaffUtil,
 } from "@/lib/dataUtils";
+import { GroupedBarByRole } from "./graphicsComponents/GroupedBarByRole";
 
 type SectorType = "global" | "internacao" | "nao-internacao";
+
+type RoleStats = {
+  role: string;
+  atual: number;
+  projetado: number;
+  variacao: number;
+};
+
+type SectorRoleData = {
+  sectorName: string;
+  custoPorFuncao: RoleStats[];
+  quantidadePorFuncao: RoleStats[];
+};
+
 
 export const DashboardComparativoHospitalScreen: React.FC<{
   title: string;
@@ -185,39 +200,23 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       activeTab === "global"
         ? [...(projetado.internation || []), ...(projetado.assistance || [])]
         : activeTab === "internacao"
-        ? projetado.internation || []
-        : projetado.assistance || [];
+          ? projetado.internation || []
+          : projetado.assistance || [];
 
-    // 🔍 Filtro por NOME ao invés de ID (IDs podem diferir entre atual e projetado)
     const filterBySelected = (arr: any[]) => {
       if (selectedSector === "all") return arr;
 
       const filtered = arr.filter((s) => {
         const match =
           s.name?.trim().toLowerCase() === selectedSector.toLowerCase();
-        console.log(
-          `  [Filter] ${s.name} === ${selectedSector}? ${match ? "✅" : "❌"}`
-        );
         return match;
       });
 
-      console.log(
-        `[filterBySelected] selectedSector="${selectedSector}", found ${filtered.length} matches`
-      );
       return filtered;
     };
 
     const filteredAtual = filterBySelected(baseSectors);
     const filteredProjected = filterBySelected(projectedBase);
-
-    console.log(`🟢 [HospitalScreen] processedData - activeTab: ${activeTab}`, {
-      baseSectorsCount: baseSectors.length,
-      projectedBaseCount: projectedBase.length,
-      filteredAtualCount: filteredAtual.length,
-      filteredProjectedCount: filteredProjected.length,
-      filteredAtualNames: filteredAtual.map((s) => s.name),
-      filteredProjectedNames: filteredProjected.map((s) => s.name),
-    });
 
     const sumCost = (arr: any[], useProjected = false) =>
       arr.reduce((sum, sector) => {
@@ -250,31 +249,70 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     const pessoalProjetado = sumStaff(filteredProjected, true);
     const variacaoPessoal = pessoalProjetado - pessoalAtual;
 
-    // 🟢 Log variation for non-internation units
-    if (activeTab === "nao-internacao") {
-      console.log(`🟢 [HospitalScreen] VARIAÇÃO NÃO INTERNAÇÃO:`, {
-        pessoalAtual,
-        pessoalProjetado,
-        variacaoPessoal,
-        filteredAtualCount: filteredAtual.length,
-        filteredProjectedCount: filteredProjected.length,
-      });
-    }
-
-    console.log(`🟢 [HospitalScreen] Final calculations (${activeTab}):`, {
-      custoAtual,
-      custoProjetado,
-      variacaoCusto,
-      pessoalAtual,
-      pessoalProjetado,
-      variacaoPessoal,
-    });
-
-    // Calcula baseline (aproximadamente 89% do custo atual como referência histórica)
     const custoBaseline = custoAtual * 0.89;
     const pessoalBaseline = Math.round(pessoalAtual * 0.85);
+
     const variacaoBaselineAtual = custoAtual - custoBaseline;
     const variacaoPessoalBaselineAtual = pessoalAtual - pessoalBaseline;
+
+    // 🔽 Novo cálculo por função e setor
+    const setorRoleData = baseSectors.map((sectorAtual) => {
+      const sectorProjetado = projectedBase.find((p) => p.name === sectorAtual.name);
+
+      const atualStaffMap = new Map<string, { quantidade: number; custo: number }>();
+      const projetadoStaffMap = new Map<string, { quantidade: number; custo: number }>();
+
+      // Atual
+      (getStaffArray(sectorAtual) || []).forEach((item: any) => {
+        const prev = atualStaffMap.get(item.role) || { quantidade: 0, custo: 0 };
+        atualStaffMap.set(item.role, {
+          quantidade: prev.quantidade + (item.quantity || 0),
+          custo: prev.custo + (item.costAmount || 0),
+        });
+      });
+
+      // Projetado
+      (sectorProjetado?.projectedStaff || []).forEach((item: any) => {
+        const prev = projetadoStaffMap.get(item.role) || { quantidade: 0, custo: 0 };
+        projetadoStaffMap.set(item.role, {
+          quantidade: prev.quantidade + (item.quantity || 0),
+          custo: prev.custo + (item.costAmount || 0),
+        });
+      });
+
+      const allRoles = new Set([
+        ...Array.from(atualStaffMap.keys()),
+        ...Array.from(projetadoStaffMap.keys()),
+      ]);
+
+      const custoPorFuncao: RoleStats[] = [];
+      const quantidadePorFuncao: RoleStats[] = [];
+
+      allRoles.forEach((role) => {
+        const atual = atualStaffMap.get(role) || { quantidade: 0, custo: 0 };
+        const proj = projetadoStaffMap.get(role) || { quantidade: 0, custo: 0 };
+
+        custoPorFuncao.push({
+          role,
+          atual: atual.custo,
+          projetado: proj.custo,
+          variacao: proj.custo - atual.custo,
+        });
+
+        quantidadePorFuncao.push({
+          role,
+          atual: atual.quantidade,
+          projetado: proj.quantidade,
+          variacao: proj.quantidade - atual.quantidade,
+        });
+      });
+
+      return {
+        sectorName: sectorAtual.name,
+        custoPorFuncao,
+        quantidadePorFuncao,
+      };
+    });
 
     return {
       financialWaterfall: [
@@ -297,8 +335,173 @@ export const DashboardComparativoHospitalScreen: React.FC<{
           baseSectors.map((s: any) => [s.name, { id: s.id, name: s.name }])
         ).values()
       ),
+      setorRoleData, // 🔥 dado adicional para gráficos por função e setor
     };
   }, [hospitalData, hospitalProjectedData, activeTab, selectedSector]);
+
+
+  const aggregatedRoleData = useMemo(() => {
+    if (!processedData?.setorRoleData) return null;
+
+    const setoresParaAgrupar =
+      selectedSector === "all"
+        ? processedData.setorRoleData
+        : processedData.setorRoleData.filter(
+          (s) => s.sectorName === selectedSector
+        );
+
+    // ==== CUSTO ====
+    let totalAtual = 0;
+    let totalProjetado = 0;
+    const variacoesMap = new Map<string, number>();
+
+    setoresParaAgrupar.forEach((sector) => {
+      sector.custoPorFuncao.forEach((func) => {
+        const delta = (func.projetado ?? 0) - (func.atual ?? 0);
+        const prev = variacoesMap.get(func.role) ?? 0;
+        variacoesMap.set(func.role, prev + delta);
+      });
+
+      totalAtual += sector.custoPorFuncao.reduce(
+        (sum, f) => sum + (f.atual ?? 0),
+        0
+      );
+      totalProjetado += sector.custoPorFuncao.reduce(
+        (sum, f) => sum + (f.projetado ?? 0),
+        0
+      );
+    });
+
+    const baseline = totalAtual * 0.89;
+    const variacoesArray = Array.from(variacoesMap.entries()).map(
+      ([role, delta]) => ({
+        role,
+        value: delta,
+      })
+    );
+
+    // Construir o array cumulativo (Baseline, Atual, variações..., Projetado)
+    const custoPorFuncao: { role: string; start: number; end: number; color: string }[] = [];
+    let cumulative = 0;
+
+    // Baseline (opcional visual)
+    custoPorFuncao.push({
+      role: "Baseline",
+      start: 0,
+      end: baseline,
+      color: "#89A7D6",
+    });
+
+    // Atual
+    cumulative = totalAtual;
+    custoPorFuncao.push({
+      role: "Atual",
+      start: 0,
+      end: totalAtual,
+      color: "#0070B9",
+    });
+
+    // Funções
+    variacoesArray.forEach(({ role, value }) => {
+      const start = cumulative;
+      const end = cumulative + value;
+      cumulative = end;
+
+      custoPorFuncao.push({
+        role,
+        start,
+        end,
+        color: value < 0 ? "#16a34a" : "#dc2626", // verde = redução, vermelho = aumento
+      });
+    });
+
+    // Projetado
+    custoPorFuncao.push({
+      role: "Projetado",
+      start: 0,
+      end: cumulative,
+      color: "#003151",
+    });
+
+    // ==== QUANTIDADE ====
+    let totalAtualQtd = 0;
+    let totalProjetadoQtd = 0;
+    const variacoesQtdMap = new Map<string, number>();
+
+    setoresParaAgrupar.forEach((sector) => {
+      sector.quantidadePorFuncao.forEach((func) => {
+        const delta = (func.projetado ?? 0) - (func.atual ?? 0);
+        const prev = variacoesQtdMap.get(func.role) ?? 0;
+        variacoesQtdMap.set(func.role, prev + delta);
+      });
+      totalAtualQtd += sector.quantidadePorFuncao.reduce(
+        (sum, f) => sum + (f.atual ?? 0),
+        0
+      );
+      totalProjetadoQtd += sector.quantidadePorFuncao.reduce(
+        (sum, f) => sum + (f.projetado ?? 0),
+        0
+      );
+    });
+
+    const baselineQtd = Math.round(totalAtualQtd * 0.85);
+    const variacoesQtdArray = Array.from(variacoesQtdMap.entries()).map(
+      ([role, delta]) => ({
+        role,
+        value: delta,
+      })
+    );
+
+    const quantidadePorFuncao: { role: string; start: number; end: number; color: string }[] = [];
+    cumulative = totalAtualQtd;
+
+    // Baseline
+    quantidadePorFuncao.push({
+      role: "Baseline",
+      start: 0,
+      end: baselineQtd,
+      color: "#89A7D6",
+    });
+
+    // Atual
+    quantidadePorFuncao.push({
+      role: "Atual",
+      start: 0,
+      end: totalAtualQtd,
+      color: "#0070B9",
+    });
+
+    // Funções
+    variacoesQtdArray.forEach(({ role, value }) => {
+      const start = cumulative;
+      const end = cumulative + value;
+      cumulative = end;
+
+      quantidadePorFuncao.push({
+        role,
+        start,
+        end,
+        color: value < 0 ? "#16a34a" : "#dc2626",
+      });
+    });
+
+    // Projetado
+    quantidadePorFuncao.push({
+      role: "Projetado",
+      start: 0,
+      end: cumulative,
+      color: "#003151",
+    });
+
+    return {
+      custoPorFuncao,
+      quantidadePorFuncao,
+    };
+  }, [processedData?.setorRoleData, selectedSector]);
+
+
+
+
 
   if (loading) {
     return (
@@ -380,6 +583,27 @@ export const DashboardComparativoHospitalScreen: React.FC<{
           description="Análise de variação de pessoal"
         />
       </div>
+
+
+      {aggregatedRoleData && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
+          <GroupedBarByRole
+            title={`Custo por Função${selectedSector !== "all" ? ` – ${selectedSector}` : ""}`}
+            data={aggregatedRoleData.custoPorFuncao}
+            unit="currency"
+            description="Comparativo de custo por função (com totais e baseline)"
+          />
+
+          <GroupedBarByRole
+            title={`Quantidade por Função${selectedSector !== "all" ? ` – ${selectedSector}` : ""}`}
+            data={aggregatedRoleData.quantidadePorFuncao}
+            unit="people"
+            description="Comparativo de quantidade por função (com totais e baseline)"
+          />
+        </div>
+      )}
+
+
     </div>
   );
 
