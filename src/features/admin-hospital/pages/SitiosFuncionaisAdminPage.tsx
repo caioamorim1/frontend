@@ -205,29 +205,58 @@ export default function SitiosFuncionaisAdminPage() {
     e.preventDefault();
     if (!unidadeId || !formData.nome?.trim()) return;
 
-    const payloadCargos = cargosParaAlocar.map(({ cargoId }) => ({
-      cargoId,
-      quantidade_funcionarios: 0, // Quantidade será definida na tab Atual
-    }));
-
     try {
+      let savedSitio: SitioFuncional | null = null as any;
+
       if (editingSitio) {
+        // Atualiza apenas nome/descrição. Alocações serão geridas na tela de Gerenciar Cargos
         await updateSitioFuncional(editingSitio.id, {
           nome: formData.nome,
           descricao: formData.descricao,
-          cargos: payloadCargos,
+          cargos: [],
         });
       } else {
         const data: CreateSitioFuncionalDTO = {
           unidadeId,
           nome: formData.nome,
           descricao: formData.descricao,
-          cargos: payloadCargos,
+          cargos: [],
         };
-        await createSitioFuncional(unidadeId, data);
+        // Tenta obter o sítio criado retornado pela API
+        try {
+          // Alguns backends retornam o objeto criado
+          // @ts-ignore
+          const created = await createSitioFuncional(unidadeId, data);
+          if (created && created.id) {
+            savedSitio = created as SitioFuncional;
+          }
+        } catch (errCreate) {
+          // Se a chamada falhar ou não retornar o objeto, continuamos para o fallback
+          console.warn(
+            "createSitioFuncional não retornou objeto criado:",
+            errCreate
+          );
+        }
       }
+
+      // Recarrega os dados e abre o gerenciador de cargos para o sítio salvo/atualizado
+      await fetchData();
+
+      // Se ainda não temos o sítio (por exemplo no caso de update ou create sem retorno), procura pelo nome
+      if (!savedSitio) {
+        const match = (unidade as any)?.sitiosFuncionais?.find(
+          (s: any) => s.nome === formData.nome
+        );
+        if (match) savedSitio = match;
+      }
+
+      // Se encontramos, abre o CargoSitioManager para permitir alocar cargos
+      if (savedSitio) {
+        setManagingSitio(savedSitio as SitioFuncional);
+      }
+
+      // Finalmente fecha o formulário local
       resetForm();
-      fetchData();
     } catch (err) {
       setError(
         editingSitio ? "Falha ao atualizar o sítio." : "Falha ao criar o sítio."
@@ -326,65 +355,8 @@ export default function SitiosFuncionaisAdminPage() {
               />
             </div>
 
-            <div className="space-y-3 pt-4 border-t">
-              <h3 className="font-semibold text-primary">Associar Cargos</h3>
-              <p className="text-sm text-muted-foreground">
-                A quantidade de funcionários será definida na aba "Atual"
-              </p>
-              <div className="flex items-end gap-2">
-                <div className="flex-grow">
-                  <label className="text-sm font-medium">Cargo</label>
-                  <Select
-                    onValueChange={setSelectedCargoId}
-                    value={selectedCargoId}
-                    disabled={cargosDisponiveisParaAdicionar.length === 0}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um cargo..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cargosDisponiveisParaAdicionar.map((cargo) => (
-                        <SelectItem key={cargo.id} value={cargo.id}>
-                          {cargo.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  type="button"
-                  onClick={adicionarCargo}
-                  disabled={
-                    !selectedCargoId ||
-                    cargosDisponiveisParaAdicionar.length === 0
-                  }
-                >
-                  <PlusCircle size={16} className="mr-2" /> Adicionar
-                </Button>
-              </div>
-              {cargosParaAlocar.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-600 mt-2">
-                    Cargos associados a este sítio:
-                  </h4>
-                  {cargosParaAlocar.map((cargo) => (
-                    <div
-                      key={cargo.cargoId}
-                      className="flex justify-between items-center p-2 bg-slate-50 rounded-md text-sm"
-                    >
-                      <span>{cargo.nome}</span>
-                      <button
-                        type="button"
-                        onClick={() => removerCargo(cargo.cargoId)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Observação: a alocação de cargos foi movida para a tela de "Gerenciar Cargos".
+                Após salvar o sítio, o gerenciador de cargos será aberto automaticamente. */}
 
             <div className="flex justify-end gap-2 pt-4 border-t">
               <Button type="button" variant="outline" onClick={handleCancel}>

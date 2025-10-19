@@ -20,6 +20,7 @@ import { getListQualitativesCategories, getQuestionarios } from "@/lib/api";
 import { useAlert } from "@/contexts/AlertContext";
 import { useModal } from "@/contexts/ModalContext";
 import { calculateQuestionScoreByCategory } from "../calculate";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface QuestionInputRendererProps {
   question: Question;
@@ -555,6 +556,7 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
 }) => {
   const { showAlert } = useAlert();
   const { showModal } = useModal();
+  const { user } = useAuth();
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
   const [categories, setCategories] = useState<QualitativeCategory[]>([]);
   const [selectedQuestionnaire, setSelectedQuestionnaire] =
@@ -566,8 +568,6 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
     questionnaire: "",
   });
   const [answers, setAnswers] = useState<Answer[]>([]);
-  `
-  `;
 
   const showModalAviso = (title: string, message: string) => {
     showModal({
@@ -704,14 +704,10 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
   };
 
   const handleNext = () => {
-    if (
-      !formData.title.trim() ||
-      !formData.evaluator.trim() ||
-      !selectedQuestionnaire
-    ) {
+    if (!formData.title.trim() || !selectedQuestionnaire) {
       showModalAviso(
         "Informações incompletas",
-        "Por favor, preencha todas as informações básicas e selecione um questionário."
+        "Por favor, preencha o título e selecione um questionário."
       );
       return;
     }
@@ -757,7 +753,7 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
 
     const evaluationData: EvaluationDTO = {
       title: formData.title,
-      evaluator: formData.evaluator,
+      evaluator: user?.id || "",
       date: new Date().toISOString().split("T")[0],
       status: unansweredQuestions.length > 0 ? "in-progress" : "completed",
       questionnaire: selectedQuestionnaire!.name,
@@ -822,22 +818,18 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
         </div>
 
         <div>
-          <label
-            htmlFor="evaluator"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Avaliador *
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Avaliador
           </label>
           <input
             type="text"
-            id="evaluator"
-            value={formData.evaluator}
-            onChange={(e) =>
-              setFormData({ ...formData, evaluator: e.target.value })
+            value={
+              editingEvaluation ? editingEvaluation.evaluator : user?.nome || ""
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Nome do avaliador"
-            required
+            readOnly
+            disabled
+            className="w-full px-3 py-2 border border-gray-200 bg-gray-100 rounded-lg text-gray-600"
+            placeholder="Avaliador"
           />
         </div>
 

@@ -9,6 +9,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { getHospitalById, Hospital } from "@/lib/api";
 import { /*...,*/ ListCollapse } from "lucide-react";
 
@@ -25,9 +26,10 @@ const NavItem = ({
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${isActive
-          ? "bg-secondary/10 text-secondary font-semibold"
-          : "text-gray-200 hover:bg-white/10"
+        `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${
+          isActive
+            ? "bg-secondary/10 text-secondary font-semibold"
+            : "text-gray-200 hover:bg-white/10"
         }`
       }
     >
@@ -41,6 +43,7 @@ export default function HospitalAdminSidebar() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const [hospital, setHospital] = useState<Hospital | null>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const navItems = [
     {
@@ -88,14 +91,20 @@ export default function HospitalAdminSidebar() {
 
   return (
     <aside className="w-72 bg-primary text-primary-foreground flex flex-col flex-shrink-0">
-      <div className="h-16 flex items-center border-b border-white/20 px-4 gap-x-3">
-        <button
-          onClick={() => navigate("/admin/hospitais")}
-          className="p-2 rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
-          aria-label="Voltar"
-        >
-          <ArrowLeft className="h-5 w-5 text-white" />
-        </button>
+      <div
+        className={`h-16 flex items-center border-b border-white/20 px-4 gap-x-3 ${
+          user?.appRole === "ADMIN" ? "" : "justify-center"
+        }`}
+      >
+        {user?.appRole === "ADMIN" && (
+          <button
+            onClick={() => navigate("/admin/hospitais")}
+            className="p-2 rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
+            aria-label="Voltar"
+          >
+            <ArrowLeft className="h-5 w-5 text-white" />
+          </button>
+        )}
         <h1
           className="text-xl font-bold text-white truncate"
           title={hospital?.nome}
@@ -123,5 +132,4 @@ export default function HospitalAdminSidebar() {
       </div>
     </aside>
   );
-
 }

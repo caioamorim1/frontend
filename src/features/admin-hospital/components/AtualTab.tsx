@@ -8,6 +8,7 @@ import {
   updateUnidadeInternacao,
   updateUnidadeNaoInternacao,
   updateSitioFuncional,
+  deleteCargoDeSitio,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MinusCircle, PlusCircle, Save, Building2 } from "lucide-react";
+import { MinusCircle, PlusCircle, Save, Building2, Trash2 } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -29,6 +30,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import _ from "lodash"; // Import lodash for deep comparison
 import { useAlert } from "@/contexts/AlertContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface AtualTabProps {
   unidade: Unidade;
@@ -103,6 +111,15 @@ export default function AtualTab({
     []
   );
 
+  // UI controls: per-sítio selection and removed pairs (to hide until saving)
+  const [selectedCargoBySitio, setSelectedCargoBySitio] = useState<
+    Record<string, string>
+  >({});
+  const [removedPairs, setRemovedPairs] = useState<Set<string>>(new Set());
+  const [removedCargoSitioIds, setRemovedCargoSitioIds] = useState<Set<string>>(
+    new Set()
+  );
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -111,10 +128,11 @@ export default function AtualTab({
   const hasChanges = useMemo(() => {
     // Para não-internação, compara o estado dos sítios
     if (isNaoInternacao) {
-      return !_.isEqual(
+      const baseChanged = !_.isEqual(
         _.sortBy(cargosSitioState, ["sitioId", "cargoId"]),
         _.sortBy(initialSitioState, ["sitioId", "cargoId"])
       );
+      return baseChanged || removedPairs.size > 0;
     }
     // Para internação, compara o estado da unidade
     return !_.isEqual(
@@ -127,6 +145,7 @@ export default function AtualTab({
     cargosSitioState,
     initialSitioState,
     isNaoInternacao,
+    removedPairs,
   ]);
 
   useEffect(() => {
@@ -157,6 +176,7 @@ export default function AtualTab({
 
           setCargosSitioState(estadoInicialSitios);
           setInitialSitioState(_.cloneDeep(estadoInicialSitios));
+          setRemovedPairs(new Set());
         } else {
           // Para internação, carrega normalmente
           const cargosAtuaisFormatados = (unidade.cargos_unidade || []).map(
@@ -212,7 +232,21 @@ export default function AtualTab({
       if (isNaoInternacao) {
         // Para não-internação, salva por sítio
         // Agrupa mudanças por sítio
-        const mudancasPorSitio = _.groupBy(cargosSitioState, "sitioId");
+        const mudancasPorSitio = _.groupBy(
+          cargosSitioState.filter(
+            (c) => !removedPairs.has(`${c.sitioId}:${c.cargoId}`)
+          ),
+          "sitioId"
+        );
+
+        // Processa remoções dedicadas primeiro
+        for (const cargoSitioId of removedCargoSitioIds) {
+          try {
+            await deleteCargoDeSitio(cargoSitioId);
+          } catch (e) {
+            console.warn("Falha ao excluir cargo do sítio", cargoSitioId, e);
+          }
+        }
 
         // Atualiza cada sítio
         for (const [sitioId, cargos] of Object.entries(mudancasPorSitio)) {
@@ -292,6 +326,58 @@ export default function AtualTab({
 
       return prev;
     });
+    // Se o item tinha sido marcado como removido e o usuário ajusta quantidade, desfaz a remoção
+    setRemovedPairs((old) => {
+      const key = `${sitioId}:${cargoId}`;
+      if (old.has(key)) {
+        const copy = new Set(old);
+        copy.delete(key);
+        return copy;
+      }
+      return old;
+    });
+  };
+
+  const handleSelectCargoForSitio = (sitioId: string, cargoId: string) => {
+    setSelectedCargoBySitio((prev) => ({ ...prev, [sitioId]: cargoId }));
+  };
+
+  const handleAddCargoToSitio = (sitioId: string) => {
+    const cargoId = selectedCargoBySitio[sitioId];
+    if (!cargoId) return;
+    const exists = cargosSitioState.some(
+      (c) => c.sitioId === sitioId && c.cargoId === cargoId
+    );
+    if (!exists) {
+      setCargosSitioState((prev) => [
+        ...prev,
+        { sitioId, cargoSitioId: "", cargoId, quantidade_funcionarios: 1 },
+      ]);
+    }
+    setRemovedPairs((old) => {
+      const key = `${sitioId}:${cargoId}`;
+      if (old.has(key)) {
+        const copy = new Set(old);
+        copy.delete(key);
+        return copy;
+      }
+      return old;
+    });
+    setSelectedCargoBySitio((prev) => ({ ...prev, [sitioId]: "" }));
+  };
+
+  const handleRemoveCargoFromSitio = (sitioId: string, cargoId: string) => {
+    setRemovedPairs((old) => new Set(old).add(`${sitioId}:${cargoId}`));
+    setCargosSitioState((prev) =>
+      prev.filter((c) => !(c.sitioId === sitioId && c.cargoId === cargoId))
+    );
+    // Se existe cargoSitioId original, registra para remoção via API específica
+    const existing = initialSitioState.find(
+      (c) => c.sitioId === sitioId && c.cargoId === cargoId && c.cargoSitioId
+    );
+    if (existing && existing.cargoSitioId) {
+      setRemovedCargoSitioIds((old) => new Set(old).add(existing.cargoSitioId));
+    }
   };
 
   if (loading) {
@@ -354,6 +440,37 @@ export default function AtualTab({
                   {sitiosFuncionais.map((sitio) => {
                     const cargosDoSitio = sitio.cargosSitio || [];
 
+                    // Cargos adicionados localmente (ainda não existem em sitio.cargosSitio)
+                    const addedLocal = cargosSitioState.filter(
+                      (c) =>
+                        c.sitioId === sitio.id &&
+                        !cargosDoSitio.some(
+                          (cs) => cs.cargoUnidade.cargo.id === c.cargoId
+                        )
+                    );
+                    const renderList = [
+                      ...cargosDoSitio.map((cs) => ({
+                        source: "existing" as const,
+                        cargoId: cs.cargoUnidade.cargo.id,
+                        nome:
+                          cargosHospital.find(
+                            (ch) => ch.id === cs.cargoUnidade.cargo.id
+                          )?.nome || cs.cargoUnidade.cargo.nome,
+                        quantidadePadrao: cs.quantidade_funcionarios,
+                      })),
+                      ...addedLocal.map((al) => ({
+                        source: "local" as const,
+                        cargoId: al.cargoId,
+                        nome:
+                          cargosHospital.find((ch) => ch.id === al.cargoId)
+                            ?.nome || "(Novo Cargo)",
+                        quantidadePadrao: al.quantidade_funcionarios,
+                      })),
+                    ].filter(
+                      (entry) =>
+                        !removedPairs.has(`${sitio.id}:${entry.cargoId}`)
+                    );
+
                     return (
                       <React.Fragment key={`sitio-fragment-${sitio.id}`}>
                         {/* Linha de Subtítulo do Sítio */}
@@ -374,25 +491,34 @@ export default function AtualTab({
                         </TableRow>
 
                         {/* Linhas de Cargos do Sítio */}
-                        {cargosDoSitio.map((cargoSitio) => {
-                          const cargo = cargosHospital.find(
-                            (c) => c.id === cargoSitio.cargoUnidade.cargo.id
-                          );
-                          if (!cargo) return null;
-
-                          // Busca a quantidade no estado específico do sítio
+                        {renderList.map((entry) => {
+                          const cargoId = entry.cargoId;
                           const cargoNoEstado = cargosSitioState.find(
                             (c) =>
-                              c.sitioId === sitio.id && c.cargoId === cargo.id
+                              c.sitioId === sitio.id && c.cargoId === cargoId
                           );
                           const quantidade = cargoNoEstado
                             ? cargoNoEstado.quantidade_funcionarios
-                            : cargoSitio.quantidade_funcionarios;
+                            : entry.quantidadePadrao;
 
                           return (
-                            <TableRow key={`cargo-${cargo.id}-${sitio.id}`}>
+                            <TableRow key={`cargo-${cargoId}-${sitio.id}`}>
                               <TableCell className="font-medium pl-8">
-                                {cargo.nome}
+                                <div className="flex items-center justify-between">
+                                  <span>{entry.nome}</span>
+                                  <button
+                                    className="text-red-500 hover:text-red-700 ml-3"
+                                    title="Remover cargo do sítio"
+                                    onClick={() =>
+                                      handleRemoveCargoFromSitio(
+                                        sitio.id,
+                                        cargoId
+                                      )
+                                    }
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <AjusteInput
@@ -400,7 +526,7 @@ export default function AtualTab({
                                   onChange={(novaQtd) =>
                                     handleSitioCargoChange(
                                       sitio.id,
-                                      cargo.id,
+                                      cargoId,
                                       novaQtd
                                     )
                                   }
@@ -411,7 +537,7 @@ export default function AtualTab({
                         })}
 
                         {/* Mensagem se não houver cargos no sítio */}
-                        {cargosDoSitio.length === 0 && (
+                        {renderList.length === 0 && (
                           <TableRow>
                             <TableCell
                               colSpan={2}
@@ -421,6 +547,46 @@ export default function AtualTab({
                             </TableCell>
                           </TableRow>
                         )}
+
+                        {/* Adicionar novo cargo ao sítio */}
+                        <TableRow>
+                          <TableCell className="pl-8">
+                            <Select
+                              value={selectedCargoBySitio[sitio.id] || ""}
+                              onValueChange={(val) =>
+                                handleSelectCargoForSitio(sitio.id, val)
+                              }
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Adicionar cargo ao sítio..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {cargosHospital
+                                  .filter(
+                                    (c) =>
+                                      !renderList.some(
+                                        (e) => e.cargoId === c.id
+                                      )
+                                  )
+                                  .map((cargo) => (
+                                    <SelectItem key={cargo.id} value={cargo.id}>
+                                      {cargo.nome}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              disabled={!selectedCargoBySitio[sitio.id]}
+                              onClick={() => handleAddCargoToSitio(sitio.id)}
+                            >
+                              Adicionar
+                            </Button>
+                          </TableCell>
+                        </TableRow>
                       </React.Fragment>
                     );
                   })}

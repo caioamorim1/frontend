@@ -8,6 +8,7 @@ import {
   CreateScpMetodoDTO,
 } from "@/lib/api";
 import { Trash2, Edit, PlusCircle } from "lucide-react";
+import { useModal } from "@/contexts/ModalContext";
 
 const initialFormState: CreateScpMetodoDTO = {
   key: "",
@@ -18,6 +19,7 @@ const initialFormState: CreateScpMetodoDTO = {
 };
 
 export default function ScpMetodosPage() {
+  const { showModal } = useModal();
   const [metodos, setMetodos] = useState<ScpMetodo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -208,14 +210,22 @@ export default function ScpMetodosPage() {
   };
 
   const handleDelete = async (metodoId: string) => {
-    if (window.confirm("Tem certeza que deseja excluir este método?")) {
-      try {
-        await deleteScpMetodo(metodoId);
-        fetchMetodos();
-      } catch (err) {
-        setError("Falha ao excluir o método.");
-      }
-    }
+    showModal({
+      type: "confirm",
+      title: "Excluir método SCP",
+      message:
+        "Tem certeza que deseja excluir este método? Esta ação não pode ser desfeita.",
+      confirmText: "Excluir",
+      cancelText: "Cancelar",
+      onConfirm: async () => {
+        try {
+          await deleteScpMetodo(metodoId);
+          fetchMetodos();
+        } catch (err) {
+          setError("Falha ao excluir o método.");
+        }
+      },
+    });
   };
 
   // Funções para manipular questões e faixas (simplificado, pode ser expandido)

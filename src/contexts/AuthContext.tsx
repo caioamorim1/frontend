@@ -88,8 +88,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (decoded.mustChangePassword) {
           navigate("/change-password");
         } else if (decoded.role === "ADMIN") {
+          // Admin global vai para a gestão de hospitais
           navigate("/admin/hospitais");
+        } else if (decoded.role === "GESTOR") {
+          // Gestor deve ir para o dashboard do seu hospital
+          const hospId = decoded.hospital?.id;
+          if (hospId) {
+            navigate(`/hospital/${hospId}/dashboard`);
+          } else {
+            // Fallback se não houver hospital no token
+            navigate("/meu-hospital");
+          }
         } else {
+          // Usuário comum
           navigate("/meu-hospital");
         }
       }

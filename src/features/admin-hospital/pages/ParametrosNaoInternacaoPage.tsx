@@ -6,9 +6,11 @@ import {
   CreateParametrosNaoInternacaoDTO,
 } from "@/lib/api";
 import { Settings } from "lucide-react";
+import { useModal } from "@/contexts/ModalContext";
 
 export default function ParametrosNaoInternacaoPage() {
   const { setorId } = useParams<{ setorId: string }>();
+  const { showModal } = useModal();
   const [parametros, setParametros] = useState<
     Partial<CreateParametrosNaoInternacaoDTO>
   >({
@@ -22,7 +24,6 @@ export default function ParametrosNaoInternacaoPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -110,7 +111,6 @@ export default function ParametrosNaoInternacaoPage() {
     if (!setorId) return;
 
     setError(null);
-    setSuccessMessage(null);
 
     try {
       // Converte IST de porcentagem inteira para decimal antes de enviar
@@ -121,8 +121,12 @@ export default function ParametrosNaoInternacaoPage() {
       } as CreateParametrosNaoInternacaoDTO;
 
       await saveParametrosNaoInternacao(setorId, payload);
-      setSuccessMessage("Parâmetros salvos com sucesso!");
-      setTimeout(() => setSuccessMessage(null), 3000);
+      showModal({
+        type: "success",
+        title: "Sucesso",
+        message: "Parâmetros salvos com sucesso!",
+        confirmText: "OK",
+      });
     } catch (err) {
       setError("Falha ao salvar parâmetros.");
     }
@@ -142,11 +146,7 @@ export default function ParametrosNaoInternacaoPage() {
         </div>
       )}
 
-      {successMessage && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-          {successMessage}
-        </div>
-      )}
+      {null}
 
       <form
         onSubmit={handleSubmit}

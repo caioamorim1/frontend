@@ -10,6 +10,7 @@ import {
   UpdateUsuarioDTO,
 } from "@/lib/api";
 import { Trash2, Edit } from "lucide-react";
+import { useModal } from "@/contexts/ModalContext";
 import { CpfInput, EmailInput } from "@/components/shared/MaskedInputs";
 
 // O DTO para criação inclui a senha inicial
@@ -22,6 +23,7 @@ const initialFormState: Omit<CreateUsuarioDTO, "hospitalId" | "senha"> = {
 
 export default function UsuariosPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
+  const { showModal } = useModal();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -110,15 +112,23 @@ export default function UsuariosPage() {
   };
 
   const handleDelete = async (usuarioId: string) => {
-    if (window.confirm("Tem certeza que deseja excluir este usuário?")) {
-      try {
-        await deleteUsuario(usuarioId);
-        fetchUsuarios();
-      } catch (err) {
-        setError("Falha ao excluir o usuário.");
-        console.error(err);
-      }
-    }
+    showModal({
+      type: "confirm",
+      title: "Excluir usuário",
+      message:
+        "Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.",
+      confirmText: "Excluir",
+      cancelText: "Cancelar",
+      onConfirm: async () => {
+        try {
+          await deleteUsuario(usuarioId);
+          fetchUsuarios();
+        } catch (err) {
+          setError("Falha ao excluir o usuário.");
+          console.error(err);
+        }
+      },
+    });
   };
 
   return (

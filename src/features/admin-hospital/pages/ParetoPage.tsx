@@ -15,6 +15,7 @@ import {
   Hospital,
 } from "@/lib/api";
 import { Trash2, Edit, PlusCircle, TrendingUp, BarChart3 } from "lucide-react";
+import { useModal } from "@/contexts/ModalContext";
 import CurrencyInput from "@/components/shared/CurrencyInput";
 import BaselinePareto from "../components/BaselinePareto";
 
@@ -27,6 +28,7 @@ const initialFormState: Omit<Baseline, "id" | "quantidade_funcionarios"> = {
 
 export default function ParetoPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
+  const { showModal } = useModal();
   const [baseline, setBaseline] = useState<Baseline | null>(null);
   const [hospital, setHospital] = useState<Hospital | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,7 +46,7 @@ export default function ParetoPage() {
     try {
       const hospitalData = await getHospitalById(hospitalId);
       const baselineData = await getBaselinesByHospitalId(hospitalId);
-      
+
       const baselineObj = Array.isArray(baselineData)
         ? baselineData[0]
         : baselineData;
@@ -55,7 +57,11 @@ export default function ParetoPage() {
             setores: Array.isArray(baselineObj.setores)
               ? baselineObj.setores.map((s: any) => {
                   if (typeof s === "string") {
-                    try { return JSON.parse(s); } catch { return s; }
+                    try {
+                      return JSON.parse(s);
+                    } catch {
+                      return s;
+                    }
                   }
                   return s;
                 })
@@ -176,16 +182,24 @@ export default function ParetoPage() {
 
   const handleDelete = async () => {
     if (!baseline) return;
-    if (window.confirm("Tem certeza que deseja excluir este pareto? Esta ação não pode ser desfeita.")) {
-      try {
-        await deleteBaseline(baseline.id);
-        setBaseline(null);
-        setFormData(initialFormState);
-        setIsFormVisible(true);
-      } catch (err) {
-        setError("Falha ao excluir o pareto.");
-      }
-    }
+    showModal({
+      type: "confirm",
+      title: "Excluir pareto",
+      message:
+        "Tem certeza que deseja excluir este pareto? Esta ação não pode ser desfeita.",
+      confirmText: "Excluir",
+      cancelText: "Cancelar",
+      onConfirm: async () => {
+        try {
+          await deleteBaseline(baseline.id);
+          setBaseline(null);
+          setFormData(initialFormState);
+          setIsFormVisible(true);
+        } catch (err) {
+          setError("Falha ao excluir o pareto.");
+        }
+      },
+    });
   };
 
   const custoTotalFormatado = useMemo(() => {
@@ -253,7 +267,7 @@ export default function ParetoPage() {
                   className="p-2 border rounded-md w-full mt-1"
                 />
               </div>
-              
+
               {/* ✅ REMOVIDO: Bloco do input "Qtd. Total de Funcionários" */}
 
               <div>
@@ -261,7 +275,7 @@ export default function ParetoPage() {
                   Custo Total (Calculado)
                 </label>
                 <input
-                  title="Custo Total"                
+                  title="Custo Total"
                   value={custoTotalFormatado}
                   readOnly
                   className="p-2 border rounded-md w-full mt-1 bg-slate-100 text-gray-600 font-semibold"

@@ -11,6 +11,7 @@ import {
   Regiao,
 } from "@/lib/api";
 import { Trash2, Edit } from "lucide-react";
+import { useModal } from "@/contexts/ModalContext";
 
 const initialFormState: Partial<CreateHospitalDTO> = {
   nome: "",
@@ -25,6 +26,7 @@ export default function HospitaisPage() {
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { showModal } = useModal();
 
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [formData, setFormData] =
@@ -132,14 +134,22 @@ export default function HospitaisPage() {
   };
 
   const handleDelete = async (hospitalId: string) => {
-    if (window.confirm("Tem certeza que deseja excluir este hospital?")) {
-      try {
-        await deleteHospital(hospitalId);
-        fetchData();
-      } catch (err) {
-        setError("Falha ao excluir o hospital.");
-      }
-    }
+    showModal({
+      type: "confirm",
+      title: "Excluir hospital",
+      message:
+        "Tem certeza que deseja excluir este hospital? Esta ação não pode ser desfeita.",
+      confirmText: "Excluir",
+      cancelText: "Cancelar",
+      onConfirm: async () => {
+        try {
+          await deleteHospital(hospitalId);
+          fetchData();
+        } catch (err) {
+          setError("Falha ao excluir o hospital.");
+        }
+      },
+    });
   };
 
   return (

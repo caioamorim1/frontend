@@ -36,10 +36,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import ConfirmationModal from "../components/ConfirmationModal";
+import { useModal } from "@/contexts/ModalContext";
 
 export default function SetoresPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
+  const { showModal } = useModal();
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [scpMetodos, setScpMetodos] = useState<ScpMetodo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,29 +59,23 @@ export default function SetoresPage() {
   const [descricao, setDescricao] = useState("");
   const [horas_extra_reais, setHorasExtraReais] = useState("");
   const [horas_extra_projetadas, setHorasExtraProjetadas] = useState("");
-  const [isModalOpen, setModalOpen] = useState(false);
 
-  const handleConfirm = async () => {
+  const handleGenerateBaselineConfirm = async () => {
     if (!hospitalId) return;
     setLoading(true);
     setError(null);
     try {
       await createSnapshotHospitalSectors(hospitalId);
-
-      // Opcional: recarregar os dados após criar o snapshot
       await fetchData();
-      return true;
     } catch (error: any) {
       console.error("❌ Erro ao criar snapshot:", error);
       const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
+        error?.response?.data?.message ||
+        error?.message ||
         "Erro ao criar snapshot";
       setError(errorMessage);
-      return false;
     } finally {
       setLoading(false);
-      setModalOpen(false);
     }
   };
 
@@ -212,22 +207,25 @@ export default function SetoresPage() {
   };
 
   const handleDelete = async (unidade: Unidade) => {
-    if (
-      window.confirm(
-        `Tem certeza que deseja excluir o setor "${unidade.nome}"?`
-      )
-    ) {
-      try {
-        if (unidade.tipo === "internacao") {
-          await deleteUnidadeInternacao(unidade.id);
-        } else {
-          await deleteUnidadeNaoInternacao(unidade.id);
+    showModal({
+      type: "confirm",
+      title: "Excluir setor",
+      message: `Tem certeza que deseja excluir o setor "${unidade.nome}"? Esta ação não pode ser desfeita.`,
+      confirmText: "Excluir",
+      cancelText: "Cancelar",
+      onConfirm: async () => {
+        try {
+          if (unidade.tipo === "internacao") {
+            await deleteUnidadeInternacao(unidade.id);
+          } else {
+            await deleteUnidadeNaoInternacao(unidade.id);
+          }
+          fetchData();
+        } catch (err) {
+          setError(`Falha ao excluir o setor.`);
         }
-        fetchData();
-      } catch (err) {
-        setError(`Falha ao excluir o setor.`);
-      }
-    }
+      },
+    });
   };
 
   return (
@@ -243,7 +241,20 @@ export default function SetoresPage() {
           >
             {isFormVisible ? "Cancelar" : "+ Novo Setor"}
           </Button>
-          <Button onClick={() => setModalOpen(true)} variant={"default"}>
+          <Button
+            onClick={() =>
+              showModal({
+                type: "confirm",
+                title: "Confirmar Nova Baseline",
+                message:
+                  "Deseja gerar a baseline com os dados atuais do hospital? Atenção: esta ação irá sobrescrever qualquer versão salva anteriormente.",
+                confirmText: "Gerar",
+                cancelText: "Cancelar",
+                onConfirm: handleGenerateBaselineConfirm,
+              })
+            }
+            variant={"default"}
+          >
             {"Gerar Baseline"}
           </Button>
         </div>
@@ -472,13 +483,7 @@ export default function SetoresPage() {
           )}
         </CardContent>
       </Card>
-      <ConfirmationModal
-        isOpen={isModalOpen}
-        onClose={() => setModalOpen(false)}
-        onConfirm={handleConfirm}
-        title="Confirmar Nova Baseline"
-        description="Deseja gerar a baseline com os dados atuais do hospital? Atenção: esta ação irá sobrescrever qualquer versão salva anteriormente."
-      />
+      {null}
     </div>
   );
 }
