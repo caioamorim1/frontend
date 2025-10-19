@@ -34,7 +34,7 @@ export async function getHospitalComparative(
       params,
     }
   );
-  console.log(res.data);
+
   return res.data as HospitalComparativeResponse;
 }
 
@@ -476,6 +476,8 @@ export interface Coleta {
   created_at: string;
 }
 
+// ====== Ocupação: Nova rota oficial de análise setorial/global ======
+
 // Interfaces para Cargos em Sítios
 export interface CargoSitio {
   id: string;
@@ -617,7 +619,7 @@ export const getAdmins = async (): Promise<Admin[]> => {
   return response.data;
 };
 export const createAdmin = async (data: any): Promise<Admin> => {
-  const response = await api.post("/colaboradores/admin/criar", data);
+  const response = await api.post("/colaboradores/admin", data);
   return response.data;
 };
 export const deleteAdmin = async (id: string): Promise<void> => {
@@ -653,17 +655,9 @@ export const deleteHospital = async (hospitalId: string): Promise<void> => {
 export const getHospitalSectors = async (
   hospitalId: string
 ): Promise<HospitalSectorsData> => {
-  console.log("🌐 [API] getHospitalSectors chamado");
-  console.log("🌐 [API] hospitalId:", hospitalId);
-  console.log("🌐 [API] URL completa:", `/hospital-sectors/${hospitalId}`);
-
   try {
     const response = await api.get(`/hospital-sectors/${hospitalId}`);
-    console.log(
-      "✅ [API] getHospitalSectors - Resposta recebida:",
-      response.status
-    );
-    console.log("✅ [API] getHospitalSectors - Dados:", response.data);
+
     return response.data;
   } catch (error) {
     console.error("❌ [API] getHospitalSectors - Erro capturado:", error);
@@ -708,6 +702,36 @@ export const getSnapshotHospitalSectors = async (
   return response.data;
 };
 
+// Snapshot baseline summary: totals and per-unit baseline (cost and quantity)
+export interface SnapshotUnitSummary {
+  unidadeId: string;
+  nome: string;
+  tipo: "internacao" | "nao-internacao";
+  custo: number;
+  quantidade: number;
+  custoFormatado?: string;
+}
+export interface SnapshotSummaryResponse {
+  hospitalId: string;
+  snapshotId: string;
+  generatedAt: string;
+  totals: {
+    custo: number;
+    quantidade: number;
+    custoFormatado?: string;
+  };
+  units: SnapshotUnitSummary[];
+}
+
+export const getLatestSnapshotSummary = async (
+  hospitalId: string
+): Promise<SnapshotSummaryResponse> => {
+  const response = await api.get(
+    `/hospitals/${hospitalId}/snapshots/latest/summary`
+  );
+  return response.data as SnapshotSummaryResponse;
+};
+
 // Fetch aggregated snapshot by snapshotId and groupBy (rede|grupo|regiao|hospital)
 export const getSnapshotAggregated = async (
   snapshotId: string,
@@ -728,15 +752,11 @@ export const getSnapshotAggregatedAll = async (): Promise<any> => {
 export const createSnapshotHospitalSectors = async (
   hospitalId: string
 ): Promise<Boolean> => {
-  console.log("Criando snapshot para hospital:", hospitalId);
   try {
     const response = await api.post(`/snapshot/hospital/${hospitalId}`, {});
-    console.log("✅ Snapshot criado com sucesso:", response.data);
+
     return true;
   } catch (error: any) {
-    console.error("❌ Erro ao criar snapshot:", error);
-    console.error("Detalhes do erro:", error.response?.data);
-    console.error("Status:", error.response?.status);
     throw error;
   }
 };
@@ -823,7 +843,6 @@ export const getUnidadesNaoInternacao = async (
 export const createUnidadeInternacao = async (
   data: CreateUnidadeInternacaoDTO
 ): Promise<UnidadeInternacao> => {
-  console.log("DATA : ", data);
   const response = await api.post("/unidades", data);
   return response.data;
 };
@@ -847,7 +866,7 @@ export const updateUnidadeNaoInternacao = async (
   data: UpdateUnidadeNaoInternacaoDTO
 ): Promise<UnidadeNaoInternacao> => {
   const response = await api.put(`/unidades-nao-internacao/${setorId}`, data);
-  console.log("Data :", data);
+
   return response.data;
 };
 
@@ -958,6 +977,13 @@ export const updateBaseline = async (
   const response = await api.put(`/baselines/${baselineId}`, data);
   return response.data;
 };
+
+export const updateBaselineSetores = async (
+  baselineId: string,
+  setorNome: string
+) => {
+  await api.patch(`/baselines/${baselineId}/setores/${setorNome}/status`);
+};
 export const deleteBaseline = async (baselineId: string): Promise<void> => {
   await api.delete(`/baselines/${baselineId}`);
 };
@@ -1057,12 +1083,124 @@ export const getAnaliseInternacao = async (
 export const getAnaliseNaoInternacao = async (
   unidadeId: string
 ): Promise<AnaliseNaoInternacaoResponse> => {
-  console.log("Buscando análise de não-internação para unidade:", unidadeId);
   const response = await api.get(
     `/dimensionamento/nao-internacao/${unidadeId}`
   );
   return response.data;
 };
+
+// --- PROJETADO FINAL (Salvar/Buscar) ---
+// DTOs padronizados para salvar o projetado final
+export interface ProjetadoFinalCargoDTO {
+  cargoId: string;
+  projetadoFinal: number; // inteiro >= 0
+}
+
+export interface ProjetadoFinalSitioDTO {
+  sitioId: string;
+  cargos: ProjetadoFinalCargoDTO[];
+}
+
+// Para unidades de NÃO-INTERNAÇÃO
+export interface SaveProjetadoFinalNaoInternacaoDTO {
+  hospitalId: string;
+  unidadeId: string;
+  sitios: ProjetadoFinalSitioDTO[];
+}
+
+// Para unidades de INTERNAÇÃO
+export interface SaveProjetadoFinalInternacaoDTO {
+  hospitalId: string;
+  unidadeId: string;
+  cargos: ProjetadoFinalCargoDTO[];
+}
+
+// Salvar projetado final (não-internação)
+export async function saveProjetadoFinalNaoInternacao(
+  unidadeId: string,
+  data: SaveProjetadoFinalNaoInternacaoDTO
+): Promise<{ ok: boolean }> {
+  try {
+    if (!data?.hospitalId || !data?.unidadeId) {
+      throw new Error(
+        "Payload inválido: hospitalId e unidadeId são obrigatórios"
+      );
+    }
+    // Compat: envia também snake_case esperado por alguns backends
+    const payload: any = {
+      ...data,
+      hospital_id: data.hospitalId,
+      unidade_id: data.unidadeId,
+    };
+
+    const response = await api.post(
+      `/dimensionamento/nao-internacao/${unidadeId}/projetado-final`,
+      payload
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "[API] saveProjetadoFinalNaoInternacao -> erro:",
+      error?.response?.status,
+      error?.response?.data || error?.message
+    );
+    throw error;
+  }
+}
+
+// Buscar projetado final (não-internação)
+export async function getProjetadoFinalNaoInternacao(
+  unidadeId: string
+): Promise<SaveProjetadoFinalNaoInternacaoDTO | null> {
+  const response = await api.get(
+    `/dimensionamento/nao-internacao/${unidadeId}/projetado-final`
+  );
+  return response.data ?? null;
+}
+
+// Salvar projetado final (internação)
+export async function saveProjetadoFinalInternacao(
+  unidadeId: string,
+  data: SaveProjetadoFinalInternacaoDTO
+): Promise<{ ok: boolean }> {
+  try {
+    if (!data?.hospitalId || !data?.unidadeId) {
+      throw new Error(
+        "Payload inválido: hospitalId e unidadeId são obrigatórios"
+      );
+    }
+    const payload: any = {
+      ...data,
+      hospital_id: data.hospitalId,
+      unidade_id: data.unidadeId,
+    };
+
+    const response = await api.post(
+      `/dimensionamento/internacao/${unidadeId}/projetado-final`,
+      payload
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "[API] saveProjetadoFinalInternacao -> erro:",
+      error?.response?.status,
+      error?.response?.data || error?.message
+    );
+    throw error;
+  }
+}
+
+// Buscar projetado final (internação)
+export async function getProjetadoFinalInternacao(
+  unidadeId: string
+): Promise<SaveProjetadoFinalInternacaoDTO | null> {
+  const response = await api.get(
+    `/dimensionamento/internacao/${unidadeId}/projetado-final`
+  );
+  return response.data ?? null;
+}
 
 // ESTATÍSTICAS E RELATÓRIOS
 export const getHospitalStats = async (
@@ -1151,16 +1289,12 @@ export const updateSitioFuncional = async (
   sitioId: string,
   data: Partial<CreateSitioFuncionalDTO>
 ): Promise<SitioFuncional> => {
-  console.log("🌐 API - updateSitioFuncional chamada");
-  console.log("  SitioId:", sitioId);
-  console.log("  Data:", JSON.stringify(data, null, 2));
-
   try {
     const response = await api.put(
       `/sitios/sitios-funcionais/${sitioId}`,
       data
     );
-    console.log("✅ API - Resposta:", response.data);
+
     return response.data;
   } catch (error: any) {
     console.error("❌ API - Erro:", error.response?.data || error.message);
@@ -1199,7 +1333,7 @@ export const getListQualitativesCategories = async (): Promise<
   QualitativeCategory[]
 > => {
   const response = await api.get("/qualitative/categories");
-  console.log("Categorias qualitativas:", response.data);
+
   return response.data;
 };
 
@@ -1315,7 +1449,6 @@ export interface AjustesPayload {
 export const getAjustesQualitativos = async (
   unidadeId: string
 ): Promise<AjustesPayload> => {
-  console.log(`[API SIMULADA] Buscando ajustes para a unidade ${unidadeId}`);
   // No mundo real, você faria: const response = await api.get(`/unidades/${unidadeId}/ajustes`);
 
   // Para teste, vamos retornar um ajuste pré-definido ou um objeto vazio
@@ -1328,10 +1461,6 @@ export const saveAjustesQualitativos = async (
   unidadeId: string,
   data: AjustesPayload
 ): Promise<void> => {
-  console.log(
-    `[API SIMULADA] Salvando ajustes para a unidade ${unidadeId}:`,
-    data
-  );
   // No mundo real, você faria: await api.post(`/unidades/${unidadeId}/ajustes`, { ajustes: data });
 
   // Para teste, vamos salvar no localStorage

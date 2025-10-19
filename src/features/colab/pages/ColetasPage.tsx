@@ -35,12 +35,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Eye, AlertTriangle } from "lucide-react";
 import ColetaDetalhesModal from "@/features/admin-hospital/components/ColetaDetalhesModal";
-import { useToast } from "@/hooks/use-toast";
+import { useAlert } from "@/contexts/AlertContext";
 
 export default function ColetasPage() {
   const { user, loading: userLoading } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { showAlert } = useAlert();
 
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [questionarios, setQuestionarios] = useState<any[]>([]);
@@ -112,11 +112,11 @@ export default function ColetasPage() {
 
   const handleStartColeta = () => {
     if (!selectedUnidade || !selectedQuestionario) {
-      toast({
-        title: "Atenção",
-        description: "Por favor, selecione uma unidade e um questionário.",
-        variant: "destructive",
-      });
+      showAlert(
+        "destructive",
+        "Atenção",
+        "Por favor, selecione uma unidade e um questionário."
+      );
       return;
     }
     const unidadeNome =

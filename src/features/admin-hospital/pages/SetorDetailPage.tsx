@@ -71,21 +71,12 @@ export default function SetorDetailPage() {
   const cargosFormatados = useMemo(() => {
     if (!unidade) return [];
 
-    console.log(
-      "🔍 [SetorDetailPage] Calculando cargosFormatados para aba Funcionários"
-    );
-
     // Para unidades de não-internação, calcular quantidade dos sítios
     if (
       unidade.tipo === "nao-internacao" &&
       (unidade as UnidadeNaoInternacao).sitiosFuncionais
     ) {
       const sitios = (unidade as UnidadeNaoInternacao).sitiosFuncionais || [];
-
-      console.log(
-        "📊 [SetorDetailPage] Calculando de sítios funcionais:",
-        sitios.length
-      );
 
       // Agrupa cargos por ID e soma as quantidades de todos os sítios
       const cargosMap = new Map<string, any>();
@@ -117,25 +108,11 @@ export default function SetorDetailPage() {
 
       const cargosArray = Array.from(cargosMap.values());
 
-      console.log("✅ [SetorDetailPage] Cargos calculados dos sítios:", {
-        totalCargos: cargosArray.length,
-        quantidadeTotal: cargosArray.reduce(
-          (sum, c) => sum + c.quantidade_funcionarios,
-          0
-        ),
-        detalhes: cargosArray.map((c) => ({
-          nome: c.cargo.nome,
-          quantidade: c.quantidade_funcionarios,
-        })),
-      });
-
       return cargosArray;
     }
 
     // Para unidades de internação, usar cargos_unidade (lógica antiga)
     if (!unidade.cargos_unidade) return [];
-
-    console.log("📊 [SetorDetailPage] Usando cargos_unidade (internação)");
 
     // @ts-ignore
     return unidade.cargos_unidade.map((cu) => ({

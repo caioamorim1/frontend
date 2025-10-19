@@ -13,6 +13,7 @@ import {
   Hospital,
 } from "@/lib/api";
 import { Trash2, Edit, PlusCircle, TrendingUp, BarChart3 } from "lucide-react";
+import { useModal } from "@/contexts/ModalContext";
 import CurrencyInput from "@/components/shared/CurrencyInput"; // Importando o novo componente
 import BaselinePareto from "../components/BaselinePareto"; // Importando o gráfico
 
@@ -25,6 +26,7 @@ const initialFormState: Omit<Baseline, "id"> = {
 
 export default function BaselinePage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
+  const { showModal } = useModal();
   const [baseline, setBaseline] = useState<Baseline | null>(null);
   const [hospital, setHospital] = useState<Hospital | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,8 +44,6 @@ export default function BaselinePage() {
     try {
       const hospitalData = await getHospitalById(hospitalId);
       const baselineData = await getBaselinesByHospitalId(hospitalId);
-      console.log("Dados do hospital:", hospitalData);
-      console.log("Dados do baseline:", baselineData);
 
       const baselineObj = Array.isArray(baselineData)
         ? baselineData[0]
@@ -67,7 +67,7 @@ export default function BaselinePage() {
               : baselineObj.setores ?? [],
           }
         : null;
-      console.log("Baseline parsed setores:", parsedBaseline?.setores);
+
       setHospital(
         parsedBaseline
           ? { ...hospitalData, baseline: parsedBaseline }
@@ -126,9 +126,8 @@ export default function BaselinePage() {
     field: keyof SetorBaseline,
     value: string | boolean
   ) => {
-     if (field === "custo") {
-    console.log("Valor recebido do CurrencyInput:", value);
-  }
+    if (field === "custo") {
+    }
     const novosSetores = [...(formData.setores || [])];
     const setorAtual = novosSetores[index];
     novosSetores[index] = {
@@ -192,20 +191,24 @@ export default function BaselinePage() {
 
   const handleDelete = async () => {
     if (!baseline) return;
-    if (
-      window.confirm(
-        "Tem certeza que deseja excluir este baseline? Esta ação não pode ser desfeita."
-      )
-    ) {
-      try {
-        await deleteBaseline(baseline.id);
-        setBaseline(null);
-        setFormData(initialFormState);
-        setIsFormVisible(true);
-      } catch (err) {
-        setError("Falha ao excluir o baseline.");
-      }
-    }
+    showModal({
+      type: "confirm",
+      title: "Excluir baseline",
+      message:
+        "Tem certeza que deseja excluir este baseline? Esta ação não pode ser desfeita.",
+      confirmText: "Excluir",
+      cancelText: "Cancelar",
+      onConfirm: async () => {
+        try {
+          await deleteBaseline(baseline.id);
+          setBaseline(null);
+          setFormData(initialFormState);
+          setIsFormVisible(true);
+        } catch (err) {
+          setError("Falha ao excluir o baseline.");
+        }
+      },
+    });
   };
 
   const custoTotalFormatado = useMemo(() => {

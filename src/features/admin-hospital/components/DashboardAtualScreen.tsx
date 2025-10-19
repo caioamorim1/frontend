@@ -357,23 +357,9 @@ const GlobalTabContent: React.FC<{
     return { data, summary };
   }, [internation]);
 
-  console.log("🔍 GlobalTabContent - sourceData:", {
-    hasInternation: !!internation,
-    hasAssistance: !!assistance,
-    internationLength: internation?.length,
-    assistanceLength: assistance?.length,
-  });
-
   // Verificações de segurança para evitar erros com null/undefined
   const safeInternation = internation || [];
   const safeAssistance = assistance || [];
-
-  console.log("🔢 Dados dos setores:", {
-    safeInternationLength: safeInternation.length,
-    safeAssistanceLength: safeAssistance.length,
-    sampleInternation: safeInternation[0],
-    sampleAssistance: safeAssistance[0],
-  });
 
   const totalStaffInternation = safeInternation.reduce(
     (acc, sector) => acc + sumStaff(sector),
@@ -395,14 +381,6 @@ const GlobalTabContent: React.FC<{
 
   const totalStaff = totalStaffInternation + totalStaffAssistance;
   const amountTotal = amountTotalInternation + amountTotalAssistance;
-
-  console.log("💰 Cálculo de Custo Total:", {
-    amountTotalInternation,
-    amountTotalAssistance,
-    amountTotal,
-    amountTotalFormatted: formatAmountBRL(amountTotal),
-    typeOfAmountTotal: typeof amountTotal,
-  });
 
   // Usar escala azul monocromática para todos (remover cores por hospital)
   const chartDataInternation: ChartData[] = safeInternation.map((item: any) => {
@@ -501,114 +479,23 @@ const TabContentInternacao: React.FC<{
   radarData: ChartDataItem[];
   aggregationType?: "hospital" | "grupo" | "regiao" | "rede"; // 🆕
   entityId?: string; // 🆕
-}> = ({ sourceData, radarData, aggregationType, entityId }) => {
+  hospitalId?: string; // 🆕 usar rota oficial na aba de Internação
+}> = ({ sourceData, radarData, aggregationType, entityId, hospitalId }) => {
   const [selectedSector, setSelectedSector] = useState<string>("all");
 
-  const occupationData = useMemo(() => {
-    if (!sourceData || sourceData.length === 0) {
-      return {
-        data: [],
-        summary: {
-          name: "Global",
-          "Taxa de Ocupação": 0,
-          "Taxa de Ocupação Diária": 0, // 🆕 Taxa média do dia
-          "Ocupação Máxima Atendível": 0, // 🆕
-          Ociosidade: 0,
-          Superlotação: 0,
-          "Capacidade Produtiva": 100,
-        },
-      };
-    }
-
-    // 🔥 TODO: Migrar para usar a nova API /occupation-analysis
-    // Por enquanto mantém o cálculo local até a API estar pronta
-    const data = sourceData.map((sector) => {
-      const totalBeds = sector.bedCount || 0;
-      const evaluatedBeds = sector.bedStatus?.evaluated || 0;
-      const occupancyRate =
-        totalBeds > 0 ? (evaluatedBeds / totalBeds) * 100 : 0;
-
-      // TODO: Integrar com API de ocupação para obter dados reais
-      // Por ora, usa a taxa de ocupação atual como taxa diária
-      const ocupacaoMaximaAtendivel = 85;
-      const taxaOcupacaoDia = occupancyRate; // Taxa de ocupação atual (sem variação)
-
-      const ociosidade = Math.max(0, ocupacaoMaximaAtendivel - occupancyRate);
-      const superlotacao = Math.max(0, occupancyRate - ocupacaoMaximaAtendivel);
-
-      console.log(`📊 [OccupationData] ${sector.name}:`, {
-        totalBeds,
-        evaluatedBeds,
-        occupancyRate: occupancyRate.toFixed(2) + "%",
-        taxaOcupacaoDia: taxaOcupacaoDia.toFixed(2) + "%", // 🆕
-        ocupacaoMaximaAtendivel: ocupacaoMaximaAtendivel.toFixed(2) + "%",
-        ociosidade: ociosidade.toFixed(2) + "%",
-        superlotacao: superlotacao.toFixed(2) + "%",
-      });
-
-      return {
-        name: sector.name,
-        "Taxa de Ocupação": occupancyRate, // Valor real completo (sem limitação)
-        "Taxa de Ocupação Real": occupancyRate, // Valor real completo
-        "Taxa de Ocupação Diária": taxaOcupacaoDia, // 🆕
-        "Ocupação Máxima Atendível": ocupacaoMaximaAtendivel, // 🆕
-        Ociosidade: ociosidade,
-        Superlotação: superlotacao,
-        "Capacidade Produtiva": 100,
-      };
-    });
-
-    const totalBeds = sourceData.reduce((sum, s) => sum + (s.bedCount || 0), 0);
-    const totalEvaluated = sourceData.reduce(
-      (sum, s) => sum + (s.bedStatus?.evaluated || 0),
-      0
-    );
-    const globalOccupancy =
-      totalBeds > 0 ? (totalEvaluated / totalBeds) * 100 : 0;
-
-    // TODO: Integrar com API de ocupação para obter dados reais
-    const globalOcupacaoMaximaAtendivel = 85;
-    const globalTaxaOcupacaoDia = globalOccupancy; // Taxa de ocupação atual (sem variação)
-
-    console.log("📊 [OccupationData] SUMMARY (Global):", {
-      totalBeds,
-      totalEvaluated,
-      globalOccupancy: globalOccupancy.toFixed(2) + "%",
-      globalTaxaOcupacaoDia: globalTaxaOcupacaoDia.toFixed(2) + "%", // 🆕
-      globalOcupacaoMaximaAtendivel:
-        globalOcupacaoMaximaAtendivel.toFixed(2) + "%",
-      ociosidade:
-        Math.max(0, globalOcupacaoMaximaAtendivel - globalOccupancy).toFixed(
-          2
-        ) + "%",
-      superlotacao:
-        Math.max(0, globalOccupancy - globalOcupacaoMaximaAtendivel).toFixed(
-          2
-        ) + "%",
-    });
-
-    const globalOciosidade = Math.max(
-      0,
-      globalOcupacaoMaximaAtendivel - globalOccupancy
-    );
-    const globalSuperlotacao = Math.max(
-      0,
-      globalOccupancy - globalOcupacaoMaximaAtendivel
-    );
-
-    const summary = {
+  // Dados de fallback (não usados quando hospitalId é fornecido, pois o gráfico usa a rota oficial)
+  const emptyOccupation = {
+    data: [] as any[],
+    summary: {
       name: "Global",
-      "Taxa de Ocupação": globalOccupancy, // Valor real completo (sem limitação)
-      "Taxa de Ocupação Real": globalOccupancy, // Valor real completo
-      "Taxa de Ocupação Diária": globalTaxaOcupacaoDia, // 🆕
-      "Ocupação Máxima Atendível": globalOcupacaoMaximaAtendivel, // 🆕
-      Ociosidade: globalOciosidade,
-      Superlotação: globalSuperlotacao,
+      "Taxa de Ocupação": 0,
+      "Taxa de Ocupação Diária": 0,
+      "Ocupação Máxima Atendível": 0,
+      Ociosidade: 0,
+      Superlotação: 0,
       "Capacidade Produtiva": 100,
-    };
-
-    return { data, summary };
-  }, [sourceData]);
+    },
+  };
 
   // Verificações de segurança para evitar erros com null/undefined
   const safeSourceData = sourceData || [];
@@ -616,15 +503,6 @@ const TabContentInternacao: React.FC<{
   const detailedData = safeSourceData.filter(
     (sector) => selectedSector === "all" || sector.id === selectedSector
   );
-
-  // Debug: verificar estrutura dos dados
-  console.log("🔍 Debug Níveis de Cuidado:", {
-    sourceDataLength: sourceData?.length,
-    detailedDataLength: detailedData.length,
-    firstSector: detailedData[0],
-    careLevelStructure:
-      detailedData[0]?.CareLevel || (detailedData[0] as any)?.careLevel,
-  });
 
   const totalMinimumCare = detailedData.reduce((acc, sector) => {
     // Suportar tanto CareLevel quanto careLevel
@@ -647,14 +525,6 @@ const TabContentInternacao: React.FC<{
     const careLevel = sector.CareLevel || (sector as any).careLevel;
     return acc + (careLevel?.intensive || 0);
   }, 0);
-
-  console.log("📊 Totais de Níveis de Cuidado:", {
-    totalMinimumCare,
-    totalIntermediateCare,
-    totalHighDependency,
-    totalSemiIntensive,
-    totalIntensive,
-  });
 
   const totalBeds = detailedData.reduce(
     (acc, sector) => acc + (sector.bedCount || 0),
@@ -860,11 +730,12 @@ const TabContentInternacao: React.FC<{
         />
       </div>
       <OccupationRateChart
-        data={occupationData.data}
-        summary={occupationData.summary}
+        data={emptyOccupation.data}
+        summary={emptyOccupation.summary}
         showViewSelector={false}
         aggregationType={aggregationType}
         entityId={entityId}
+        hospitalId={aggregationType ? undefined : hospitalId}
       />
       {selectedSector === "all" && (
         <BargraphicChart
@@ -1063,29 +934,11 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
   const [radarData, setRadarData] = useState<ChartDataItem[]>([]);
   const [activeTab, setActiveTab] = useState("global"); // Valor inicial 'global'
 
-  console.log("🔵 DashboardAtualScreen montado", {
-    hospitalId,
-    title: props.title,
-    hasExternalData: !!props.externalData,
-    isGlobalView: props.isGlobalView,
-    aggregationType: props.aggregationType, // 🆕 Log agregação
-    entityId: props.entityId, // 🆕 Log entity ID
-  });
-
   const loadData = async () => {
-    console.log("🔄 loadData iniciado", {
-      activeTab,
-      hospitalId,
-      isGlobalView: props.isGlobalView,
-      hasExternalData: !!props.externalData,
-    });
-
     let dashboardData: HospitalSector | null = null;
 
     // Se tem dados externos (visão global), usa eles
     if (props.isGlobalView && props.externalData) {
-      console.log("🌍 Usando dados externos (Global View)", props.externalData);
-
       const ext = props.externalData;
       if (Array.isArray(ext)) {
         // It's an array of entities: concat their sectors
@@ -1125,10 +978,8 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
       }
     } else {
       // Senão, busca dados normalmente por hospitalId
-      console.log("🏥 Buscando dados por hospitalId", hospitalId);
 
       dashboardData = await getAllHospitalSectors(hospitalId);
-      console.log("✅ Dados buscados da API:", dashboardData);
     }
 
     const tipo = activeTab === "internacao" ? "Internacao" : "NaoInternacao";
@@ -1137,31 +988,17 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
         ? calcularPerformanceParaGrafico()
         : calcularPerformanceParaGrafico({ tipo: tipo });
 
-    console.log("✅ Dados iniciais carregados:", {
-      dashboardData,
-      chartData,
-      hasInternation: dashboardData?.internation?.length,
-      hasAssistance: dashboardData?.assistance?.length,
-    });
-
     setChartDataAtual(dashboardData);
     setRadarData(chartData);
   };
 
   useEffect(() => {
-    console.log("🟢 useEffect inicial disparado");
     loadData();
   }, []);
 
   useEffect(() => {
-    console.log("🟡 useEffect activeTab disparado", { activeTab });
     loadData();
   }, [activeTab]);
-
-  console.log("🔵 Renderizando DashboardAtualScreen", {
-    chartDataAtual: !!chartDataAtual,
-    radarDataLength: radarData.length,
-  });
 
   return (
     <>
@@ -1206,6 +1043,7 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
                     radarData={radarData}
                     aggregationType={props.aggregationType}
                     entityId={props.entityId}
+                    hospitalId={hospitalId}
                   />
                 </TabsContent>
                 <TabsContent value="nao-internacao" className="mt-4">

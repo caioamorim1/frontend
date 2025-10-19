@@ -1,8 +1,10 @@
-import { useState, useEffect, FormEvent } from 'react';
-import { getRedes, createRede, updateRede, deleteRede, Rede } from '@/lib/api';
-import { Trash2, Edit } from 'lucide-react';
+import { useState, useEffect, FormEvent } from "react";
+import { getRedes, createRede, updateRede, deleteRede, Rede } from "@/lib/api";
+import { Trash2, Edit } from "lucide-react";
+import { useModal } from "@/contexts/ModalContext";
 
 export default function RedesPage() {
+  const { showModal } = useModal();
   const [redes, setRedes] = useState<Rede[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +19,7 @@ export default function RedesPage() {
       const data = await getRedes();
       setRedes(data);
     } catch (err) {
-      setError('Falha ao carregar as redes.');
+      setError("Falha ao carregar as redes.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -56,52 +58,76 @@ export default function RedesPage() {
       handleCancel();
       fetchRedes();
     } catch (err) {
-      setError(formData.id ? 'Falha ao atualizar a rede.' : 'Falha ao criar a rede.');
+      setError(
+        formData.id ? "Falha ao atualizar a rede." : "Falha ao criar a rede."
+      );
       console.error(err);
     }
   };
 
   const handleDelete = async (redeId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir esta rede?')) {
-      try {
-        await deleteRede(redeId);
-        fetchRedes();
-      } catch (err) {
-        setError('Falha ao excluir a rede.');
-        console.error(err);
-      }
-    }
+    showModal({
+      type: "confirm",
+      title: "Excluir rede",
+      message:
+        "Tem certeza que deseja excluir esta rede? Esta ação não pode ser desfeita.",
+      confirmText: "Excluir",
+      cancelText: "Cancelar",
+      onConfirm: async () => {
+        try {
+          await deleteRede(redeId);
+          fetchRedes();
+        } catch (err) {
+          setError("Falha ao excluir a rede.");
+          console.error(err);
+        }
+      },
+    });
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-primary">Gerenciamento de Redes</h1>
+        <h1 className="text-3xl font-bold text-primary">
+          Gerenciamento de Redes
+        </h1>
         <button
           onClick={isFormVisible ? handleCancel : handleAddNew}
           className="px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
         >
-          {isFormVisible ? 'Cancelar' : '+ Nova Rede'}
+          {isFormVisible ? "Cancelar" : "+ Nova Rede"}
         </button>
       </div>
 
       {isFormVisible && (
         <div className="bg-white p-6 rounded-lg border animate-fade-in-down">
           <form onSubmit={handleSubmit}>
-            <h2 className="text-xl font-semibold mb-4 text-primary">{formData.id ? 'Editar Rede' : 'Adicionar Nova Rede'}</h2>
+            <h2 className="text-xl font-semibold mb-4 text-primary">
+              {formData.id ? "Editar Rede" : "Adicionar Nova Rede"}
+            </h2>
             <div className="mb-4">
-              <label htmlFor="nome" className="block text-sm font-medium text-gray-700">Nome da Rede</label>
+              <label
+                htmlFor="nome"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Nome da Rede
+              </label>
               <input
                 type="text"
                 id="nome"
-                value={formData.nome || ''}
-                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                value={formData.nome || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, nome: e.target.value })
+                }
                 className="mt-1 block w-full p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
                 required
               />
             </div>
             <div className="flex justify-end">
-              <button type="submit" className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700">
+              <button
+                type="submit"
+                className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700"
+              >
                 Salvar
               </button>
             </div>
@@ -117,20 +143,32 @@ export default function RedesPage() {
             <table className="min-w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Nome
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    Ações
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {redes.length > 0 ? (
                   redes.map((rede) => (
                     <tr key={rede.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{rede.nome}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                        {rede.nome}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                        <button onClick={() => handleEdit(rede)} className="text-secondary hover:opacity-70">
+                        <button
+                          onClick={() => handleEdit(rede)}
+                          className="text-secondary hover:opacity-70"
+                        >
                           <Edit size={20} />
                         </button>
-                        <button onClick={() => handleDelete(rede.id)} className="text-red-600 hover:opacity-70">
+                        <button
+                          onClick={() => handleDelete(rede.id)}
+                          className="text-red-600 hover:opacity-70"
+                        >
                           <Trash2 size={20} />
                         </button>
                       </td>
@@ -138,7 +176,10 @@ export default function RedesPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={2} className="px-6 py-4 text-center text-sm text-gray-500">
+                    <td
+                      colSpan={2}
+                      className="px-6 py-4 text-center text-sm text-gray-500"
+                    >
                       Nenhuma rede cadastrada.
                     </td>
                   </tr>

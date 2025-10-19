@@ -69,9 +69,7 @@ export default function GlobalDashboardPage() {
   useEffect(() => {
     const fetchListas = async () => {
       try {
-        console.log(
-          "📄 Buscando listas de Redes, Grupos, Regiões e Hospitais..."
-        );
+      
 
         const [redesData, gruposData, regioesData, hospitaisData] =
           await Promise.all([
@@ -81,10 +79,7 @@ export default function GlobalDashboardPage() {
             getHospitais(),
           ]);
 
-        console.log("✅ Redes:", redesData);
-        console.log("✅ Grupos:", gruposData);
-        console.log("✅ Regiões:", regioesData);
-        console.log("✅ Hospitais:", hospitaisData);
+   
 
         setRedes(redesData);
         setGrupos(gruposData);
@@ -104,7 +99,7 @@ export default function GlobalDashboardPage() {
     const fetchAggregatedData = async () => {
       setLoading(true);
       try {
-        console.log(`📄 Buscando dados ATUAIS agregados para: ${groupBy}`);
+      
 
         let data: any = null;
 
@@ -342,7 +337,7 @@ export default function GlobalDashboardPage() {
   useEffect(() => {
     const fetchProjectedData = async () => {
       try {
-        console.log(`🔮 Buscando dados PROJETADOS para: ${groupBy}`);
+  
 
         let data: any = null;
 
@@ -350,34 +345,34 @@ export default function GlobalDashboardPage() {
           case "rede":
             // ✅ Usar nova API de redes projetadas
             const redesProjetadas = await getRedesProjectedAggregated();
-            console.log("📊 Redes Projetadas:", redesProjetadas);
+   
             data = { type: "rede", items: redesProjetadas };
             break;
 
           case "grupo":
             // ✅ Usar nova API de grupos projetados
             const gruposProjetados = await getGruposProjectedAggregated();
-            console.log("📊 Grupos Projetados:", gruposProjetados);
+
             data = { type: "grupo", items: gruposProjetados };
             break;
 
           case "regiao":
             // ✅ Usar nova API de regiões projetadas
             const regioesProjetadas = await getRegioesProjectedAggregated();
-            console.log("📊 Regiões Projetadas:", regioesProjetadas);
+   
             data = { type: "regiao", items: regioesProjetadas };
             break;
 
           case "hospital":
             // ✅ Usar nova API de hospitais projetados
             const hospitaisProjetados = await getHospitaisProjectedAggregated();
-            console.log("📊 Hospitais Projetados:", hospitaisProjetados);
+
             data = { type: "hospital", items: hospitaisProjetados };
             break;
         }
 
         setProjectedData(data);
-        console.log("✅ Dados projetados carregados:", data);
+
       } catch (error) {
         console.error("❌ Erro ao buscar dados projetados:", error);
       }
@@ -395,7 +390,7 @@ export default function GlobalDashboardPage() {
   }, [groupBy, redes, grupos, regioes, hospitais]);
 
   useEffect(() => {
-    console.log("Dashboard Global - Admin");
+   
     clearSectorsCache();
   }, []);
 
@@ -405,11 +400,9 @@ export default function GlobalDashboardPage() {
   useEffect(() => {
     const fetchSnapshotAggregatedAll = async () => {
       try {
-        console.log(
-          "🔍 Buscando snapshot aggregated/all para popular baseline"
-        );
+       
         const data = await getSnapshotAggregatedAll();
-        console.log("✅ snapshot aggregated all:", data);
+
         setSnapshotAggregated(data);
       } catch (err) {
         console.warn(
@@ -429,16 +422,7 @@ export default function GlobalDashboardPage() {
     }
   }, [redes, grupos, regioes, hospitais]);
 
-  console.log("🔵 GlobalDashboardPage - Estado atual:", {
-    groupBy,
-    loading,
-    hasAggregatedData: !!aggregatedData,
-    hasProjectedData: !!projectedData,
-    redesCount: redes.length,
-    gruposCount: grupos.length,
-    regioesCount: regioes.length,
-    hospitaisCount: hospitais.length,
-  });
+
 
   return (
     <div className="space-y-8 pb-10">

@@ -20,13 +20,19 @@ import { DollarSign, Percent, Calendar } from "lucide-react";
 import { ReusableWaterfall } from "./graphicsComponents/ReusableWaterfall";
 import { VariationCard } from "./VariationCard";
 import { HospitalSector } from "@/mocks/functionSectores";
-import { getHospitalComparative } from "@/lib/api";
+import {
+  getHospitalComparative,
+  getBaselinesByHospitalId,
+  getLatestSnapshotSummary,
+  type SnapshotSummaryResponse,
+} from "@/lib/api";
 import {
   parseCost as parseCostUtil,
   getStaffArray,
   sumStaff as sumStaffUtil,
 } from "@/lib/dataUtils";
 import { GroupedBarByRole } from "./graphicsComponents/GroupedBarByRole";
+import { formatAmountBRL } from "@/lib/utils";
 
 type SectorType = "global" | "internacao" | "nao-internacao";
 
@@ -43,22 +49,64 @@ type SectorRoleData = {
   quantidadePorFuncao: RoleStats[];
 };
 
+// Função para extrair custos de cada cargo por unidade
+function extrairCustosPorUnidade(resp: any) {
+  const custosPorUnidade: Record<string, Record<string, number>> = {};
+
+  // Processar Internações
+  if (resp.atual?.internation) {
+    resp.atual.internation.forEach((internacao: any) => {
+      const unidadeKey = internacao.name;
+      custosPorUnidade[unidadeKey] = {};
+
+      if (internacao.staff) {
+        internacao.staff.forEach((staff: any) => {
+          custosPorUnidade[unidadeKey][staff.role] = staff.unitCost;
+        });
+      }
+    });
+  }
+
+  // Processar Assistência
+  if (resp.atual?.assistance) {
+    resp.atual.assistance.forEach((assistencia: any) => {
+      const unidadeKey = assistencia.name;
+      custosPorUnidade[unidadeKey] = {};
+
+      if (assistencia.staff) {
+        assistencia.staff.forEach((staff: any) => {
+          custosPorUnidade[unidadeKey][staff.role] = staff.unitCost;
+        });
+      }
+    });
+  }
+
+  return custosPorUnidade;
+}
 
 export const DashboardComparativoHospitalScreen: React.FC<{
   title: string;
 }> = ({ title }) => {
-  console.log(
-    "🟢 [USANDO: DashboardComparativoHospitalScreen - COMPONENTE HOSPITAL ESPECÍFICO]",
-    { title }
-  );
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const [hospitalData, setHospitalData] = useState<HospitalSector | null>(null);
   const [hospitalProjectedData, setHospitalProjectedData] = useState<
     any | null
   >(null);
+  const [baselineSetores, setBaselineSetores] = useState<
+    { nome: string; custo: string; ativo: boolean }[] | null
+  >(null);
+  const [baselineQuantidade, setBaselineQuantidade] = useState<number | null>(
+    null
+  );
   const [activeTab, setActiveTab] = useState<SectorType>("global");
   const [selectedSector, setSelectedSector] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+  const [snapshotSummary, setSnapshotSummary] =
+    useState<SnapshotSummaryResponse | null>(null);
+  const [custosPorUnidade, setCustosPorUnidade] = useState<Record<
+    string,
+    Record<string, number>
+  > | null>(null);
 
   useEffect(() => {
     setSelectedSector("all");
@@ -74,7 +122,72 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         const resp = await getHospitalComparative(hospitalId as string, {
           includeProjected: true,
         });
-        console.log("🟢 [HospitalScreen] API Response:", resp);
+        console.log("RESP --------------------------", resp);
+
+        // 🔥 EXTRAIR CUSTOS POR UNIDADE E ARMAZENAR NO ESTADO
+        const custosExtraidos = extrairCustosPorUnidade(resp);
+        setCustosPorUnidade(custosExtraidos);
+        console.log(
+          "CUSTOS POR UNIDADE --------------------------",
+          custosExtraidos
+        );
+
+        try {
+          const baseline = await getBaselinesByHospitalId(hospitalId as string);
+          if (baseline) {
+            if (Array.isArray(baseline.setores)) {
+              setBaselineSetores(baseline.setores);
+            } else {
+              setBaselineSetores([]);
+            }
+            if (typeof baseline.quantidade_funcionarios === "number") {
+              setBaselineQuantidade(baseline.quantidade_funcionarios);
+            } else {
+              setBaselineQuantidade(null);
+            }
+          } else {
+            setBaselineSetores([]);
+            setBaselineQuantidade(null);
+          }
+        } catch (e) {
+          console.warn("[HospitalScreen] baseline fetch failed", e);
+          setBaselineSetores([]);
+          setBaselineQuantidade(null);
+        }
+
+        // Fetch Snapshot Summary for baselines (preferred source)
+        try {
+          const summary = await getLatestSnapshotSummary(hospitalId as string);
+          setSnapshotSummary(summary);
+        } catch (e) {
+          console.warn("[HospitalScreen] snapshot summary fetch failed", e);
+          setSnapshotSummary(null);
+        }
+
+        try {
+          const summarizeSector = (s: any) => ({
+            id: s?.id,
+            name: s?.name,
+            costAmount: s?.costAmount,
+            projectedCostAmount: s?.projectedCostAmount,
+            staffSample: Array.isArray(s?.staff)
+              ? s.staff.slice(0, 3).map((x: any) => ({
+                  role: x.role,
+                  quantity: x.quantity,
+                  costAmount: x.costAmount,
+                }))
+              : undefined,
+            projectedStaffSample: Array.isArray(s?.projectedStaff)
+              ? s.projectedStaff.slice(0, 3).map((x: any) => ({
+                  role: x.role,
+                  quantity: x.quantity,
+                  costAmount: x.costAmount,
+                }))
+              : undefined,
+          });
+        } catch (e) {
+          console.warn("[HospitalScreen] summarize error", e);
+        }
         if (!mounted) return;
 
         let atual = resp?.atual ?? {
@@ -112,10 +225,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
                   quantity,
                 })
               );
-              console.log(`🟢 [HospitalScreen] Flattened ${sector.name}:`, {
-                original: sector.projectedStaff,
-                flattened,
-              });
+
               return { ...sector, projectedStaff: flattened };
             }
             return sector;
@@ -145,10 +255,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
                   quantity,
                 })
               );
-              console.log(`🟢 [HospitalScreen] Flattened ${sector.name}:`, {
-                original: sector.projectedStaff,
-                flattened,
-              });
+
               return { ...sector, projectedStaff: flattened };
             }
             return sector;
@@ -170,9 +277,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     };
   }, [hospitalId]);
 
-  useEffect(() => {
-    console.log("[DashboardComparativoHospitalScreen] loading", loading);
-  }, [loading]);
+  useEffect(() => {}, [loading]);
 
   const processedData = useMemo(() => {
     const atualSource = hospitalData;
@@ -200,8 +305,8 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       activeTab === "global"
         ? [...(projetado.internation || []), ...(projetado.assistance || [])]
         : activeTab === "internacao"
-          ? projetado.internation || []
-          : projetado.assistance || [];
+        ? projetado.internation || []
+        : projetado.assistance || [];
 
     const filterBySelected = (arr: any[]) => {
       if (selectedSector === "all") return arr;
@@ -249,36 +354,174 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     const pessoalProjetado = sumStaff(filteredProjected, true);
     const variacaoPessoal = pessoalProjetado - pessoalAtual;
 
-    const custoBaseline = custoAtual * 0.89;
-    const pessoalBaseline = Math.round(pessoalAtual * 0.85);
+    // Compute baseline (preferred: snapshot summary)
+    const matchUnitByName = (name: string) => {
+      if (!snapshotSummary?.units) return undefined;
+      const norm = (s: string) => (s || "").trim().toLowerCase();
+      return snapshotSummary.units.find((u) => norm(u.nome) === norm(name));
+    };
+    const sumByTipo = (tipo: "internacao" | "nao-internacao") => {
+      if (!snapshotSummary?.units) return { custo: 0, quantidade: 0 };
+      return snapshotSummary.units.reduce(
+        (acc, u) =>
+          u.tipo === tipo
+            ? {
+                custo: acc.custo + (u.custo || 0),
+                quantidade: acc.quantidade + (u.quantidade || 0),
+              }
+            : acc,
+        { custo: 0, quantidade: 0 }
+      );
+    };
+    const computeBaselineFromSummary = (): {
+      custo: number;
+      quantidade: number;
+    } => {
+      if (!snapshotSummary) return { custo: 0, quantidade: 0 };
+      if (selectedSector !== "all") {
+        // Specific sector filter by name
+        const unit = matchUnitByName(selectedSector);
+        return {
+          custo: unit?.custo || 0,
+          quantidade: unit?.quantidade || 0,
+        };
+      }
+      // All sectors in current tab scope
+      if (activeTab === "global") {
+        return {
+          custo: snapshotSummary.totals?.custo || 0,
+          quantidade: snapshotSummary.totals?.quantidade || 0,
+        };
+      }
+      if (activeTab === "internacao") {
+        return sumByTipo("internacao");
+      }
+      // nao-internacao
+      return sumByTipo("nao-internacao");
+    };
+
+    const { custo: custoBaseline, quantidade: pessoalBaseline } =
+      computeBaselineFromSummary();
 
     const variacaoBaselineAtual = custoAtual - custoBaseline;
     const variacaoPessoalBaselineAtual = pessoalAtual - pessoalBaseline;
 
+    // Debug: financial and personnel aggregates
+    try {
+      // eslint-disable-next-line no-console
+      console.log("[Comparativo][Aggregates]", {
+        tab: activeTab,
+        sectorFilter: selectedSector,
+        custoAtual,
+        custoProjetado,
+        variacaoCusto,
+        custoBaseline,
+        pessoalAtual,
+        pessoalProjetado,
+        variacaoPessoal,
+        pessoalBaseline,
+      });
+    } catch {}
+
     // 🔽 Novo cálculo por função e setor
     const setorRoleData = baseSectors.map((sectorAtual) => {
-      const sectorProjetado = projectedBase.find((p) => p.name === sectorAtual.name);
+      const sectorProjetado = projectedBase.find(
+        (p) => p.name === sectorAtual.name
+      );
 
-      const atualStaffMap = new Map<string, { quantidade: number; custo: number }>();
-      const projetadoStaffMap = new Map<string, { quantidade: number; custo: number }>();
+      const atualStaffMap = new Map<
+        string,
+        { quantidade: number; custo: number }
+      >();
+      const projetadoStaffMap = new Map<
+        string,
+        { quantidade: number; custo: number }
+      >();
 
       // Atual
       (getStaffArray(sectorAtual) || []).forEach((item: any) => {
-        const prev = atualStaffMap.get(item.role) || { quantidade: 0, custo: 0 };
+        const prev = atualStaffMap.get(item.role) || {
+          quantidade: 0,
+          custo: 0,
+        };
         atualStaffMap.set(item.role, {
           quantidade: prev.quantidade + (item.quantity || 0),
-          custo: prev.custo + (item.costAmount || 0),
+          custo: prev.custo + (parseCostUtil(item.costAmount ?? 0) || 0),
         });
       });
 
       // Projetado
       (sectorProjetado?.projectedStaff || []).forEach((item: any) => {
-        const prev = projetadoStaffMap.get(item.role) || { quantidade: 0, custo: 0 };
+        const prev = projetadoStaffMap.get(item.role) || {
+          quantidade: 0,
+          custo: 0,
+        };
         projetadoStaffMap.set(item.role, {
           quantidade: prev.quantidade + (item.quantity || 0),
-          custo: prev.custo + (item.costAmount || 0),
+          custo: prev.custo + (parseCostUtil(item.costAmount ?? 0) || 0),
         });
       });
+
+      // Se custos por função vierem vazios, distribuir custo total do setor proporcional à quantidade
+      const sumMapCost = (
+        m: Map<string, { quantidade: number; custo: number }>
+      ) =>
+        Array.from(m.values()).reduce(
+          (s, v) => s + (Number.isFinite(v.custo as any) ? Number(v.custo) : 0),
+          0
+        );
+      const sumMapQty = (
+        m: Map<string, { quantidade: number; custo: number }>
+      ) => Array.from(m.values()).reduce((s, v) => s + (v.quantidade || 0), 0);
+
+      const setorCostRaw = sectorAtual.costAmount ?? 0;
+      const setorCost = parseCostUtil(setorCostRaw);
+      const atualCostSum = sumMapCost(atualStaffMap);
+      const totalQtyAtual = sumMapQty(atualStaffMap);
+      const needsRedistributeAtual =
+        setorCost > 0 &&
+        (atualCostSum <= 0 ||
+          Math.abs(atualCostSum - setorCost) > setorCost * 0.01);
+      if (needsRedistributeAtual && totalQtyAtual > 0) {
+        // eslint-disable-next-line no-console
+        console.log("[Roles][Atual][Redistribute]", {
+          sector: sectorAtual.name,
+          setorCost,
+          atualCostSum,
+          totalQtyAtual,
+        });
+        atualStaffMap.forEach((v, k) => {
+          const share = (v.quantidade / totalQtyAtual) * setorCost;
+          const rounded = Math.round(share * 100) / 100; // centavos
+          atualStaffMap.set(k, { quantidade: v.quantidade, custo: rounded });
+        });
+      }
+
+      const setorProjCostRaw = sectorProjetado?.projectedCostAmount ?? 0;
+      const setorProjCost = parseCostUtil(setorProjCostRaw);
+      const projCostSum = sumMapCost(projetadoStaffMap);
+      const totalProjQty = sumMapQty(projetadoStaffMap);
+      const needsRedistributeProj =
+        setorProjCost > 0 &&
+        (projCostSum <= 0 ||
+          Math.abs(projCostSum - setorProjCost) > setorProjCost * 0.01);
+      if (needsRedistributeProj && totalProjQty > 0) {
+        // eslint-disable-next-line no-console
+        console.log("[Roles][Projetado][Redistribute]", {
+          sector: sectorAtual.name,
+          setorProjCost,
+          projCostSum,
+          totalProjQty,
+        });
+        projetadoStaffMap.forEach((v, k) => {
+          const share = (v.quantidade / totalProjQty) * setorProjCost;
+          const rounded = Math.round(share * 100) / 100;
+          projetadoStaffMap.set(k, {
+            quantidade: v.quantidade,
+            custo: rounded,
+          });
+        });
+      }
 
       const allRoles = new Set([
         ...Array.from(atualStaffMap.keys()),
@@ -307,6 +550,12 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         });
       });
 
+      const summaryLog = {
+        sector: sectorAtual.name,
+        atualSample: Array.from(atualStaffMap.entries()).slice(0, 3),
+        projetadoSample: Array.from(projetadoStaffMap.entries()).slice(0, 3),
+      };
+
       return {
         sectorName: sectorAtual.name,
         custoPorFuncao,
@@ -314,19 +563,33 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       };
     });
 
+    const financialWaterfall = [
+      { name: "Baseline", value: custoBaseline },
+      { name: "Custo Atual", value: custoAtual },
+      { name: "Variação", value: variacaoCusto },
+      { name: "Custo Projetado", value: custoProjetado },
+    ];
+    const personnelWaterfall = [
+      { name: "Baseline", value: pessoalBaseline },
+      { name: "Pessoal Atual", value: pessoalAtual },
+      { name: "Variação", value: variacaoPessoal },
+      { name: "Pessoal Projetado", value: pessoalProjetado },
+    ];
+
+    // Debug: datasets feeding the top waterfalls
+    try {
+      // eslint-disable-next-line no-console
+      console.log("[Comparativo][Waterfalls]", {
+        tab: activeTab,
+        sectorFilter: selectedSector,
+        financialWaterfall,
+        personnelWaterfall,
+      });
+    } catch {}
+
     return {
-      financialWaterfall: [
-        { name: "Baseline", value: custoBaseline },
-        { name: "Custo Atual", value: custoAtual },
-        { name: "Variação", value: variacaoCusto },
-        { name: "Custo Projetado", value: custoProjetado },
-      ],
-      personnelWaterfall: [
-        { name: "Baseline", value: pessoalBaseline },
-        { name: "Pessoal Atual", value: pessoalAtual },
-        { name: "Variação", value: variacaoPessoal },
-        { name: "Pessoal Projetado", value: pessoalProjetado },
-      ],
+      financialWaterfall,
+      personnelWaterfall,
       variacaoCusto,
       variacaoPercentual:
         custoAtual > 0 ? (variacaoCusto / custoAtual) * 100 : 0,
@@ -337,8 +600,15 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       ),
       setorRoleData, // 🔥 dado adicional para gráficos por função e setor
     };
-  }, [hospitalData, hospitalProjectedData, activeTab, selectedSector]);
-
+  }, [
+    hospitalData,
+    hospitalProjectedData,
+    activeTab,
+    selectedSector,
+    baselineSetores,
+    baselineQuantidade,
+    snapshotSummary,
+  ]);
 
   const aggregatedRoleData = useMemo(() => {
     if (!processedData?.setorRoleData) return null;
@@ -347,32 +617,63 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       selectedSector === "all"
         ? processedData.setorRoleData
         : processedData.setorRoleData.filter(
-          (s) => s.sectorName === selectedSector
-        );
+            (s) => s.sectorName === selectedSector
+          );
 
-    // ==== CUSTO ====
+    // ==== CUSTO (novo modelo): custo unitário por unidade x variação de quantidade por função ====
+    // Helper para obter custo unitário do cargo na unidade
+    const getUnitCost = (unidade: string, role: string): number => {
+      try {
+        const byUnit = (custosPorUnidade || {})[unidade] || {};
+        const val = byUnit[role];
+        return Number.isFinite(val) ? Number(val) : 0;
+      } catch {
+        return 0;
+      }
+    };
+
     let totalAtual = 0;
     let totalProjetado = 0;
-    const variacoesMap = new Map<string, number>();
+    const variacoesMap = new Map<string, number>(); // delta de custo por função (somado entre unidades)
 
     setoresParaAgrupar.forEach((sector) => {
-      sector.custoPorFuncao.forEach((func) => {
-        const delta = (func.projetado ?? 0) - (func.atual ?? 0);
-        const prev = variacoesMap.get(func.role) ?? 0;
-        variacoesMap.set(func.role, prev + delta);
-      });
+      const unidade = sector.sectorName;
 
-      totalAtual += sector.custoPorFuncao.reduce(
-        (sum, f) => sum + (f.atual ?? 0),
-        0
-      );
-      totalProjetado += sector.custoPorFuncao.reduce(
-        (sum, f) => sum + (f.projetado ?? 0),
-        0
-      );
+      // Totais de custo por unidade, calculados como quantidade x custo unitário
+      sector.quantidadePorFuncao.forEach((func) => {
+        const unitCost = getUnitCost(unidade, func.role);
+        const atualQtd = func.atual ?? 0;
+        const projQtd = func.projetado ?? 0;
+        const deltaQtd = projQtd - atualQtd;
+
+        // Acumular totais atual/projetado pelo novo modelo
+        totalAtual += atualQtd * unitCost;
+        totalProjetado += projQtd * unitCost;
+
+        // Acumular variação de custo por função
+        const prev = variacoesMap.get(func.role) ?? 0;
+        variacoesMap.set(func.role, prev + deltaQtd * unitCost);
+      });
     });
 
-    const baseline = totalAtual * 0.89;
+    const baseline = (() => {
+      // Prefer snapshot summary for baseline cost in grouped chart
+      if (!snapshotSummary) return 0;
+      if (selectedSector !== "all") {
+        const unit = snapshotSummary.units?.find(
+          (u) =>
+            (u.nome || "").trim().toLowerCase() ===
+            selectedSector.trim().toLowerCase()
+        );
+        return unit?.custo || 0;
+      }
+      if (activeTab === "global") return snapshotSummary.totals?.custo || 0;
+      const tipo = activeTab === "internacao" ? "internacao" : "nao-internacao";
+      return (snapshotSummary.units || []).reduce(
+        (acc, u) => acc + (u.tipo === tipo ? u.custo || 0 : 0),
+        0
+      );
+    })();
     const variacoesArray = Array.from(variacoesMap.entries()).map(
       ([role, delta]) => ({
         role,
@@ -381,7 +682,12 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     );
 
     // Construir o array cumulativo (Baseline, Atual, variações..., Projetado)
-    const custoPorFuncao: { role: string; start: number; end: number; color: string }[] = [];
+    const custoPorFuncao: {
+      role: string;
+      start: number;
+      end: number;
+      color: string;
+    }[] = [];
     let cumulative = 0;
 
     // Baseline (opcional visual)
@@ -419,7 +725,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     custoPorFuncao.push({
       role: "Projetado",
       start: 0,
-      end: cumulative,
+      end: totalProjetado, // deve fechar com o total projetado calculado via (qtd x custo unitário)
       color: "#003151",
     });
 
@@ -444,7 +750,25 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       );
     });
 
-    const baselineQtd = Math.round(totalAtualQtd * 0.85);
+    // Personnel baseline (quantity): use snapshot summary quantities
+    const baselineQtd = (() => {
+      if (!snapshotSummary) return 0;
+      if (selectedSector !== "all") {
+        const unit = snapshotSummary.units?.find(
+          (u) =>
+            (u.nome || "").trim().toLowerCase() ===
+            selectedSector.trim().toLowerCase()
+        );
+        return unit?.quantidade || 0;
+      }
+      if (activeTab === "global")
+        return snapshotSummary.totals?.quantidade || 0;
+      const tipo = activeTab === "internacao" ? "internacao" : "nao-internacao";
+      return (snapshotSummary.units || []).reduce(
+        (acc, u) => acc + (u.tipo === tipo ? u.quantidade || 0 : 0),
+        0
+      );
+    })();
     const variacoesQtdArray = Array.from(variacoesQtdMap.entries()).map(
       ([role, delta]) => ({
         role,
@@ -452,7 +776,12 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       })
     );
 
-    const quantidadePorFuncao: { role: string; start: number; end: number; color: string }[] = [];
+    const quantidadePorFuncao: {
+      role: string;
+      start: number;
+      end: number;
+      color: string;
+    }[] = [];
     cumulative = totalAtualQtd;
 
     // Baseline
@@ -493,15 +822,37 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       color: "#003151",
     });
 
-    return {
+    const result = {
       custoPorFuncao,
       quantidadePorFuncao,
     };
-  }, [processedData?.setorRoleData, selectedSector]);
 
+    // Debug: role-level datasets feeding the bottom charts (modelo: unitCost x deltaQtd)
+    try {
+      // eslint-disable-next-line no-console
+      console.log("[Comparativo][Roles]", {
+        tab: activeTab,
+        sectorFilter: selectedSector,
+        costModel: "unitCost x deltaQty",
+        totals: { totalAtual, totalProjetado, baseline },
+        variacoesByRole: variacoesArray,
+        custoPorFuncao,
+        totalsQtd: { totalAtualQtd, totalProjetadoQtd, baselineQtd },
+        variacoesQtdByRole: variacoesQtdArray,
+        quantidadePorFuncao,
+      });
+    } catch {}
 
-
-
+    return result;
+  }, [
+    processedData?.setorRoleData,
+    selectedSector,
+    baselineSetores,
+    baselineQuantidade,
+    snapshotSummary,
+    activeTab,
+    custosPorUnidade,
+  ]);
 
   if (loading) {
     return (
@@ -551,7 +902,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <VariationCard
           title="VARIAÇÃO MENSAL"
-          value={`R$ ${(Math.abs(variacaoCusto) / 1000).toFixed(1)}k`}
+          value={formatAmountBRL(Math.abs(variacaoCusto))}
           isReduction={variacaoCusto < 0}
           icon={<DollarSign className="h-6 w-6" />}
         />
@@ -563,7 +914,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         />
         <VariationCard
           title="VARIAÇÃO A 12 MESES"
-          value={`R$ ${(Math.abs(variacaoCusto * 12) / 1000).toFixed(1)}k`}
+          value={formatAmountBRL(Math.abs(variacaoCusto * 12))}
           isReduction={variacaoCusto < 0}
           icon={<Calendar className="h-6 w-6" />}
           footer="Variação mensal x 12"
@@ -584,26 +935,27 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         />
       </div>
 
-
       {aggregatedRoleData && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
           <GroupedBarByRole
-            title={`Custo por Função${selectedSector !== "all" ? ` – ${selectedSector}` : ""}`}
+            title={`Custo por Função${
+              selectedSector !== "all" ? ` – ${selectedSector}` : ""
+            }`}
             data={aggregatedRoleData.custoPorFuncao}
             unit="currency"
             description="Comparativo de custo por função (com totais e baseline)"
           />
 
           <GroupedBarByRole
-            title={`Quantidade por Função${selectedSector !== "all" ? ` – ${selectedSector}` : ""}`}
+            title={`Quantidade por Função${
+              selectedSector !== "all" ? ` – ${selectedSector}` : ""
+            }`}
             data={aggregatedRoleData.quantidadePorFuncao}
             unit="people"
             description="Comparativo de quantidade por função (com totais e baseline)"
           />
         </div>
       )}
-
-
     </div>
   );
 

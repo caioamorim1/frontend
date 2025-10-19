@@ -25,9 +25,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import ParetoChart from "./ParetoChart";
-import { useToast } from "@/hooks/use-toast";
+import { useAlert } from "@/contexts/AlertContext";
 import CostAnalyticsPanel from "./CostAnalyticsPanel";
 import { Card, CardContent } from "@/components/ui/card";
+import { updateBaselineSetores } from "@/lib/api";
 
 // Simulação de uma chamada de API - substitua pela sua implementação real
 const hospitaisApi = {
@@ -36,10 +37,8 @@ const hospitaisApi = {
     setorNome: string,
     ativo: boolean
   ) => {
-    console.log(
-      `API CALL: update baseline ${baselineId}, setor ${setorNome} to ativo=${ativo}`
-    );
-    // Aqui você chamaria sua API real: await api.patch(...)
+    await updateBaselineSetores(baselineId, setorNome);
+
     return Promise.resolve();
   },
 };
@@ -63,8 +62,9 @@ export default function BaselinePareto({
   onToggle,
 }: BaselineParetoProps) {
   const baseline: any = hospital?.baseline;
+  console.log("[UI] BaselinePareto renderizado com baseline:", baseline);
 
-  const { toast } = useToast();
+  const { showAlert } = useAlert();
   const [showAnalytics, setShowAnalytics] = useState(false);
 
   // Normaliza os dados dos setores vindos do backend
@@ -129,11 +129,11 @@ export default function BaselinePareto({
       }
     } catch (err: any) {
       setSetores(originalSetores); // Rollback
-      toast({
-        title: "Erro",
-        description: err?.message || "Falha ao atualizar status do setor",
-        variant: "destructive",
-      });
+      showAlert(
+        "destructive",
+        "Erro",
+        err?.message || "Falha ao atualizar status do setor"
+      );
     }
   };
 
@@ -175,8 +175,6 @@ export default function BaselinePareto({
       acumuladoPercent: totalSelected ? (accSel / totalSelected) * 100 : 0,
     };
   });
-  const quantidadeFuncionarios =
-    baseline?.quantidade_funcionarios ?? baseline?.quantidadeFuncionarios ?? 0;
 
   if (!baseline) {
     return (
@@ -267,7 +265,7 @@ export default function BaselinePareto({
 
         {!collapsed && (
           <div className="p-4 md:p-6 border-t">
-            <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-6 mb-6">
               <StatCard
                 title="Total de Setores"
                 value={chartData.length}
@@ -288,14 +286,10 @@ export default function BaselinePareto({
               />
               <StatCard
                 title="Foco (80%)"
-                value={`${chartData.findIndex((d) => d.acumuladoPercent >= 80)
-                  } setores`}
+                value={`${chartData.findIndex(
+                  (d) => d.acumuladoPercent >= 80
+                )} setores`}
                 icon={<Activity />}
-              />
-              <StatCard
-                title="Qtd. Funcionários"
-                value={String(quantidadeFuncionarios)}
-                icon={<TrendingUp />}
               />
             </div>
 
@@ -376,7 +370,9 @@ const StatCard = ({
 }) => (
   <div className="bg-slate-50 p-3 rounded-lg border">
     <div className="flex items-center justify-between">
-      <div className="min-w-0"> {/* garante que o truncate funcione */}
+      <div className="min-w-0">
+        {" "}
+        {/* garante que o truncate funcione */}
         <p className="text-xs font-medium text-gray-600">{title}</p>
         <p
           className="text-xl font-bold text-gray-800 truncate max-w-[180px] sm:max-w-[220px] md:max-w-[250px] overflow-hidden"
@@ -389,7 +385,6 @@ const StatCard = ({
     </div>
   </div>
 );
-
 
 const ChartContainer = ({
   title,
@@ -485,7 +480,6 @@ const NoDataSelected = () => (
   </div>
 );
 
-
 const MetricCard = ({
   title,
   value,
@@ -505,7 +499,6 @@ const MetricCard = ({
         <div className="space-y-1">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
           <p className="text-2xl font-bold">{value}</p>
-
         </div>
         <div className={`p-3 rounded-full ${colorClass}`}>
           <Icon className={`h-6 w-6 ${textColorClass}`} />

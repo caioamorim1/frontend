@@ -26,12 +26,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, Globe } from "lucide-react";
-import GraficoOcupacao from "./graphicsComponents/GraficoOcupacao";
-import {
-  getTaxaOcupacaoHospital,
-  getTaxaOcupacaoAgregada,
-  TaxaOcupacaoHospital,
-} from "@/lib/api";
+import { useOccupationAnalysis } from "@/hooks/useOccupationAnalysis";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // --- ESTRUTURA DE DADOS ---
@@ -49,10 +44,10 @@ interface OccupationRateChartProps {
   data: OccupationData[];
   summary: OccupationData;
   title?: string;
-  hospitalId?: string; // 🆕 ID do hospital para buscar taxa de ocupação real
-  showViewSelector?: boolean; // 🆕 Se true, mostra botões Setorial/Global; se false, só mostra setorial
-  aggregationType?: "hospital" | "grupo" | "regiao" | "rede"; // 🆕 Tipo de agregação para GlobalDashboard
-  entityId?: string; // 🆕 ID da entidade específica (opcional)
+  hospitalId?: string; // Se fornecido, usa a rota oficial de análise para montar os dados
+  showViewSelector?: boolean; // Se true, mostra botões Setorial/Global
+  aggregationType?: "hospital" | "grupo" | "regiao" | "rede"; // Mantido para compat, mas ignorado quando hospitalId é usado
+  entityId?: string; // Mantido para compat
 }
 
 const axisTick = {
@@ -94,8 +89,8 @@ const labelMap: Record<string, string> = {
   "Taxa de Ocupação": "Taxa Atual",
   "Ocupação Máxima Atendível": "Cobertura de Equipe",
   "Capacidade Produtiva": "Capacidade Produtiva",
-  "Ociosidade": "Excedente de Capacidade",
-  "Superlotação": "Deficit de Equipe",
+  Ociosidade: "Excedente de Capacidade",
+  Superlotação: "Deficit de Equipe",
 };
 
 // --- COMPONENTES AUXILIARES ---
@@ -152,58 +147,47 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
   entityId, // 🆕 ID da entidade (opcional)
 }) => {
   const [view, setView] = useState<"setorial" | "global">("setorial");
-  const [taxaOcupacaoReal, setTaxaOcupacaoReal] =
-    useState<TaxaOcupacaoHospital | null>(null);
-  const [taxasAgregadas, setTaxasAgregadas] = useState<TaxaOcupacaoHospital[]>(
-    []
-  );
-  const [loading, setLoading] = useState(false);
-  const chartData = view === "setorial" ? data : [summary];
+  const { data: analysis, loading: analysisLoading } =
+    useOccupationAnalysis(hospitalId);
 
-  // � MÁSCARA: Sempre buscar taxa de rede e usar para todos os tipos
-  useEffect(() => {
-    // Se temos aggregationType, SEMPRE buscamos dados de REDE (máscara)
-    if (aggregationType) {
-      const fetchTaxaAgregada = async () => {
-        setLoading(true);
-        try {
-          // 🎭 SEMPRE buscar de REDE, independente do aggregationType selecionado
-          const taxas = await getTaxaOcupacaoAgregada("rede", undefined);
-          setTaxasAgregadas(taxas);
-        } catch (error) {
-          console.error("Erro ao buscar taxa de ocupação agregada:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
+  // Mapeia a análise oficial para o shape usado pelo gráfico
+  const mappedSetorial: OccupationData[] | null = analysis
+    ? analysis.sectors.map((s) => ({
+        name: s.sectorName,
+        "Taxa de Ocupação": s.taxaOcupacao,
+        "Taxa de Ocupação Diária": s.taxaOcupacaoDia,
+        "Ocupação Máxima Atendível": s.ocupacaoMaximaAtendivel,
+        "Capacidade Produtiva": s.capacidadeProdutiva,
+        Ociosidade: s.ociosidade,
+        Superlotação: s.superlotacao,
+      }))
+    : null;
 
-      fetchTaxaAgregada();
+  const mappedSummary: OccupationData | null = analysis
+    ? {
+        name: analysis.summary.sectorName || "Global",
+        "Taxa de Ocupação": analysis.summary.taxaOcupacao,
+        "Taxa de Ocupação Diária": analysis.summary.taxaOcupacaoDia,
+        "Ocupação Máxima Atendível": analysis.summary.ocupacaoMaximaAtendivel,
+        "Capacidade Produtiva": analysis.summary.capacidadeProdutiva,
+        Ociosidade: analysis.summary.ociosidade,
+        Superlotação: analysis.summary.superlotacao,
+      }
+    : null;
 
-      // Atualizar a cada 60 segundos
-      const interval = setInterval(fetchTaxaAgregada, 60000);
-      return () => clearInterval(interval);
-    }
-    // Se temos hospitalId (sem aggregationType), buscamos dados de um hospital específico
-    else if (hospitalId) {
-      const fetchTaxaOcupacao = async () => {
-        setLoading(true);
-        try {
-          const taxa = await getTaxaOcupacaoHospital(hospitalId);
-          setTaxaOcupacaoReal(taxa);
-        } catch (error) {
-          console.error("Erro ao buscar taxa de ocupação:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
+  const chartData = analysis
+    ? view === "setorial"
+      ? mappedSetorial || []
+      : mappedSummary
+      ? [mappedSummary]
+      : []
+    : view === "setorial"
+    ? data
+    : [summary];
 
-      fetchTaxaOcupacao();
-
-      // Atualizar a cada 60 segundos
-      const interval = setInterval(fetchTaxaOcupacao, 60000);
-      return () => clearInterval(interval);
-    }
-  }, [hospitalId, aggregationType, entityId]);
+  const tableSummary: OccupationData | null = analysis
+    ? mappedSummary
+    : summary;
 
   return (
     <Card className="col-span-1 lg:col-span-2">
@@ -238,74 +222,27 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
         {/* Card de Taxa de Ocupação Diária - Aparece apenas na visão Global */}
         {view === "global" && (
           <div className="bg-muted/50 border rounded-lg p-4">
-            {loading ? (
+            {analysisLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-64" />
                 <Skeleton className="h-10 w-32" />
               </div>
-            ) : aggregationType && taxasAgregadas.length > 0 ? (
-              // 🎯 Mostrar taxa consolidada da API (baseada em status de leitos)
-              (() => {
-                // Calcular taxa consolidada total da API
-                const totalLeitos = taxasAgregadas.reduce(
-                  (acc, taxa) => acc + taxa.consolidadoHospital.totalLeitos,
-                  0
-                );
-                const totalAtivos = taxasAgregadas.reduce(
-                  (acc, taxa) => acc + taxa.consolidadoHospital.leitosAtivos,
-                  0
-                );
-                const taxaConsolidada =
-                  totalLeitos > 0 ? (totalAtivos / totalLeitos) * 100 : 0;
-
-                const entityTypeName =
-                  aggregationType === "hospital"
-                    ? "Por Hospital"
-                    : aggregationType === "grupo"
-                    ? "Por Grupo"
-                    : aggregationType === "regiao"
-                    ? "Por Região"
-                    : "Por Rede";
-
-                return (
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                        Taxa de Ocupação Diária - {entityTypeName}
-                      </h3>
-                      <p className="text-4xl font-bold text-primary">
-                        {taxaConsolidada.toFixed(1)}%
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {totalAtivos.toLocaleString()} leitos ativos de{" "}
-                        {totalLeitos.toLocaleString()} totais
-                        {taxasAgregadas.length > 1 && (
-                          <>
-                            {" "}
-                            • {taxasAgregadas.length}{" "}
-                            {aggregationType === "hospital"
-                              ? "hospitais"
-                              : "entidades"}
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })()
-            ) : taxaOcupacaoReal ? (
-              // Mostrar dados de hospital único
+            ) : mappedSummary ? (
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">
                     Taxa de Ocupação Diária
                   </h3>
                   <p className="text-4xl font-bold text-primary">
-                    {taxaOcupacaoReal.consolidadoHospital.taxaOcupacao.toFixed(
-                      2
-                    )}
-                    %
+                    {mappedSummary["Taxa de Ocupação Diária"]?.toFixed(2)}%
                   </p>
+                  {analysis && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {analysis.summary.leitosOcupados.toLocaleString()} leitos
+                      ocupados de{" "}
+                      {analysis.summary.totalLeitos.toLocaleString()} totais
+                    </p>
+                  )}
                 </div>
               </div>
             ) : summary["Taxa de Ocupação Diária"] !== undefined ? (
@@ -388,7 +325,6 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
               />
             </ComposedChart>
           </ResponsiveContainer>
-          {/* <GraficoOcupacao /> */}
         </div>
 
         <div className="pt-4">
@@ -408,14 +344,18 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
                   className="text-center font-bold text-2xl text-foreground"
                   title="Taxa de ocupação atual baseada nos leitos ocupados"
                 >
-                  {summary["Taxa de Ocupação"].toFixed(1)}%
+                  {typeof tableSummary?.["Taxa de Ocupação"] === "number"
+                    ? tableSummary["Taxa de Ocupação"].toFixed(1)
+                    : "N/A"}
+                  %
                 </TableCell>
                 <TableCell
                   className="text-center font-bold text-2xl text-foreground"
                   title="Capacidade máxima que pode ser atendida com o quadro atual de pessoal"
                 >
-                  {summary["Ocupação Máxima Atendível"]
-                    ? summary["Ocupação Máxima Atendível"].toFixed(1)
+                  {typeof tableSummary?.["Ocupação Máxima Atendível"] ===
+                  "number"
+                    ? tableSummary["Ocupação Máxima Atendível"].toFixed(1)
                     : "N/A"}
                   %
                 </TableCell>
@@ -423,19 +363,28 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
                   className="text-center font-bold text-2xl text-foreground"
                   title="Capacidade produtiva padrão (100%)"
                 >
-                  {summary["Capacidade Produtiva"].toFixed(0)}%
+                  {typeof tableSummary?.["Capacidade Produtiva"] === "number"
+                    ? tableSummary["Capacidade Produtiva"].toFixed(0)
+                    : "N/A"}
+                  %
                 </TableCell>
                 <TableCell
                   className="text-center font-bold text-2xl text-foreground"
                   title="Percentual de capacidade ociosa (excedente de capacidade disponível)"
                 >
-                  {summary["Ociosidade"].toFixed(1)}%
+                  {typeof tableSummary?.["Ociosidade"] === "number"
+                    ? tableSummary["Ociosidade"].toFixed(1)
+                    : "N/A"}
+                  %
                 </TableCell>
                 <TableCell
                   className="text-center font-bold text-2xl text-foreground"
                   title="Percentual de sobrecarga acima da capacidade máxima atendível (deficit de equipe)"
                 >
-                  {summary["Superlotação"].toFixed(1)}%
+                  {typeof tableSummary?.["Superlotação"] === "number"
+                    ? tableSummary["Superlotação"].toFixed(1)
+                    : "N/A"}
+                  %
                 </TableCell>
               </TableRow>
             </TableBody>

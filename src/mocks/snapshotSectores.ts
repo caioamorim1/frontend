@@ -29,17 +29,12 @@ let cachedHospitalId: string | null = null;
 export async function getAllSnapshotHospitalSectors(
   hospitalId: string
 ): Promise<HospitalSector> {
-  console.log("🔍 getAllHospitalSectors chamado com hospitalId:", hospitalId);
-
   if (cachedData && cachedHospitalId === hospitalId) {
-    console.log("✅ Retornando dados do cache");
     return cachedData;
   }
 
   try {
-    console.log("📡 Buscando dados da API...");
     const apiData: any = await getSnapshotHospitalSectors(hospitalId);
-    console.log("✅ Dados recebidos da API:", apiData);
 
     // Estrutura de fallback caso os dados da API venham vazios ou nulos
     const fallbackData: HospitalSector = {
@@ -53,9 +48,32 @@ export async function getAllSnapshotHospitalSectors(
       return fallbackData;
     } // Mapeamento seguro para setores de internação
 
+    // Helper: normaliza valores monetários que podem vir em centavos (cents)
+    const normalizeCurrencyAmount = (v: any): number => {
+      if (v === null || v === undefined) return 0;
+      if (typeof v === "number") {
+        // Se for inteiro grande (provável centavos), divide por 100
+        if (Number.isInteger(v) && v > 100000) return v / 100;
+        return v;
+      }
+      const raw = String(v).trim();
+      // Mantém referência do original para heurística
+      const onlyDigits = raw.replace(/\D/g, "");
+      // Remove símbolos R$, pontos de milhar e usa vírgula como decimal
+      const cleaned = raw
+        .replace(/[^0-9,.-]/g, "")
+        .replace(/\./g, "")
+        .replace(/,/g, ".");
+      const parsed = parseFloat(cleaned);
+      if (Number.isNaN(parsed)) return 0;
+      // Se original tinha apenas dígitos e mais de 3 dígitos, assume centavos
+      if (/^\d+$/.test(raw) && onlyDigits.length > 3) return parsed / 100;
+      return parsed;
+    };
+
     const internationSectors = Array.isArray(apiData.snapshot.dados.internation)
       ? apiData.snapshot.dados.internation.map((sector) => {
-          const costAmount = parseFloat(sector.costAmount) || 0;
+          const costAmount = normalizeCurrencyAmount(sector.costAmount);
           const staff = Array.isArray(sector.staff) ? sector.staff : [];
 
           return {
@@ -87,7 +105,7 @@ export async function getAllSnapshotHospitalSectors(
 
     const assistanceSectors = Array.isArray(apiData.snapshot.dados.assistance)
       ? apiData.snapshot.dados.assistance.map((sector) => {
-          const costAmount = parseFloat(sector.costAmount) || 0;
+          const costAmount = normalizeCurrencyAmount(sector.costAmount);
           const staff = Array.isArray(sector.staff) ? sector.staff : [];
           const totalStaff = staff.reduce(
             (sum, s) => sum + (s.quantity || 0),
@@ -135,7 +153,6 @@ export async function getAllSnapshotHospitalSectors(
 }
 
 export const clearSectorsCache = () => {
-  console.log("🧹 Limpando cache de setores");
   cachedData = null;
   cachedHospitalId = null;
 };

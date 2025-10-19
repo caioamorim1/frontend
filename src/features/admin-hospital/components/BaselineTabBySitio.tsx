@@ -10,7 +10,14 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, AlertCircle } from "lucide-react";
+import {
+  Building2,
+  Users,
+  AlertCircle,
+  MinusCircle,
+  PlusCircle,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface BaselineTabBySitioProps {
   unidadeId: string;
@@ -47,13 +54,8 @@ export default function BaselineTabBySitio({
       setError(null);
 
       try {
-        console.log(
-          "🔄 [BASELINE BY SITIO] Buscando snapshot do hospital:",
-          hospitalId
-        );
         const data = await getSnapshotHospitalSectors(hospitalId);
         const dados = (data as any).snapshot.dados;
-        console.log("✅ [BASELINE BY SITIO] Snapshot carregado:", dados);
 
         setSnapshotData(dados);
       } catch (err: any) {
@@ -77,11 +79,8 @@ export default function BaselineTabBySitio({
   // Extrai os sítios funcionais do snapshot para a unidade específica
   const sitiosBaseline = useMemo<SitioBaseline[]>(() => {
     if (!snapshotData || !unidadeId) {
-      console.log("⚠️ [BASELINE BY SITIO] Sem dados ou unidadeId");
       return [];
     }
-
-    console.log("🔍 [BASELINE BY SITIO] Procurando unidade:", unidadeId);
 
     // Procura nos setores de assistência (não-internação)
     const assistanceSector = snapshotData.assistance?.find(
@@ -89,14 +88,8 @@ export default function BaselineTabBySitio({
     );
 
     if (!assistanceSector) {
-      console.log("❌ [BASELINE BY SITIO] Unidade não encontrada no snapshot");
       return [];
     }
-
-    console.log(
-      "📊 [BASELINE BY SITIO] Unidade encontrada:",
-      assistanceSector.name
-    );
 
     // @ts-ignore - sitiosFuncionais pode não estar na interface antiga
     const sitiosFuncionais = assistanceSector.sitiosFuncionais;
@@ -106,18 +99,8 @@ export default function BaselineTabBySitio({
       !Array.isArray(sitiosFuncionais) ||
       sitiosFuncionais.length === 0
     ) {
-      console.log("⚠️ [BASELINE BY SITIO] Sem sítios funcionais no snapshot");
-      console.log(
-        "⚠️ [BASELINE BY SITIO] O backend ainda não salvou os sítios no snapshot"
-      );
       return [];
     }
-
-    console.log(
-      "✅ [BASELINE BY SITIO] Sítios encontrados:",
-      sitiosFuncionais.length
-    );
-    console.log("📊 [BASELINE BY SITIO] Dados dos sítios:", sitiosFuncionais);
 
     return sitiosFuncionais;
   }, [snapshotData, unidadeId]);
@@ -159,8 +142,8 @@ export default function BaselineTabBySitio({
   // Loading state
   if (loading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-32 w-full" />
+      <div className="space-y-6">
+        <Skeleton className="h-6 w-80" />
         <Skeleton className="h-64 w-full" />
       </div>
     );
@@ -215,89 +198,66 @@ export default function BaselineTabBySitio({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header com totais */}
-      <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-700">
-            Baseline - Distribuição por Sítio Funcional
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Snapshot histórico da distribuição de funcionários
-          </p>
-        </div>
-        <div className="flex gap-6">
-          <div className="text-right">
-            <p className="text-xs text-gray-500 uppercase font-medium">
-              Sítios
-            </p>
-            <p className="text-2xl font-bold text-primary flex items-center gap-2">
-              <Building2 size={20} />
-              {totals.totalSitios}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-gray-500 uppercase font-medium">
-              Funcionários
-            </p>
-            <p className="text-2xl font-bold text-primary flex items-center gap-2">
-              <Users size={20} />
-              {totals.totalFuncionarios}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Lista de Sítios Agrupados */}
-      <div className="bg-white border rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Cargo
-              </th>
-              <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
-                Quantidade
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {sitiosBaseline.map((sitio) => (
-              <React.Fragment key={sitio.id}>
-                {/* Nome do Sítio - Linha de Cabeçalho */}
-                <tr className="bg-gray-50 border-t-2 border-gray-300">
-                  <td colSpan={2} className="py-2 px-4">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-800">
-                        {sitio.nome}
-                      </span>
-                      <span className="text-xs text-gray-500">
+    <Card className="animate-fade-in-down">
+      <CardHeader>
+        <CardTitle className="mb-3">
+          Gerenciar Quadro de Funcionários por Sítio Funcional
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="border rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[60%]">Cargo</TableHead>
+                <TableHead className="text-center">Quantidade</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sitiosBaseline.map((sitio) => (
+                <React.Fragment key={`sitio-fragment-${sitio.id}`}>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableCell
+                      colSpan={2}
+                      className="font-semibold text-primary"
+                    >
+                      {sitio.nome}
+                      <span className="ml-2 text-sm text-muted-foreground font-normal">
                         ({sitio.cargosSitio.length} cargo
                         {sitio.cargosSitio.length !== 1 ? "s" : ""})
                       </span>
-                    </div>
-                  </td>
-                </tr>
+                    </TableCell>
+                  </TableRow>
 
-                {/* Cargos do Sítio */}
-                {sitio.cargosSitio.map((cargoSitio, idx) => (
-                  <tr
-                    key={`${sitio.id}-${cargoSitio.cargoUnidade.cargo.id}`}
-                    className="border-b border-gray-100 hover:bg-gray-50"
-                  >
-                    <td className="py-2 px-4 pl-8 text-gray-700">
-                      {cargoSitio.cargoUnidade.cargo.nome}
-                    </td>
-                    <td className="py-2 px-4 text-right font-medium text-gray-900">
-                      {cargoSitio.quantidade_funcionarios}
-                    </td>
-                  </tr>
-                ))}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+                  {sitio.cargosSitio.map((cargoSitio) => (
+                    <TableRow
+                      key={`cargo-${cargoSitio.cargoUnidade.cargo.id}-${sitio.id}`}
+                    >
+                      <TableCell className="font-medium pl-8">
+                        {cargoSitio.cargoUnidade.cargo.nome}
+                      </TableCell>
+                      <TableCell className="text-center font-bold text-lg">
+                        {cargoSitio.quantidade_funcionarios}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+
+                  {sitio.cargosSitio.length === 0 && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={2}
+                        className="text-center text-muted-foreground h-12 pl-8 italic"
+                      >
+                        Nenhum cargo associado a este sítio.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

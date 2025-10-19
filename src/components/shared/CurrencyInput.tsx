@@ -31,6 +31,8 @@ interface CurrencyInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  id?: string;
+  name?: string;
 }
 
 export default function CurrencyInput({

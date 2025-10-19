@@ -38,7 +38,10 @@ const processWaterfallData = (data: WaterfallDataItem[]) => {
     const isAtual = item.name.includes("Atual");
     const isStart = index === 0;
     const isEnd = index === data.length - 1;
-    const isTotal = item.name.includes("Atual") || item.name.includes("Projetado") || isBaseline;
+    const isTotal =
+      item.name.includes("Atual") ||
+      item.name.includes("Projetado") ||
+      isBaseline;
     const isTransition = !isTotal;
     let color = "hsl(var(--primary))"; // Cor padrão (azul escuro)
     let range: [number, number];
@@ -57,7 +60,7 @@ const processWaterfallData = (data: WaterfallDataItem[]) => {
       // Verde para redução (negativo), Vermelho para aumento (positivo)
       color = item.value < 0 ? "#16a34a" : "#dc2626";
     }
-    
+
     // Cores especiais para baseline, atual e projetado
     if (isBaseline) {
       color = "#89A7D6"; // Azul claro para baseline
@@ -67,7 +70,7 @@ const processWaterfallData = (data: WaterfallDataItem[]) => {
     } else if (isProjetado) {
       color = "#003151"; // Azul escuro para projetado
     }
-    
+
     return { name: item.name, value: item.value, range: range, color: color };
   });
 };
@@ -76,8 +79,8 @@ const CustomTooltip = ({ active, payload, label, isCurrency }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const isTotal =
-      data.name.includes("Atual") || 
-      data.name.includes("Projetado") || 
+      data.name.includes("Atual") ||
+      data.name.includes("Projetado") ||
       data.name.toUpperCase().includes("BASELINE");
     const displayValue = isCurrency
       ? data.value.toLocaleString("pt-BR", {
@@ -113,23 +116,7 @@ export const ReusableWaterfall: React.FC<ReusableWaterfallProps> = ({
   title,
   description,
 }) => {
-  console.log(`[ReusableWaterfall] ${title} - raw data:`, {
-    data,
-    dataLength: data?.length,
-    values: data?.map((d) => ({ name: d.name, value: d.value })),
-  });
-
   const chartData = processWaterfallData(data);
-
-  console.log(`[ReusableWaterfall] ${title} - chartData:`, {
-    chartData,
-    chartDataLength: chartData?.length,
-    ranges: chartData?.map((d) => ({
-      name: d.name,
-      range: d.range,
-      color: d.color,
-    })),
-  });
 
   if (!data || data.length === 0) {
     return (
@@ -156,14 +143,6 @@ export const ReusableWaterfall: React.FC<ReusableWaterfallProps> = ({
   const effectiveMin = minValue < 0 ? minValue * 1.1 : 0;
 
   const yDomain = [effectiveMin, effectiveMax];
-
-  console.log("[ReusableWaterfall] yDomain:", {
-    maxValue,
-    minValue,
-    effectiveMax,
-    effectiveMin,
-    yDomain,
-  });
 
   const formatYAxisTick = (value: number) => {
     if (unit === "currency") {

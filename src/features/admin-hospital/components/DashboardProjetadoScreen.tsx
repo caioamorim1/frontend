@@ -66,10 +66,7 @@ const getProjectedCost = (sector: any): number => {
     sector.projectedCostAmount !== null
   ) {
     const value = parseCostUtil(sector.projectedCostAmount);
-    console.log(
-      `💰 getProjectedCost (projectedCostAmount) for ${sector.name}:`,
-      value
-    );
+
     return value;
   }
 
@@ -81,22 +78,12 @@ const getProjectedCost = (sector: any): number => {
   ) {
     const fromSitios = computeProjectedCostFromSitios(sector);
     if (fromSitios > 0) {
-      console.log(
-        `💰 getProjectedCost (from sitios) for ${sector.name}:`,
-        fromSitios
-      );
       return fromSitios;
     }
     // otherwise fallthrough to costAmount
   }
 
   const value = parseCostUtil(sector.costAmount);
-
-  console.log(`💰 getProjectedCost for ${sector.name}:`, {
-    projectedCostAmount: sector.projectedCostAmount,
-    costAmount: sector.costAmount,
-    returned: value,
-  });
 
   return value;
 };
@@ -107,26 +94,16 @@ const getProjectedStaff = (
   if (sector && sector.projectedStaff) {
     if (isProjectedBySitio(sector.projectedStaff)) {
       const flattened = flattenProjectedBySitio(sector.projectedStaff);
-      console.log(
-        `👥 getProjectedStaff (flattened sitios) for ${sector.name}:`,
-        flattened
-      );
+
       return flattened.map((f) => ({ role: f.role, quantity: f.quantity }));
     }
     if (Array.isArray(sector.projectedStaff)) {
-      console.log(
-        `👥 getProjectedStaff (simple array) for ${sector.name}:`,
-        sector.projectedStaff
-      );
       return sector.projectedStaff;
     }
   }
 
   const staff = sector.staff || [];
-  console.log(
-    `👥 getProjectedStaff fallback to staff for ${sector.name}:`,
-    staff
-  );
+
   return staff;
 };
 
@@ -165,12 +142,7 @@ const GlobalTabContent: React.FC<{
   sourceData: ProjectedData;
   radarData: ChartDataItem[];
 }> = ({ sourceData, radarData }) => {
-  console.log("🌍 GlobalTabContent - Recebendo dados:", sourceData);
-
   const { internation, assistance } = sourceData;
-
-  console.log("📊 Internation sectors:", internation.length);
-  console.log("🏥 Assistance sectors:", assistance.length);
 
   // ✅ Usar helper functions para compatibilidade
   const totalStaffInternation = internation.reduce(
@@ -200,15 +172,6 @@ const GlobalTabContent: React.FC<{
   const totalStaff = totalStaffInternation + totalStaffAssistance;
   const amountTotal = amountTotalInternation + amountTotalAssistance;
 
-  console.log("📈 Totais calculados:", {
-    totalStaff,
-    amountTotal,
-    totalStaffInternation,
-    totalStaffAssistance,
-    amountTotalInternation,
-    amountTotalAssistance,
-  });
-
   const chartDataInternation: ChartData[] = internation.map((item) => ({
     key: item.id,
     name: item.name,
@@ -235,13 +198,6 @@ const GlobalTabContent: React.FC<{
     ...chartDataInternation,
     ...chartDataAssistance,
   ].sort((a, b) => b.value - a.value);
-
-  console.log("📊 Chart data preparado:", {
-    internationCharts: chartDataInternation.length,
-    assistanceCharts: chartDataAssistance.length,
-    totalCharts: chartDataProjetado.length,
-    firstItem: chartDataProjetado[0],
-  });
 
   return (
     <div className="space-y-12">
@@ -274,20 +230,10 @@ const TabContentInternacao: React.FC<{
   sourceData: ProjectedSector[];
   radarData: ChartDataItem[];
 }> = ({ sourceData, radarData }) => {
-  console.log("🏥 TabContentInternacao - Recebendo dados:", {
-    sectorsCount: sourceData.length,
-    sectors: sourceData.map((s) => ({ id: s.id, name: s.name })),
-  });
-
   const [selectedSector, setSelectedSector] = useState<string>("all");
   const detailedData = sourceData.filter(
     (sector) => selectedSector === "all" || sector.id === selectedSector
   );
-
-  console.log("🔍 Filtro aplicado:", {
-    selectedSector,
-    filteredCount: detailedData.length,
-  });
 
   const totalStaff = detailedData.reduce(
     (acc, sector) =>
@@ -305,12 +251,6 @@ const TabContentInternacao: React.FC<{
     (acc, sector) => acc + (sector.bedCount || 0),
     0
   );
-
-  console.log("📊 TabContentInternacao - Totais:", {
-    totalStaff,
-    amountTotal,
-    totalBeds,
-  });
 
   const chartDataProjetado: ChartData[] = detailedData
     .map((item) => ({
@@ -360,12 +300,6 @@ const TabContentInternacao: React.FC<{
     color: COLORS[index % COLORS.length],
   }));
 
-  console.log("📊 Charts preparados:", {
-    chartDataProjetado: chartDataProjetado.length,
-    chartDataColaboradoresPorSetor: chartDataColaboradoresPorSetor.length,
-    chartDataColaboradoresPorFuncao: chartDataColaboradoresPorFuncao.length,
-  });
-
   return (
     <div className="space-y-12">
       <div className="flex gap-4">
@@ -408,11 +342,6 @@ const TabContentNoInternacao: React.FC<{
   sourceData: ProjectedSector[];
   radarData: ChartDataItem[];
 }> = ({ sourceData, radarData }) => {
-  console.log("🏢 TabContentNoInternacao - Recebendo dados:", {
-    sectorsCount: sourceData.length,
-    sectors: sourceData.map((s) => ({ id: s.id, name: s.name })),
-  });
-
   const [selectedSector, setSelectedSector] = useState<string>("all");
   const detailedData = sourceData.filter(
     (sector) => selectedSector === "all" || sector.id === selectedSector
@@ -429,11 +358,6 @@ const TabContentNoInternacao: React.FC<{
     (acc, sector) => acc + getProjectedCost(sector),
     0
   );
-
-  console.log("📊 TabContentNoInternacao - Totais:", {
-    totalStaff,
-    amountTotal,
-  });
 
   const chartDataProjetado: ChartData[] = detailedData
     .map((item) => ({
@@ -544,55 +468,22 @@ const TabContentNoInternacao: React.FC<{
 export const DashboardProjetadoScreen: React.FC<
   DashboardProjetadoScreenProps
 > = (props) => {
-  console.log("🎯 DashboardProjetadoScreen - Props recebidas:", {
-    title: props.title,
-    hasExternalData: !!props.externalData,
-    isGlobalView: props.isGlobalView,
-    externalDataPreview: props.externalData
-      ? {
-          keys: Object.keys(props.externalData),
-          hasItems: !!props.externalData.items,
-          itemsKeys: props.externalData.items
-            ? Object.keys(props.externalData.items)
-            : [],
-        }
-      : null,
-  });
-
   const [chartData, setChartData] = useState<ProjectedData | null>(null);
   const [radarData, setRadarData] = useState<ChartDataItem[]>([]);
   const [activeTab, setActiveTab] = useState("global");
 
   const { hospitalId } = useParams<{ hospitalId: string }>();
 
-  console.log("🏥 HospitalId da URL:", hospitalId);
-
   const loadData = async () => {
     try {
-      console.log("⏳ Iniciando loadData...");
-      console.log("📋 Condições:", {
-        isGlobalView: props.isGlobalView,
-        hasExternalData: !!props.externalData,
-      });
-
       // ✅ Se for visão global, usar externalData
       if (props.isGlobalView && props.externalData) {
-        console.log("🔮 Usando dados externos (Global View)");
-        console.log("📦 External Data completo:", props.externalData);
-
         let transformedData: ProjectedData;
 
         if (
           props.externalData.items &&
           Array.isArray(props.externalData.items)
         ) {
-          console.log("📂 Dados têm estrutura .items (Array)");
-          console.log(
-            "📦 Items é um array com",
-            props.externalData.items.length,
-            "elementos"
-          );
-
           // ✅ CORREÇÃO: items é um ARRAY de regiões/redes/grupos/hospitais
           // Cada elemento tem internation e assistance
           // Precisamos CONCATENAR todos os setores
@@ -601,24 +492,11 @@ export const DashboardProjetadoScreen: React.FC<
           const allAssistance: ProjectedSector[] = [];
 
           props.externalData.items.forEach((item: any, index: number) => {
-            console.log(`📦 Processando item ${index}:`, {
-              id: item.id,
-              name: item.name,
-              internationCount: item.internation?.length || 0,
-              assistanceCount: item.assistance?.length || 0,
-            });
-
             if (item.internation && Array.isArray(item.internation)) {
-              console.log(
-                `  ➕ Adicionando ${item.internation.length} setores de internação`
-              );
               allInternation.push(...item.internation);
             }
 
             if (item.assistance && Array.isArray(item.assistance)) {
-              console.log(
-                `  ➕ Adicionando ${item.assistance.length} setores de assistência`
-              );
               allAssistance.push(...item.assistance);
             }
           });
@@ -627,37 +505,21 @@ export const DashboardProjetadoScreen: React.FC<
             internation: allInternation,
             assistance: allAssistance,
           };
-
-          console.log("✅ Dados transformados (CONCATENADOS):", {
-            internationCount: transformedData.internation.length,
-            assistanceCount: transformedData.assistance.length,
-            internationSample: transformedData.internation[0],
-            assistanceSample: transformedData.assistance[0],
-          });
         } else if (
           props.externalData.internation &&
           props.externalData.assistance
         ) {
-          console.log(
-            "📂 Dados já no formato correto (com internation/assistance direto)"
-          );
           transformedData = {
             internation: props.externalData.internation,
             assistance: props.externalData.assistance,
           };
         } else {
-          console.log(
-            "📂 Dados em formato desconhecido, tentando usar diretamente"
-          );
           transformedData = props.externalData;
         }
 
-        console.log("💾 Setando chartData com:", transformedData);
         setChartData(transformedData);
       } else {
-        console.log("🏥 Carregando dados projetados do hospital:", hospitalId);
         const resp = await getHospitalProjectedSectors(hospitalId);
-        console.log("� Resposta /projected:", resp);
 
         let transformed: ProjectedData = { internation: [], assistance: [] };
 
@@ -686,12 +548,6 @@ export const DashboardProjetadoScreen: React.FC<
           };
         }
 
-        console.log("💾 Setando chartData do hospital (transformado):", {
-          internationCount: transformed.internation.length,
-          assistanceCount: transformed.assistance.length,
-          sampleInternation: transformed.internation[0],
-        });
-
         setChartData(transformed);
       }
 
@@ -702,10 +558,7 @@ export const DashboardProjetadoScreen: React.FC<
           ? calcularPerformanceParaGrafico()
           : calcularPerformanceParaGrafico({ tipo: tipo });
 
-      console.log("📊 Radar data:", performanceData);
       setRadarData(performanceData);
-
-      console.log("✅ LoadData concluído com sucesso!");
     } catch (error) {
       console.error("❌ Erro ao carregar dados:", error);
       console.error("Stack trace:", error);
@@ -713,26 +566,8 @@ export const DashboardProjetadoScreen: React.FC<
   };
 
   useEffect(() => {
-    console.log("🔄 useEffect disparado - Dependências:", {
-      activeTab,
-      hospitalId,
-      hasExternalData: !!props.externalData,
-      isGlobalView: props.isGlobalView,
-    });
     loadData();
   }, [activeTab, hospitalId, props.externalData, props.isGlobalView]);
-
-  console.log("🎨 Estado atual do componente:", {
-    hasChartData: !!chartData,
-    chartDataPreview: chartData
-      ? {
-          internationCount: chartData.internation.length,
-          assistanceCount: chartData.assistance.length,
-        }
-      : null,
-    hasRadarData: radarData.length > 0,
-    activeTab,
-  });
 
   return (
     <>
@@ -751,7 +586,6 @@ export const DashboardProjetadoScreen: React.FC<
                 defaultValue="global"
                 className="w-full"
                 onValueChange={(value) => {
-                  console.log("🔄 Mudando tab para:", value);
                   setActiveTab(value);
                 }}
               >

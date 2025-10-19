@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem("authToken", token);
         api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         const decoded = jwtDecode<UserPayload>(token);
-        console.log("Token decodificado", decoded);
+
         // Unifica o papel do usuário em uma única propriedade 'appRole'
         let finalRole: UserPayload["appRole"] = "COMUM";
         if (decoded.role === "ADMIN") {
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, pass: string) => {
     try {
       const response = await api.post("/login", { email: email, senha: pass });
-      console.log(response);
+
       const { token: newToken } = response.data;
 
       if (newToken) {
@@ -88,8 +88,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (decoded.mustChangePassword) {
           navigate("/change-password");
         } else if (decoded.role === "ADMIN") {
+          // Admin global vai para a gestão de hospitais
           navigate("/admin/hospitais");
+        } else if (decoded.role === "GESTOR") {
+          // Gestor deve ir para o dashboard do seu hospital
+          const hospId = decoded.hospital?.id;
+          if (hospId) {
+            navigate(`/hospital/${hospId}/dashboard`);
+          } else {
+            // Fallback se não houver hospital no token
+            navigate("/meu-hospital");
+          }
         } else {
+          // Usuário comum
           navigate("/meu-hospital");
         }
       }

@@ -3,6 +3,8 @@ import {
   UnidadeNaoInternacao,
   getAnaliseNaoInternacao,
   AjustesPayload,
+  saveProjetadoFinalNaoInternacao,
+  getProjetadoFinalNaoInternacao,
 } from "@/lib/api";
 import {
   Table,
@@ -15,13 +17,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
-import { BarChart3, Brain, MinusCircle, PlusCircle, Settings, Target, TrendingUp } from "lucide-react";
+import {
+  BarChart3,
+  Brain,
+  MinusCircle,
+  PlusCircle,
+  Settings,
+  Target,
+  TrendingUp,
+} from "lucide-react";
+import { useParams } from "react-router-dom";
 import { GrupoDeCargos } from "@/components/shared/AnaliseFinanceira";
 import { EvaluationsTab } from "@/features/qualitativo/components/EvaluationsTab";
 import React from "react";
 import { useAlert } from "@/contexts/AlertContext";
-import brainIcon from '@/assets/brain_ia.jpg';
+import brainIcon from "@/assets/brain_ia.jpg";
 // Componente para o input de ajuste
 const AjusteInput = ({
   value,
@@ -58,8 +68,18 @@ interface ProjetadoNaoInternacaoTabProps {
 export default function ProjetadoNaoInternacaoTab({
   unidade,
 }: ProjetadoNaoInternacaoTabProps) {
-  const { showAlert } = useAlert()
-  const { toast } = useToast();
+  const { showAlert } = useAlert();
+  const params = useParams<{
+    hospitalId?: string;
+    hospital_id?: string;
+    id?: string;
+  }>();
+  const resolvedHospitalId =
+    unidade.hospitalId ||
+    params.hospitalId ||
+    params.hospital_id ||
+    params.id ||
+    "";
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [analiseBase, setAnaliseBase] = useState<GrupoDeCargos[]>([]);
@@ -71,31 +91,58 @@ export default function ProjetadoNaoInternacaoTab({
       setLoading(true);
       try {
         const analiseData = await getAnaliseNaoInternacao(unidade.id);
-        console.log("Dados da análise financeira:", analiseData);
+
         if (analiseData && analiseData.tabela) {
           setAnaliseBase(analiseData.tabela);
         }
 
-        // Buscar ajustes salvos do localStorage
-        const mockAjustes = localStorage.getItem(
-          `ajustes_nao_internacao_${unidade.id}`
-        );
-        if (mockAjustes) {
-          setAjustes(JSON.parse(mockAjustes));
+        // Tentar carregar projetado final salvo do backend
+        try {
+          const saved = await getProjetadoFinalNaoInternacao(unidade.id);
+          if (saved && saved.sitios) {
+            // Converte estrutura salva para mapa de ajustes (delta relativo ao sistema)
+            const novoMapa: AjustesPayload = {};
+            analiseData?.tabela?.forEach((sitio) => {
+              const savedSitio = saved.sitios.find(
+                (s: any) => s.sitioId === sitio.id
+              );
+              if (!savedSitio) return;
+              (sitio.cargos || []).forEach((cargo) => {
+                const savedCargo = savedSitio.cargos.find(
+                  (c: any) => c.cargoId === cargo.cargoId
+                );
+                if (!savedCargo) return;
+                // Para cargos que NÃO são projetados pelo sistema, usar quantidadeAtual como base
+                const base = cargo.isScpCargo
+                  ? cargo.quantidadeProjetada
+                  : cargo.quantidadeAtual;
+                const delta =
+                  Math.max(0, savedCargo.projetadoFinal ?? 0) - base;
+                if (delta !== 0) {
+                  novoMapa[cargo.cargoId + sitio.id] = delta;
+                }
+              });
+            });
+            setAjustes(novoMapa);
+          } else {
+            setAjustes({});
+          }
+        } catch {
+          // Sem fallback local: mantém ajustes vazios
+          setAjustes({});
         }
       } catch (error) {
-        toast({
-          variant: "destructive",
-          title: "Erro",
-          description:
-            "Não foi possível carregar os dados para o ajuste projetado.",
-        });
+        showAlert(
+          "destructive",
+          "Erro",
+          "Não foi possível carregar os dados para o ajuste projetado."
+        );
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [unidade.id, toast]);
+  }, [unidade.id]);
 
   const handleAjusteChange = (cargoId: string, novoValor: number) => {
     setAjustes((prev) => ({ ...prev, [cargoId]: novoValor }));
@@ -104,15 +151,40 @@ export default function ProjetadoNaoInternacaoTab({
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Salvar no localStorage (simulação)
-      localStorage.setItem(
-        `ajustes_nao_internacao_${unidade.id}`,
-        JSON.stringify(ajustes)
-      );
-      showAlert("success", "Sucesso", "Ajustes salvos com sucesso.");
-    } catch (error) {
-      showAlert("destructive", "Erro", "Não foi possível salvar os ajustes.");
+      // Montar payload padronizado para backend
+      const payload: any = {
+        hospitalId: resolvedHospitalId,
+        unidadeId: unidade.id,
+        hospital_id: resolvedHospitalId,
+        unidade_id: unidade.id,
+        sitios: (analiseBase || []).map((sitio) => ({
+          sitioId: sitio.id,
+          sitio_id: sitio.id,
+          cargos: (sitio.cargos || []).map((cargo) => {
+            const key = cargo.cargoId + sitio.id;
+            const ajusteAtual = ajustes[key] || 0;
+            // Para cargos que NÃO são projetados pelo sistema, usa quantidadeAtual como base
+            const base = cargo.isScpCargo
+              ? cargo.quantidadeProjetada
+              : cargo.quantidadeAtual;
+            const projetadoFinal = Math.max(0, Math.floor(base + ajusteAtual));
+            return {
+              cargoId: cargo.cargoId,
+              cargo_id: cargo.cargoId,
+              projetadoFinal,
+            };
+          }),
+        })),
+      };
 
+      await saveProjetadoFinalNaoInternacao(unidade.id, payload);
+      showAlert("success", "Sucesso", "Projetado final salvo com sucesso.");
+    } catch (error) {
+      showAlert(
+        "destructive",
+        "Erro",
+        "Não foi possível salvar o projetado final."
+      );
     } finally {
       setSaving(false);
     }
@@ -121,7 +193,6 @@ export default function ProjetadoNaoInternacaoTab({
   const handleOpenAvaliar = () => {
     setShowAvaliarPage(true);
   };
-
 
   if (loading) {
     return <Skeleton className="h-96 w-full" />;
@@ -180,174 +251,189 @@ export default function ProjetadoNaoInternacaoTab({
   };
 
   return (
-    <>{showAvaliarPage ? (
-      <EvaluationsTab
-        onClose={() => setShowAvaliarPage(false)}
-        unidadeNaoInternacao={unidade}
-      />
-    ) : (
-      <Card className="animate-fade-in-down">
-        <CardHeader>
-          <CardTitle className="mb-3">Ajuste Qualitativo do Quadro Projetado</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="h-20">
-                  <TableHead className="w-[30%]">Função</TableHead>
+    <>
+      {showAvaliarPage ? (
+        <EvaluationsTab
+          onClose={() => setShowAvaliarPage(false)}
+          unidadeNaoInternacao={unidade}
+        />
+      ) : (
+        <Card className="animate-fade-in-down">
+          <CardHeader>
+            <CardTitle className="mb-3">
+              Ajuste Qualitativo do Quadro Projetado
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="h-20">
+                    <TableHead className="w-[30%]">Função</TableHead>
 
-                  <TableHead className="text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="flex items-center justify-center">
-                        <BarChart3 className="h-7 w-7 text-gray-700" />
-                        <span className="ml-2 text-sm font-medium">Atual</span>
-                      </div>
-                    </div>
-                  </TableHead>
-
-                  <TableHead className="text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="flex items-center justify-center">
-                        <img
-                          src={brainIcon}
-                          alt="Projetado (Sistema)"
-                          className="h-10 w-10 object-contain mb-1"
-                        />
-                        <span className="text-sm font-medium">Projetado (Sistema)</span>
-                      </div>
-                    </div>
-                  </TableHead>
-
-                  <TableHead className="text-center w-[200px]">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="flex items-center justify-center">
-                        <Settings className="h-7 w-7 text-gray-700" />
-                        <span className="ml-2 text-sm font-medium">Ajuste Qualitativo</span>
-                      </div>
-                    </div>
-                  </TableHead>
-
-                  <TableHead className="text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="flex items-center justify-center">
-                        <Target className="h-7 w-7 text-gray-700" />
-                        <span className="ml-2 text-sm font-medium">Projetado Final</span>
-                      </div>
-                    </div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {/* Renderizar cargos */}
-                {analiseBase.map((sitio) => {
-                  const cargosDoSitio = sitio.cargos || [];
-
-                  return (
-                    <React.Fragment key={`sitio-fragment-${sitio.id}`}>
-                      {/* Linha de Subtítulo do Sítio */}
-                      <TableRow
-                        key={`sitio-${sitio.id}`}
-                        className="bg-muted/50 hover:bg-muted/50"
-                      >
-                        <TableCell
-                          colSpan={2}
-                          className="font-semibold text-primary"
-                        >
-                          {sitio.nome}
-                          <span className="ml-2 text-sm text-muted-foreground font-normal">
-                            ({cargosDoSitio.length} cargo
-                            {cargosDoSitio.length !== 1 ? "s" : ""})
+                    <TableHead className="text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="flex items-center justify-center">
+                          <BarChart3 className="h-7 w-7 text-gray-700" />
+                          <span className="ml-2 text-sm font-medium">
+                            Atual
                           </span>
-                        </TableCell>
-                      </TableRow>
+                        </div>
+                      </div>
+                    </TableHead>
 
-                      {/* Linhas de Cargos do Sítio */}
-                      {cargosDoSitio.map((cargoSitio) => {
-                        const idAjusteKey = cargoSitio.cargoId + sitio.id;
-                        //const quantidadeAtual = getQuantidadeAtual(cargoSitio.cargoId);
-                        const ajusteAtual = ajustes[idAjusteKey] || 0;
-                        const projetadoFinal = cargoSitio.isScpCargo ? cargoSitio.quantidadeProjetada + ajusteAtual : 0 + ajusteAtual;
-                        // const cargo = cargosHospital.find(
-                        //   (c) => c.id === cargoSitio.cargoUnidade.cargo.id
-                        // );
-                        // if (!cargo) return null;
+                    <TableHead className="text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="flex items-center justify-center">
+                          <img
+                            src={brainIcon}
+                            alt="Projetado (Sistema)"
+                            className="h-10 w-10 object-contain mb-1"
+                          />
+                          <span className="text-sm font-medium">
+                            Projetado (Sistema)
+                          </span>
+                        </div>
+                      </div>
+                    </TableHead>
 
-                        // // Busca a quantidade no estado específico do sítio
-                        // const cargoNoEstado = cargosSitioState.find(
-                        //   (c) => c.sitioId === sitio.id && c.cargoId === cargo.id
-                        // );
-                        // const quantidade = cargoNoEstado
-                        //   ? cargoNoEstado.quantidade_funcionarios
-                        //   : cargoSitio.quantidade_funcionarios;
+                    <TableHead className="text-center w-[200px]">
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="flex items-center justify-center">
+                          <Settings className="h-7 w-7 text-gray-700" />
+                          <span className="ml-2 text-sm font-medium">
+                            Ajuste Qualitativo
+                          </span>
+                        </div>
+                      </div>
+                    </TableHead>
 
-                        return (
-                          <TableRow key={`cargo-${cargoSitio.cargoId}-${sitio.id}`}>
-                            <TableCell className="font-medium pl-8">
-                              {cargoSitio.cargoNome}
-                            </TableCell>
-                            <TableCell className="text-center font-semibold">
-                              {cargoSitio.quantidadeAtual}
-                            </TableCell>
-                            <TableCell className="text-center font-bold">
-                              {cargoSitio.isScpCargo ? cargoSitio.quantidadeProjetada : '-'}
-                            </TableCell>
-                            <TableCell>
-                              <AjusteInput
-                                value={ajusteAtual}
-                                onChange={(novoValor) =>
-                                  handleAjusteChange(idAjusteKey, novoValor)
-                                }
-                              />
-                            </TableCell>
-                            <TableCell className="text-center font-bold text-xl text-primary">
-                              {projetadoFinal}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                    <TableHead className="text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="flex items-center justify-center">
+                          <Target className="h-7 w-7 text-gray-700" />
+                          <span className="ml-2 text-sm font-medium">
+                            Projetado Final
+                          </span>
+                        </div>
+                      </div>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {/* Renderizar cargos */}
+                  {analiseBase.map((sitio) => {
+                    const cargosDoSitio = sitio.cargos || [];
 
-                      {/* Mensagem se não houver cargos no sítio */}
-                      {cargosDoSitio.length === 0 && (
-                        <TableRow>
+                    return (
+                      <React.Fragment key={`sitio-fragment-${sitio.id}`}>
+                        {/* Linha de Subtítulo do Sítio */}
+                        <TableRow
+                          key={`sitio-${sitio.id}`}
+                          className="bg-muted/50 hover:bg-muted/50"
+                        >
                           <TableCell
                             colSpan={2}
-                            className="text-center text-muted-foreground h-12 pl-8 italic"
+                            className="font-semibold text-primary"
                           >
-                            Nenhum cargo associado a este sítio.
+                            {sitio.nome}
+                            <span className="ml-2 text-sm text-muted-foreground font-normal">
+                              ({cargosDoSitio.length} cargo
+                              {cargosDoSitio.length !== 1 ? "s" : ""})
+                            </span>
                           </TableCell>
                         </TableRow>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
 
-                {analiseBase.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={2}
-                      className="text-center text-muted-foreground h-24"
-                    >
-                      Nenhum sítio funcional cadastrado nesta unidade.
-                    </TableCell>
-                  </TableRow>
-                )}
+                        {/* Linhas de Cargos do Sítio */}
+                        {cargosDoSitio.map((cargoSitio) => {
+                          const idAjusteKey = cargoSitio.cargoId + sitio.id;
+                          //const quantidadeAtual = getQuantidadeAtual(cargoSitio.cargoId);
+                          const ajusteAtual = ajustes[idAjusteKey] || 0;
+                          const projetadoFinal = cargoSitio.isScpCargo
+                            ? cargoSitio.quantidadeProjetada + ajusteAtual
+                            : cargoSitio.quantidadeAtual + ajusteAtual;
+                          // const cargo = cargosHospital.find(
+                          //   (c) => c.id === cargoSitio.cargoUnidade.cargo.id
+                          // );
+                          // if (!cargo) return null;
 
+                          // // Busca a quantidade no estado específico do sítio
+                          // const cargoNoEstado = cargosSitioState.find(
+                          //   (c) => c.sitioId === sitio.id && c.cargoId === cargo.id
+                          // );
+                          // const quantidade = cargoNoEstado
+                          //   ? cargoNoEstado.quantidade_funcionarios
+                          //   : cargoSitio.quantidade_funcionarios;
 
+                          return (
+                            <TableRow
+                              key={`cargo-${cargoSitio.cargoId}-${sitio.id}`}
+                            >
+                              <TableCell className="font-medium pl-8">
+                                {cargoSitio.cargoNome}
+                              </TableCell>
+                              <TableCell className="text-center font-semibold">
+                                {cargoSitio.quantidadeAtual}
+                              </TableCell>
+                              <TableCell className="text-center font-bold">
+                                {cargoSitio.isScpCargo
+                                  ? cargoSitio.quantidadeProjetada
+                                  : "-"}
+                              </TableCell>
+                              <TableCell>
+                                <AjusteInput
+                                  value={ajusteAtual}
+                                  onChange={(novoValor) =>
+                                    handleAjusteChange(idAjusteKey, novoValor)
+                                  }
+                                />
+                              </TableCell>
+                              <TableCell className="text-center font-bold text-xl text-primary">
+                                {projetadoFinal}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
 
-              </TableBody>
-            </Table>
-          </div>
-          <div className="flex justify-end mt-6 gap-3">
-            <Button onClick={handleOpenAvaliar} disabled={saving}>
-              {"Avaliação"}
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Salvando..." : "Salvar Ajustes"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>)}
+                        {/* Mensagem se não houver cargos no sítio */}
+                        {cargosDoSitio.length === 0 && (
+                          <TableRow>
+                            <TableCell
+                              colSpan={2}
+                              className="text-center text-muted-foreground h-12 pl-8 italic"
+                            >
+                              Nenhum cargo associado a este sítio.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+
+                  {analiseBase.length === 0 && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={2}
+                        className="text-center text-muted-foreground h-24"
+                      >
+                        Nenhum sítio funcional cadastrado nesta unidade.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex justify-end mt-6 gap-3">
+              <Button onClick={handleOpenAvaliar} disabled={saving}>
+                {"Avaliação"}
+              </Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? "Salvando..." : "Salvar Ajustes"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 }

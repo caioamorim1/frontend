@@ -1,8 +1,10 @@
 import { useState, useEffect, FormEvent } from "react";
 import { getAdmins, createAdmin, deleteAdmin, Admin } from "@/lib/api";
 import { Trash2, ShieldPlus } from "lucide-react";
+import { useModal } from "@/contexts/ModalContext";
 
 export default function AdminsPage() {
+  const { showModal } = useModal();
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,9 +36,13 @@ export default function AdminsPage() {
     e.preventDefault();
     setError(null);
     try {
-      console.log(formData);
       await createAdmin(formData);
-      alert("Administrador criado com sucesso!");
+      showModal({
+        type: "success",
+        title: "Sucesso",
+        message: "Administrador criado com sucesso!",
+        confirmText: "OK",
+      });
       setFormData({ nome: "", email: "", senha: "" }); // Limpa o formulário
       fetchData(); // Recarrega a lista
     } catch (err) {
@@ -47,18 +53,22 @@ export default function AdminsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (
-      window.confirm(
-        "Tem certeza que deseja excluir este administrador? Esta ação não pode ser desfeita."
-      )
-    ) {
-      try {
-        await deleteAdmin(id);
-        fetchData();
-      } catch (err) {
-        setError("Falha ao excluir administrador.");
-      }
-    }
+    showModal({
+      type: "confirm",
+      title: "Excluir administrador",
+      message:
+        "Tem certeza que deseja excluir este administrador? Esta ação não pode ser desfeita.",
+      confirmText: "Excluir",
+      cancelText: "Cancelar",
+      onConfirm: async () => {
+        try {
+          await deleteAdmin(id);
+          fetchData();
+        } catch (err) {
+          setError("Falha ao excluir administrador.");
+        }
+      },
+    });
   };
 
   return (

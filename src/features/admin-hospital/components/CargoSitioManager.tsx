@@ -32,21 +32,13 @@ export default function CargoSitioManager({
   );
 
   const handleSaveDistribuicoes = async () => {
-    console.log("🔍 [CargoSitioManager] handleSaveDistribuicoes chamado");
-    console.log("📊 [CargoSitioManager] Dados a serem salvos:", {
-      sitioId,
-      distribuicoes,
-      distribuicoesLength: distribuicoes.length,
-    });
-
     setSaving(true);
     setError(null);
     try {
-      console.log("📡 [CargoSitioManager] Enviando para API...");
       await updateSitioFuncional(sitioId, {
         distribuicoes: distribuicoes,
       });
-      console.log("✅ [CargoSitioManager] Salvo com sucesso!");
+
       toast({
         title: "Sucesso",
         description: "Distribuição de turnos salva com sucesso!",
@@ -89,35 +81,30 @@ export default function CargoSitioManager({
           <DistribuicaoTurnosForm
             distribuicoes={distribuicoes}
             onChange={(novasDistribuicoes) => {
-              console.log(
-                "🔍 [CargoSitioManager] onChange recebido:",
-                novasDistribuicoes
-              );
               setDistribuicoes(novasDistribuicoes);
             }}
           />
           <div className="flex justify-end pt-4 border-t">
-            <button
-              onClick={() => {
-                console.log("🔍 [CargoSitioManager] Botão Salvar clicado!");
-                handleSaveDistribuicoes();
-              }}
-              disabled={saving}
-              className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-            >
-              <Save size={16} />
-              {saving ? "Salvando..." : "Salvar Distribuição"}
-            </button>
-          </div>
-        </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  handleSaveDistribuicoes();
+                }}
+                disabled={saving}
+                className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                <Save size={16} />
+                {saving ? "Salvando..." : "Salvar Distribuição"}
+              </button>
 
-        <div className="flex justify-end pt-4 border-t mt-4">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-          >
-            Fechar
-          </button>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

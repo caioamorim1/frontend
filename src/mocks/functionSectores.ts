@@ -20,39 +20,20 @@ let cachedHospitalId: string | null = null;
 export async function getAllHospitalSectors(
   hospitalId: string
 ): Promise<HospitalSector> {
-  console.log("🔍 getAllHospitalSectors chamado com hospitalId:", hospitalId);
-
   if (cachedData && cachedHospitalId === hospitalId) {
-    console.log("✅ Retornando dados do cache");
     return cachedData;
   }
 
   try {
-    console.log("📡 Buscando dados da API...");
     const apiData: HospitalSectorsData = await getHospitalSectors(hospitalId);
-    console.log("✅ Dados recebidos da API:", apiData);
-    console.log("📊 Tipo de apiData:", typeof apiData);
-    console.log("📊 Keys de apiData:", Object.keys(apiData || {}));
 
     const { id, internation, assistance } = apiData;
-
-    console.log(
-      "🔍 Processando internation:",
-      internation?.length || 0,
-      "setores"
-    );
-    console.log(
-      "🔍 Processando assistance:",
-      assistance?.length || 0,
-      "setores"
-    );
 
     // Transforma os dados da API para o formato esperado pelos componentes
 
     const internationTransformed = [];
 
     for (const sector of internation) {
-      console.log("🏥 Processando setor de internação:", sector.name);
       const {
         id,
         name,
@@ -64,13 +45,6 @@ export async function getAllHospitalSectors(
         staff,
       } = sector;
       const staffData = staff || [];
-
-      console.log(
-        "  💰 costAmount bruto:",
-        costAmount,
-        "tipo:",
-        typeof costAmount
-      );
 
       // Tratamento seguro de costAmount
       let costAmountParsed = 0;
@@ -117,22 +91,9 @@ export async function getAllHospitalSectors(
       });
     }
 
-    console.log(
-      "✅ Setores de internação transformados:",
-      internationTransformed.length
-    );
-
     const assistanceTransformed = assistance.map((sector) => {
-      console.log("🏥 Processando setor de assistência:", sector.name);
       const { id, name, descr, costAmount, staff } = sector;
       const staffData = staff || [];
-
-      console.log(
-        "  💰 costAmount bruto:",
-        costAmount,
-        "tipo:",
-        typeof costAmount
-      );
 
       // Tratamento seguro de costAmount
       let costAmountParsed = 0;
@@ -172,11 +133,6 @@ export async function getAllHospitalSectors(
         })),
       };
     });
-
-    console.log(
-      "✅ Setores de assistência transformados:",
-      assistanceTransformed.length
-    );
 
     const transformedData: HospitalSector = {
       id,
@@ -233,7 +189,6 @@ export async function getAllHospitalSectors(
 }
 
 export const clearSectorsCache = () => {
-  console.log("🧹 Limpando cache de setores");
   cachedData = null;
   cachedHospitalId = null;
 };

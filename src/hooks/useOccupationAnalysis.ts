@@ -32,14 +32,9 @@ export function useOccupationAnalysis(
     try {
       setLoading(true);
       setError(null);
-      console.log(
-        "🔄 [useOccupationAnalysis] Fetching data for hospital:",
-        hospitalId
-      );
 
       const response = await getHospitalOccupationAnalysis(hospitalId);
 
-      console.log("✅ [useOccupationAnalysis] Data received:", response);
       setData(response);
     } catch (err: any) {
       const errorMessage =
