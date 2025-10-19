@@ -98,20 +98,14 @@ export default function AnaliseFinanceira({
     const grupos = dados as GrupoDeCargos[];
     const todosCargos: LinhaAnalise[] = [];
 
-    console.log("=== CALCULANDO TOTAIS GERAIS ===");
-
     grupos.forEach((grupo) => {
-      console.log(`Processando grupo: ${grupo.nome}`);
       grupo.cargos.forEach((cargo) => {
-        console.log(
-          `  ✓ Adicionando ${cargo.cargoNome} - Atual: ${cargo.quantidadeAtual}, Projetada: ${cargo.quantidadeProjetada}`
-        );
         todosCargos.push(cargo);
       });
     });
 
     const totais = calcularTotaisGrupo(todosCargos);
-    console.log("=== TOTAIS FINAIS ===", totais);
+
     return totais;
   }, [dados, tipo]);
 

@@ -17,6 +17,7 @@ import {
 import { DollarSign, Percent, Calendar } from "lucide-react";
 import { ReusableWaterfall } from "./graphicsComponents/ReusableWaterfall";
 import { VariationCard } from "./VariationCard";
+import { formatAmountBRL } from "@/lib/utils";
 import {
   parseCost as parseCostUtil,
   getStaffArray,
@@ -73,20 +74,6 @@ export const DashboardComparativoGlobalScreen: React.FC<{
         ? projetado.internation || []
         : projetado.assistance || [];
 
-    console.log(
-      `🟢 [GlobalComparativo] Dados extraídos - activeTab: ${activeTab}`,
-      {
-        atualInternationCount: atual.internation?.length || 0,
-        atualAssistanceCount: atual.assistance?.length || 0,
-        projetadoInternationCount: projetado.internation?.length || 0,
-        projetadoAssistanceCount: projetado.assistance?.length || 0,
-        baseSectorsCount: baseSectors.length,
-        projectedBaseCount: projectedBase.length,
-        baseSectorsNames: baseSectors.map((s) => s.name),
-        projectedBaseNames: projectedBase.map((s) => s.name),
-      }
-    );
-
     // 🔍 Filtro por NOME ao invés de ID (IDs podem diferir entre atual e projetado)
     const filterBySelected = (arr: any[]) => {
       if (selectedSector === "all") return arr;
@@ -94,58 +81,28 @@ export const DashboardComparativoGlobalScreen: React.FC<{
       const filtered = arr.filter((s) => {
         const match =
           s.name?.trim().toLowerCase() === selectedSector.toLowerCase();
-        console.log(
-          `  [GlobalFilter] ${s.name} === ${selectedSector}? ${
-            match ? "✅" : "❌"
-          }`
-        );
+
         return match;
       });
 
-      console.log(
-        `[GlobalComparativo] filterBySelected selectedSector="${selectedSector}", found ${filtered.length} matches`
-      );
       return filtered;
     };
 
     const filteredAtual = filterBySelected(baseSectors);
     const filteredProjected = filterBySelected(projectedBase);
 
-    console.log(`🟢 [GlobalComparativo] Dados filtrados:`, {
-      selectedSector,
-      filteredAtualCount: filteredAtual.length,
-      filteredProjectedCount: filteredProjected.length,
-      filteredAtualNames: filteredAtual.map((s) => s.name),
-      filteredProjectedNames: filteredProjected.map((s) => s.name),
-    });
-
     const sumCost = (arr: any[], useProjected = false) => {
-      console.log(
-        `[GlobalComparativo sumCost] Calculando ${
-          useProjected ? "PROJETADO" : "ATUAL"
-        }, array length: ${arr.length}`
-      );
-
       return arr.reduce((sum, sector, index) => {
         const raw = useProjected
           ? sector.projectedCostAmount ?? sector.costAmount ?? 0
           : sector.costAmount ?? 0;
         const parsed = parseCostUtil(raw);
 
-        console.log(
-          `  [${index}] ${sector.name} - raw: ${raw}, parsed: ${parsed}`
-        );
         return sum + parsed;
       }, 0);
     };
 
     const sumStaff = (arr: any[], useProjected = false) => {
-      console.log(
-        `[GlobalComparativo sumStaff] Calculando ${
-          useProjected ? "PROJETADO" : "ATUAL"
-        }, array length: ${arr.length}`
-      );
-
       return arr.reduce((sum, sector, index) => {
         if (useProjected) {
           const staffArr =
@@ -157,16 +114,11 @@ export const DashboardComparativoGlobalScreen: React.FC<{
             0
           );
 
-          console.log(
-            `  [${index}] ${sector.name} - projectedStaff count: ${count}`
-          );
           return sum + count;
         }
 
         const count = sumStaffUtil(sector);
-        console.log(
-          `  [${index}] ${sector.name} - atual staff count: ${count}`
-        );
+
         return sum + count;
       }, 0);
     };
@@ -178,15 +130,6 @@ export const DashboardComparativoGlobalScreen: React.FC<{
     const pessoalAtual = sumStaff(filteredAtual, false);
     const pessoalProjetado = sumStaff(filteredProjected, true);
     const variacaoPessoal = pessoalProjetado - pessoalAtual;
-
-    console.log(`🟢 [GlobalComparativo] Cálculos finais (${activeTab}):`, {
-      custoAtual,
-      custoProjetado,
-      variacaoCusto,
-      pessoalAtual,
-      pessoalProjetado,
-      variacaoPessoal,
-    });
 
     // Calcula baseline (aproximadamente 89% do custo atual como referência histórica)
     const custoBaseline = custoAtual * 0.89;
@@ -249,7 +192,7 @@ export const DashboardComparativoGlobalScreen: React.FC<{
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <VariationCard
           title="VARIAÇÃO MENSAL"
-          value={`R$ ${(Math.abs(variacaoCusto) / 1000).toFixed(1)}k`}
+          value={formatAmountBRL(Math.abs(variacaoCusto))}
           isReduction={variacaoCusto < 0}
           icon={<DollarSign className="h-6 w-6" />}
         />
@@ -261,7 +204,7 @@ export const DashboardComparativoGlobalScreen: React.FC<{
         />
         <VariationCard
           title="VARIAÇÃO A 12 MESES"
-          value={`R$ ${(Math.abs(variacaoCusto * 12) / 1000).toFixed(1)}k`}
+          value={formatAmountBRL(Math.abs(variacaoCusto * 12))}
           isReduction={variacaoCusto < 0}
           icon={<Calendar className="h-6 w-6" />}
           footer="Variação mensal x 12"

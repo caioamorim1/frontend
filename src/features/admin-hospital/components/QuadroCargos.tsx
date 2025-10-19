@@ -32,15 +32,11 @@ export default function QuadroCargos({ cargos }: QuadroCargosProps) {
   const cargosSemDuplicatas = useMemo(() => {
     if (!cargos) return [];
 
-    console.log("📊 Cargos brutos recebidos:", cargos);
-
     // Remove duplicatas mantendo apenas a primeira ocorrência de cada nome de cargo
     const cargosFiltrados = cargos.filter(
       (cargo, index, self) =>
         index === self.findIndex((c) => c.cargo.nome === cargo.cargo.nome)
     );
-
-    console.log("✅ Cargos sem duplicatas:", cargosFiltrados);
 
     return cargosFiltrados;
   }, [cargos]);

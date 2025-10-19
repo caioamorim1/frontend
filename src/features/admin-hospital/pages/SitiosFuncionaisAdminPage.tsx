@@ -68,10 +68,6 @@ export default function SitiosFuncionaisAdminPage() {
 
   const fetchData = async () => {
     if (!unidadeId || !hospitalId) {
-      console.log("⚠️ [fetchData] Parâmetros faltando:", {
-        unidadeId,
-        hospitalId,
-      });
       return;
     }
     setLoading(true);
@@ -86,15 +82,8 @@ export default function SitiosFuncionaisAdminPage() {
       const sitiosDetalhados = await getSitiosFuncionaisByUnidadeId(unidadeId);
 
       // 3. ✅ NOVO: Busca TODOS os cargos do hospital (não apenas os da unidade)
-      console.log("🔍 [fetchData] Buscando cargos do hospital:", hospitalId);
-      const cargosDosHospital = await getCargosByHospitalId(hospitalId);
 
-      console.log("✅ [fetchData] Dados carregados:", {
-        unidade: unidadeData.nome,
-        sitios: sitiosDetalhados.length,
-        cargosDosHospitalTotal: cargosDosHospital.length,
-        cargosDosHospital: cargosDosHospital.map((c) => c.nome),
-      });
+      const cargosDosHospital = await getCargosByHospitalId(hospitalId);
 
       // 4. Combina os dados
       const unidadeCompleta = {
@@ -118,15 +107,7 @@ export default function SitiosFuncionaisAdminPage() {
 
   // ✅ NOVO: Agora usa TODOS os cargos do hospital, não apenas os da unidade
   const cargosDisponiveisParaAdicionar = useMemo(() => {
-    console.log("🔍 [useMemo cargosDisponiveis] Recalculando...", {
-      todosCargosDosHospitalLength: todosCargosDosHospital?.length || 0,
-      cargosParaAlocarLength: cargosParaAlocar.length,
-    });
-
     if (!todosCargosDosHospital || todosCargosDosHospital.length === 0) {
-      console.log(
-        "⚠️ [useMemo] Array todosCargosDosHospital está vazio ou undefined"
-      );
       return [];
     }
 
@@ -137,13 +118,6 @@ export default function SitiosFuncionaisAdminPage() {
     const disponiveisFiltrados = todosCargosDosHospital.filter(
       (cargo) => !idsCargosJaNoFormulario.has(cargo.id)
     );
-
-    console.log("✅ [useMemo] Cargos disponíveis:", {
-      total: todosCargosDosHospital.length,
-      jaNoFormulario: idsCargosJaNoFormulario.size,
-      disponiveis: disponiveisFiltrados.length,
-      nomes: disponiveisFiltrados.map((c) => c.nome),
-    });
 
     return disponiveisFiltrados;
   }, [todosCargosDosHospital, cargosParaAlocar]);

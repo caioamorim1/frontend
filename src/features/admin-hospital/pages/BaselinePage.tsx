@@ -42,8 +42,6 @@ export default function BaselinePage() {
     try {
       const hospitalData = await getHospitalById(hospitalId);
       const baselineData = await getBaselinesByHospitalId(hospitalId);
-      console.log("Dados do hospital:", hospitalData);
-      console.log("Dados do baseline:", baselineData);
 
       const baselineObj = Array.isArray(baselineData)
         ? baselineData[0]
@@ -67,7 +65,7 @@ export default function BaselinePage() {
               : baselineObj.setores ?? [],
           }
         : null;
-      console.log("Baseline parsed setores:", parsedBaseline?.setores);
+
       setHospital(
         parsedBaseline
           ? { ...hospitalData, baseline: parsedBaseline }
@@ -126,9 +124,8 @@ export default function BaselinePage() {
     field: keyof SetorBaseline,
     value: string | boolean
   ) => {
-     if (field === "custo") {
-    console.log("Valor recebido do CurrencyInput:", value);
-  }
+    if (field === "custo") {
+    }
     const novosSetores = [...(formData.setores || [])];
     const setorAtual = novosSetores[index];
     novosSetores[index] = {

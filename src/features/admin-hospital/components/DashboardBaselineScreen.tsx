@@ -676,25 +676,6 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
-    console.log("🔄 loadData chamado, hospitalId:", hospitalId);
-
-    console.log("ℹ️ DashboardBaselineScreen props:", {
-      isGlobalView: props.isGlobalView,
-      hasExternalData: !!props.externalData,
-      externalDataPreview: props.externalData
-        ? {
-            keys: Object.keys(props.externalData),
-            hasItems: !!props.externalData.items,
-            sample: Array.isArray(props.externalData)
-              ? props.externalData[0]
-              : props.externalData.items
-              ? props.externalData.items?.[0]
-              : props.externalData.internation?.[0] ||
-                props.externalData.assistance?.[0],
-          }
-        : null,
-    });
-
     if (!hospitalId && !(props.isGlobalView && props.externalData)) {
       console.warn(
         "⚠️ Hospital ID não encontrado na URL e não é visão global com externalData, abortando loadData"
@@ -703,24 +684,12 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
       return;
     }
     if (!hospitalId && props.isGlobalView && props.externalData) {
-      console.log(
-        "ℹ️ Sem hospitalId na URL, mas usando externalData (global view) para popular baseline"
-      );
     }
 
     try {
-      console.log("🚀 Iniciando carregamento baseline", {
-        hospitalId,
-        isGlobalView: props.isGlobalView,
-        hasExternal: !!props.externalData,
-      });
       setLoading(true);
       let dashboardData: any;
       if (props.isGlobalView && props.externalData) {
-        console.log(
-          "🔎 Usando externalData para Baseline (visão global)",
-          props.externalData
-        );
         // Normalize: externalData may be aggregated (items array) or single object with internation/assistance
         if (Array.isArray(props.externalData)) {
           const allIntern: any[] = [];
@@ -730,10 +699,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
               allIntern.push(...it.internation);
             if (Array.isArray(it.assistance)) allAssist.push(...it.assistance);
           });
-          console.log("🔁 normalized externalData (array) -> counts:", {
-            allIntern: allIntern.length,
-            allAssist: allAssist.length,
-          });
+
           dashboardData = { internation: allIntern, assistance: allAssist };
         } else if (
           props.externalData.items &&
@@ -746,10 +712,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
               allIntern.push(...it.internation);
             if (Array.isArray(it.assistance)) allAssist.push(...it.assistance);
           });
-          console.log("🔁 normalized externalData (.items) -> counts:", {
-            allIntern: allIntern.length,
-            allAssist: allAssist.length,
-          });
+
           dashboardData = { internation: allIntern, assistance: allAssist };
         } else if (
           props.externalData.internation ||
@@ -759,22 +722,12 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
             internation: props.externalData.internation || [],
             assistance: props.externalData.assistance || [],
           };
-          console.log("🔁 normalized externalData (direct) -> counts:", {
-            internation: dashboardData.internation.length,
-            assistance: dashboardData.assistance.length,
-          });
         } else {
           dashboardData = { internation: [], assistance: [] };
         }
       } else {
         const snapshotData = await getAllSnapshotHospitalSectors(hospitalId); // Usa hospitalId da URL
         dashboardData = snapshotData;
-        console.log("🔁 loaded snapshotData for hospital -> counts:", {
-          internation: dashboardData?.internation?.length,
-          assistance: dashboardData?.assistance?.length,
-          sampleIntern: dashboardData?.internation?.[0],
-          sampleAssist: dashboardData?.assistance?.[0],
-        });
       }
       const tipo = activeTab === "internacao" ? "Internacao" : "NaoInternacao";
       const chartData =
@@ -782,13 +735,11 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
           ? calcularPerformanceParaGrafico()
           : calcularPerformanceParaGrafico({ tipo: tipo });
 
-      console.log("✅ Dados iniciais carregados da API:", dashboardData);
       setChartDataAtual(dashboardData);
       setRadarData(chartData);
     } catch (error) {
       console.error("❌ Erro ao carregar dados do dashboard:", error);
     } finally {
-      console.log("🏁 Finalizando loading");
       setLoading(false);
     }
   };

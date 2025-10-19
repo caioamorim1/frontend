@@ -10,6 +10,7 @@ import {
   UpdateUsuarioDTO,
 } from "@/lib/api";
 import { Trash2, Edit } from "lucide-react";
+import { CpfInput, EmailInput } from "@/components/shared/MaskedInputs";
 
 // O DTO para criação inclui a senha inicial
 const initialFormState: Omit<CreateUsuarioDTO, "hospitalId" | "senha"> = {
@@ -79,7 +80,7 @@ export default function UsuariosPage() {
         const updateData: UpdateUsuarioDTO = {
           nome: formData.nome,
           email: formData.email,
-          cpf: formData.cpf,
+          cpf: formData.cpf?.replace(/\D/g, ""),
           permissao: formData.permissao,
         };
         await updateUsuario(formData.id, updateData);
@@ -90,7 +91,7 @@ export default function UsuariosPage() {
           hospitalId,
           nome: formData.nome || "",
           email: formData.email || "",
-          cpf: formData.cpf || "",
+          cpf: cpfNumeros,
           permissao: formData.permissao || "COMUM",
           senha: cpfNumeros, // Define o CPF (apenas números) como a palavra-passe
         };
@@ -149,22 +150,25 @@ export default function UsuariosPage() {
                 required
                 className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
               />
-              <input
+              <EmailInput
                 name="email"
-                type="email"
                 value={formData.email || ""}
-                onChange={handleChange}
+                onChange={(val) =>
+                  setFormData((prev) => ({ ...prev, email: val }))
+                }
                 placeholder="Email"
                 required
-                className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
+                className="focus:ring-1 focus:ring-secondary focus:border-secondary"
               />
-              <input
+              <CpfInput
                 name="cpf"
                 value={formData.cpf || ""}
-                onChange={handleChange}
+                onChange={(val) =>
+                  setFormData((prev) => ({ ...prev, cpf: val }))
+                }
                 placeholder="CPF"
                 required
-                className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
+                className="focus:ring-1 focus:ring-secondary focus:border-secondary"
               />
               <select
                 name="permissao"

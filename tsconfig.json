@@ -28,7 +28,8 @@
       "@/*": ["src/*"]
     },
 
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src", "vite-env.d.ts"],
   "exclude": ["node_modules", "dist"]

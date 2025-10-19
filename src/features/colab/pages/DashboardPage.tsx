@@ -12,7 +12,6 @@ import { clearSectorsCache } from "@/mocks/functionSectores";
 
 export default function HospitalDashboardPage() {
   useEffect(() => {
-    console.log("Dashboard Hospitalar - Colab");
     clearSectorsCache();
   }, []);
 

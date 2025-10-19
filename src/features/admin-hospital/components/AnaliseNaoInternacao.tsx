@@ -3,6 +3,7 @@ import {
   UnidadeNaoInternacao,
   getAnaliseNaoInternacao,
   AnaliseNaoInternacaoResponse,
+  getProjetadoFinalNaoInternacao,
 } from "@/lib/api";
 import AnaliseFinanceira, {
   GrupoDeCargos,
@@ -33,21 +34,46 @@ export default function AnaliseNaoInternacaoTab({
       setError(null);
       try {
         const data = await getAnaliseNaoInternacao(unidade.id);
-        console.log("=== DADOS DA ANÁLISE ===");
-        console.log("Tabela recebida:", data.tabela);
-        data.tabela.forEach((grupo, idx) => {
-          console.log(
-            `Grupo ${idx} (${grupo.nome}):`,
-            grupo.cargos.map((c) => ({
-              nome: c.cargoNome,
-              id: c.cargoId,
-              qtdAtual: c.quantidadeAtual,
-              qtdProjetada: c.quantidadeProjetada,
-            }))
-          );
-        });
+
         setAnaliseData(data);
-        setTabelaData(data.tabela); // Inicia a tabela com os dados do backend
+
+        // Tentar sobrepor a coluna Projetado com "projetado final" salvo
+        try {
+          const saved = await getProjetadoFinalNaoInternacao(unidade.id);
+          if (saved?.sitios?.length) {
+            // Mapeia por chave sitioId+cargoId
+            const savedMap = new Map<string, number>();
+            saved.sitios.forEach((s: any) => {
+              (s.cargos || []).forEach((c: any) => {
+                const key = `${s.sitioId ?? s.sitio_id}|${
+                  c.cargoId ?? c.cargo_id
+                }`;
+                const v = Math.max(0, Math.floor(c.projetadoFinal ?? 0));
+                savedMap.set(key, v);
+              });
+            });
+            const ajustada = (data.tabela || []).map((grupo) => ({
+              ...grupo,
+              cargos: (grupo.cargos || []).map((cargo) => {
+                const key = `${grupo.id}|${cargo.cargoId}`;
+                const override = savedMap.get(key);
+                return {
+                  ...cargo,
+                  quantidadeProjetada:
+                    override !== undefined
+                      ? override
+                      : cargo.quantidadeProjetada,
+                };
+              }),
+            }));
+            setTabelaData(ajustada);
+          } else {
+            setTabelaData(data.tabela);
+          }
+        } catch (e) {
+          // Sem salvo ou erro -> usa original
+          setTabelaData(data.tabela);
+        }
       } catch (err) {
         console.error("Erro ao buscar análise de não internação:", err);
         setError("Não foi possível carregar os dados da análise financeira.");

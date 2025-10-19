@@ -25,9 +25,46 @@ export default function ParametrosPage() {
       }
       try {
         const data = await getParametros(setorId);
-        console.log("Dados dos parâmetros carregados:", data);
+
         if (!mounted) return;
-        setParametros(data ?? {}); // aceita null/undefined -> {} (sem parâmetros)
+        if (data) {
+          // Normaliza horas: mantém decimais se existirem, remove se forem zero
+          const normalizeHours = (v: any): number | undefined => {
+            if (v === null || v === undefined) return undefined;
+            let n: number | undefined = undefined;
+            if (typeof v === "number") n = v;
+            else {
+              const s = String(v).replace(/,/g, ".").trim();
+              const parsed = Number(s);
+              if (!Number.isNaN(parsed)) n = parsed;
+            }
+            if (n === undefined) return undefined;
+            return n % 1 === 0 ? Math.trunc(n) : n;
+          };
+          const onlyDigitsStr = (v: any): string | undefined => {
+            if (v === null || v === undefined) return undefined;
+            const digits = String(v).replace(/\D/g, "");
+            return digits === "" ? undefined : digits;
+          };
+
+          const istPercentNum =
+            data.ist !== undefined && data.ist !== null
+              ? Math.round(Number(data.ist) * 100)
+              : undefined;
+          setParametros({
+            ...data,
+            ist: istPercentNum,
+            cargaHorariaEnfermeiro: normalizeHours(
+              (data as any).cargaHorariaEnfermeiro
+            ),
+            cargaHorariaTecnico: normalizeHours(
+              (data as any).cargaHorariaTecnico
+            ),
+            diasSemana: onlyDigitsStr((data as any).diasSemana),
+          } as any);
+        } else {
+          setParametros({}); // aceita null/undefined -> {} (sem parâmetros)
+        }
       } catch (err: any) {
         // se a API retornar 404 / not found, considerar como "sem parâmetros" (não é erro)
         const status = err?.response?.status ?? err?.status;
@@ -50,6 +87,46 @@ export default function ParametrosPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
+
+    // Campos numéricos que devem ser inteiros (sem casas): horas e IST (%)
+    const integerFields = [
+      "diasSemana",
+      "cargaHorariaEnfermeiro",
+      "cargaHorariaTecnico",
+      "ist",
+    ];
+
+    if (name === "ist") {
+      // IST exibido em porcentagem inteira no UI; normaliza vírgula para ponto e mantém apenas inteiros
+      const onlyDigits = value.replace(/\D/g, "");
+      const num = onlyDigits === "" ? undefined : Number(onlyDigits);
+      setParametros((prev) => ({ ...prev, ist: num as any }));
+      return;
+    }
+
+    if (name === "cargaHorariaEnfermeiro" || name === "cargaHorariaTecnico") {
+      // Aceita vírgula ou ponto como separador decimal e remove decimais apenas se forem zero
+      const normalized = value.replace(/,/g, ".").trim();
+      if (normalized === "") {
+        setParametros((prev) => ({ ...prev, [name]: undefined as any }));
+        return;
+      }
+      const parsed = Number(normalized);
+      if (Number.isNaN(parsed)) {
+        setParametros((prev) => ({ ...prev, [name]: undefined as any }));
+        return;
+      }
+      const finalValue = parsed % 1 === 0 ? Math.trunc(parsed) : parsed;
+      setParametros((prev) => ({ ...prev, [name]: finalValue }));
+      return;
+    }
+
+    if (name === "diasSemana") {
+      const onlyDigits = value.replace(/\D/g, "");
+      setParametros((prev) => ({ ...prev, diasSemana: onlyDigits }));
+      return;
+    }
+
     setParametros((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -59,12 +136,38 @@ export default function ParametrosPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!setorId) return;
-    console.log("Parametro :", parametros);
+
     if (parametros.aplicarIST === undefined || parametros.aplicarIST === null) {
       parametros.aplicarIST = false;
     }
     try {
-      await saveParametros(setorId, parametros as CreateParametrosDTO);
+      // Converte IST de porcentagem inteira para decimal antes de enviar
+      const payload: CreateParametrosDTO = {
+        ...parametros,
+        // Converte IST inteiro -> decimal
+        ist:
+          parametros.ist !== undefined && parametros.ist !== null
+            ? Number(parametros.ist as any) / 100
+            : undefined,
+        // Garante tipos corretos nos numéricos
+        cargaHorariaEnfermeiro:
+          parametros.cargaHorariaEnfermeiro !== undefined &&
+          parametros.cargaHorariaEnfermeiro !== null
+            ? Number(parametros.cargaHorariaEnfermeiro as any)
+            : undefined,
+        cargaHorariaTecnico:
+          parametros.cargaHorariaTecnico !== undefined &&
+          parametros.cargaHorariaTecnico !== null
+            ? Number(parametros.cargaHorariaTecnico as any)
+            : undefined,
+        // diasSemana no DTO é string; mantém como string
+        diasSemana:
+          parametros.diasSemana !== undefined && parametros.diasSemana !== null
+            ? String(parametros.diasSemana as any)
+            : undefined,
+      } as CreateParametrosDTO;
+
+      await saveParametros(setorId, payload);
       alert("Parâmetros salvos com sucesso!");
     } catch (err) {
       setError("Falha ao salvar parâmetros.");
@@ -74,15 +177,18 @@ export default function ParametrosPage() {
   if (loading) return <p>Carregando parâmetros...</p>;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
-        <Settings /> Parâmetros da Unidade
-      </h2>
+    <div className="space-y-6 max-w-[95vw] mx-auto">
       {error && <p className="text-red-500">{error}</p>}
       <form
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-lg border shadow-sm space-y-6"
       >
+        <div className="flex items-center gap-2 mb-2">
+          <Settings />
+          <h2 className="text-2xl font-bold text-primary">
+            Parâmetros da Unidade
+          </h2>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium mb-2">
@@ -116,7 +222,9 @@ export default function ParametrosPage() {
             <input
               name="diasSemana"
               type="number"
-              value={parametros.diasSemana || ""}
+              inputMode="numeric"
+              step={1}
+              value={(parametros.diasSemana as any) || ""}
               onChange={handleChange}
               className="w-full p-2 border rounded-md"
             />
@@ -128,7 +236,9 @@ export default function ParametrosPage() {
             <input
               name="cargaHorariaEnfermeiro"
               type="number"
-              value={parametros.cargaHorariaEnfermeiro || ""}
+              inputMode="numeric"
+              step="any"
+              value={(parametros.cargaHorariaEnfermeiro as any) || ""}
               onChange={handleChange}
               className="w-full p-2 border rounded-md"
             />
@@ -140,7 +250,9 @@ export default function ParametrosPage() {
             <input
               name="cargaHorariaTecnico"
               type="number"
-              value={parametros.cargaHorariaTecnico || ""}
+              inputMode="numeric"
+              step="any"
+              value={(parametros.cargaHorariaTecnico as any) || ""}
               onChange={handleChange}
               className="w-full p-2 border rounded-md"
             />
@@ -155,6 +267,7 @@ export default function ParametrosPage() {
             <input
               name="ist"
               type="number"
+              inputMode="numeric"
               value={parametros.ist || ""}
               onChange={handleChange}
               className="w-full p-2 border rounded-md"

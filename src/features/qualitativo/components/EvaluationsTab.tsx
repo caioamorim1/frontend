@@ -1,72 +1,109 @@
-import React from 'react';
-import { useState } from 'react';
-import { Eye, CreditCard as Edit, Calendar, User, Edit2, Trash2 } from 'lucide-react';
-import { Evaluation, EvaluationDTO, Questionnaire } from '../types';
-import { EvaluationForm } from './EvaluationForm';
-import { createAvaliacao, deleteAvaliacao, getAvaliacaoById, getAvaliacoes, getAvaliacoesBySector, getQuestionarios, UnidadeInternacao, UnidadeNaoInternacao, updateAvaliacao } from '@/lib/api';
-import { useAlert } from '@/contexts/AlertContext';
-import { useModal } from '@/contexts/ModalContext';
+import React from "react";
+import { useState } from "react";
+import {
+  Eye,
+  CreditCard as Edit,
+  Calendar,
+  User,
+  Edit2,
+  Trash2,
+} from "lucide-react";
+import { Evaluation, EvaluationDTO, Questionnaire } from "../types";
+import { EvaluationForm } from "./EvaluationForm";
+import {
+  createAvaliacao,
+  deleteAvaliacao,
+  getAvaliacaoById,
+  getAvaliacoes,
+  getAvaliacoesBySector,
+  getQuestionarios,
+  UnidadeInternacao,
+  UnidadeNaoInternacao,
+  updateAvaliacao,
+} from "@/lib/api";
+import { useAlert } from "@/contexts/AlertContext";
+import { useModal } from "@/contexts/ModalContext";
 
 export const EvaluationsTab: React.FC<{
   onClose: () => void;
   unidadeInternacao?: UnidadeInternacao;
   unidadeNaoInternacao?: UnidadeNaoInternacao;
-
 }> = ({ onClose, unidadeInternacao, unidadeNaoInternacao }) => {
-  const { showAlert } = useAlert()
-  const { showModal } = useModal()
+  const { showAlert } = useAlert();
+  const { showModal } = useModal();
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingEvaluation, setEditingEvaluation] = useState<Evaluation | null>(null);
+  const [editingEvaluation, setEditingEvaluation] = useState<Evaluation | null>(
+    null
+  );
 
   React.useEffect(() => {
     loadEvaluations();
   }, []);
 
   const loadEvaluations = () => {
-    const sectorId = unidadeInternacao ? unidadeInternacao.id : (unidadeNaoInternacao ? unidadeNaoInternacao.id : null);
+    const sectorId = unidadeInternacao
+      ? unidadeInternacao.id
+      : unidadeNaoInternacao
+      ? unidadeNaoInternacao.id
+      : null;
     if (!sectorId) {
-      showAlert('destructive', 'Setor inválido para carregar avaliações.', 'error');
+      showAlert(
+        "destructive",
+        "Setor inválido para carregar avaliações.",
+        "error"
+      );
       return;
     }
-    getAvaliacoesBySector(sectorId).then(data => {
-      setEvaluations(data);
-    }).catch(error => {
-      showAlert('destructive', 'Erro ao carregar avaliações: ' + error.message, 'error');
-    });
+    getAvaliacoesBySector(sectorId)
+      .then((data) => {
+        setEvaluations(data);
+      })
+      .catch((error) => {
+        showAlert(
+          "destructive",
+          "Erro ao carregar avaliações: " + error.message,
+          "error"
+        );
+      });
   };
-
 
   const handleSaveEvaluation = (evaluationData: EvaluationDTO) => {
     if (!evaluationData || !evaluationData.questionnaireId) {
-      showAlert('destructive', 'Dados da avaliação inválidos.', 'error');
+      showAlert("destructive", "Dados da avaliação inválidos.", "error");
       return;
     }
-    evaluationData.sectorId = unidadeInternacao ? unidadeInternacao.id : (unidadeNaoInternacao ? unidadeNaoInternacao.id : null);
+    evaluationData.sectorId = unidadeInternacao
+      ? unidadeInternacao.id
+      : unidadeNaoInternacao
+      ? unidadeNaoInternacao.id
+      : null;
     if (!evaluationData.sectorId) {
-      showAlert('destructive', 'Setor inválido para a avaliação.', 'error');
+      showAlert("destructive", "Setor inválido para a avaliação.", "error");
       return;
     }
-
-    console.log('Saving evaluation:', evaluationData);
-
-
 
     if (editingEvaluation) {
       updateAvaliacao(editingEvaluation.id, evaluationData).then(() => {
         loadEvaluations();
         handleCloseForm();
-        showAlert('success', 'Avaliação atualizada com sucesso!', 'success');
+        showAlert("success", "Avaliação atualizada com sucesso!", "success");
       });
     } else {
-      createAvaliacao(evaluationData).then(() => {
-        loadEvaluations();
-        handleCloseForm();
-        showAlert('success', 'Avaliação criada com sucesso!', 'success');
-      }).catch(error => {
-        showAlert('destructive', 'Erro ao criar avaliação: ' + error.message, 'error');
-      });
+      createAvaliacao(evaluationData)
+        .then(() => {
+          loadEvaluations();
+          handleCloseForm();
+          showAlert("success", "Avaliação criada com sucesso!", "success");
+        })
+        .catch((error) => {
+          showAlert(
+            "destructive",
+            "Erro ao criar avaliação: " + error.message,
+            "error"
+          );
+        });
     }
   };
 
@@ -82,9 +119,7 @@ export const EvaluationsTab: React.FC<{
 
   const handleNewEvaluation = async () => {
     setIsFormOpen(true);
-
-
-  }
+  };
 
   const handleDelete = (id: number) => {
     showModal({
@@ -92,7 +127,7 @@ export const EvaluationsTab: React.FC<{
       title: "Excluir registro?",
       message: "Tem certeza que deseja deletar este item?",
       onConfirm: () => deleteItem(id),
-    })
+    });
   };
 
   const deleteItem = (id: number) => {
@@ -101,7 +136,7 @@ export const EvaluationsTab: React.FC<{
         showAlert("success", "Sucesso", "Avaliação excluída com sucesso.");
         loadEvaluations();
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("Falha ao excluir avaliação:", err);
         showAlert("destructive", "Erro", "Falha ao excluir avaliação.");
       });
@@ -109,36 +144,36 @@ export const EvaluationsTab: React.FC<{
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'in-progress':
-        return 'bg-blue-100 text-blue-800';
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "in-progress":
+        return "bg-blue-100 text-blue-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'Concluída';
-      case 'pending':
-        return 'Pendente';
-      case 'in-progress':
-        return 'Em Andamento';
+      case "completed":
+        return "Concluída";
+      case "pending":
+        return "Pendente";
+      case "in-progress":
+        return "Em Andamento";
       default:
-        return 'Desconhecido';
+        return "Desconhecido";
     }
   };
-
-
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Avaliações Realizadas</h2>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Avaliações Realizadas
+        </h2>
         <div className="flex justify-end mt-6 gap-3">
           <button
             onClick={onClose}
@@ -162,9 +197,21 @@ export const EvaluationsTab: React.FC<{
           onClose={handleCloseForm}
           onSave={handleSaveEvaluation}
           editingEvaluation={editingEvaluation}
-          sectorId={unidadeInternacao ? unidadeInternacao.id : (unidadeNaoInternacao ? unidadeNaoInternacao.id : '')}
-          hospitalId={unidadeInternacao ? unidadeInternacao.hospitalId : (unidadeNaoInternacao ? unidadeNaoInternacao.hospitalId : '')}
-          unidadeType={unidadeInternacao ? 'internacao' : 'assistencial'}
+          sectorId={
+            unidadeInternacao
+              ? unidadeInternacao.id
+              : unidadeNaoInternacao
+              ? unidadeNaoInternacao.id
+              : ""
+          }
+          hospitalId={
+            unidadeInternacao
+              ? unidadeInternacao.hospitalId
+              : unidadeNaoInternacao
+              ? unidadeNaoInternacao.hospitalId
+              : ""
+          }
+          unidadeType={unidadeInternacao ? "internacao" : "assistencial"}
         />
       ) : (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -197,9 +244,14 @@ export const EvaluationsTab: React.FC<{
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {evaluations.map((evaluation) => (
-                  <tr key={evaluation.id} className="hover:bg-gray-50 transition-colors duration-150">
+                  <tr
+                    key={evaluation.id}
+                    className="hover:bg-gray-50 transition-colors duration-150"
+                  >
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{evaluation.title}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {evaluation.title}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center text-sm text-gray-600">
@@ -210,11 +262,15 @@ export const EvaluationsTab: React.FC<{
                     <td className="px-6 py-4">
                       <div className="flex items-center text-sm text-gray-600">
                         <Calendar className="h-4 w-4 mr-2" />
-                        {new Date(evaluation.date).toLocaleDateString('pt-BR')}
+                        {new Date(evaluation.date).toLocaleDateString("pt-BR")}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(evaluation.status)}`}>
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                          evaluation.status
+                        )}`}
+                      >
                         {getStatusText(evaluation.status)}
                       </span>
                     </td>

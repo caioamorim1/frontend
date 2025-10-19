@@ -34,7 +34,6 @@ export default function AdminsPage() {
     e.preventDefault();
     setError(null);
     try {
-      console.log(formData);
       await createAdmin(formData);
       alert("Administrador criado com sucesso!");
       setFormData({ nome: "", email: "", senha: "" }); // Limpa o formulário

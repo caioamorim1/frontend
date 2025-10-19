@@ -60,10 +60,6 @@ export default function DistribuicaoTurnosForm({
     newEnfData: SitioDistribuicao,
     newTecData: SitioDistribuicao
   ) => {
-    console.log("🔍 [DistribuicaoTurnosForm] notifyChange chamado:", {
-      enfData: newEnfData,
-      tecData: newTecData,
-    });
     onChange([newEnfData, newTecData]);
   };
 
@@ -75,12 +71,6 @@ export default function DistribuicaoTurnosForm({
     if (readonly) return;
 
     const newValue = Math.max(0, value);
-
-    console.log("🔍 [DistribuicaoTurnosForm] updateField:", {
-      categoria,
-      field,
-      value: newValue,
-    });
 
     if (categoria === "ENF") {
       const newEnfData = { ...enfData, [field]: newValue };
@@ -278,17 +268,6 @@ export default function DistribuicaoTurnosForm({
             {renderFormGroup("TEC", tecData)}
           </TabsContent>
         </Tabs>
-
-        {!readonly && (
-          <Alert className="mt-4 bg-yellow-50 border-yellow-200">
-            <Info className="h-4 w-4 text-yellow-600" />
-            <AlertDescription className="text-yellow-800">
-              <strong>Importante:</strong> Informe a quantidade de profissionais{" "}
-              <strong>por turno</strong>, não o total. O sistema calculará
-              automaticamente o dimensionamento semanal.
-            </AlertDescription>
-          </Alert>
-        )}
       </CardContent>
     </Card>
   );

@@ -20,6 +20,7 @@ import {
 import { DollarSign, Percent, Calendar } from "lucide-react";
 import { ReusableWaterfall } from "./graphicsComponents/ReusableWaterfall";
 import { VariationCard } from "./VariationCard";
+import { formatAmountBRL } from "@/lib/utils";
 import { HospitalSector } from "@/mocks/functionSectores";
 import { getHospitalComparative } from "@/lib/api";
 import {
@@ -43,16 +44,7 @@ export const DashboardComparativoScreen: React.FC<{
   isGlobalView?: boolean;
 }> = ({ title, externalAtualData, externalProjectedData, isGlobalView }) => {
   const { hospitalId } = useParams<{ hospitalId: string }>();
-  console.log(
-    "🔵 [USANDO: DashboardComparativoScreen - COMPONENTE ORIGINAL] render start",
-    {
-      title,
-      hospitalId,
-      isGlobalView,
-      hasExternalAtual: !!externalAtualData,
-      hasExternalProjected: !!externalProjectedData,
-    }
-  );
+
   const [hospitalData, setHospitalData] = useState<HospitalSector | null>(null);
   const [activeTab, setActiveTab] = useState<SectorType>("global");
   const [selectedSector, setSelectedSector] = useState<string>("all");
@@ -70,14 +62,12 @@ export const DashboardComparativoScreen: React.FC<{
     setSelectedSector("all");
   }, [activeTab]);
 
-  useEffect(() => {
-    console.log("[DashboardComparativoScreen] mount/effect - deps", {
-      hospitalId,
-      isGlobalView,
-      externalAtualDataExists: !!externalAtualData,
-      externalProjectedDataExists: !!externalProjectedData,
-    });
-  }, [hospitalId, isGlobalView, externalAtualData, externalProjectedData]);
+  useEffect(() => {}, [
+    hospitalId,
+    isGlobalView,
+    externalAtualData,
+    externalProjectedData,
+  ]);
 
   // Ensure we exit loading state when we have data to render.
   useEffect(() => {
@@ -100,33 +90,8 @@ export const DashboardComparativoScreen: React.FC<{
     const fetchHospital = async () => {
       try {
         setLoading(true);
-        console.log(
-          "[Comparativo] Fetching comparative data for hospital:",
-          hospitalId
-        );
+
         const resp = await getHospitalComparative(hospitalId as string);
-        console.log("[Comparativo] ===== API Response =====");
-        console.log(
-          "[Comparativo] Full Response:",
-          JSON.stringify(resp, null, 2)
-        );
-        console.log(
-          "[Comparativo] Atual internation count:",
-          resp?.atual?.internation?.length || 0
-        );
-        console.log(
-          "[Comparativo] Atual assistance count:",
-          resp?.atual?.assistance?.length || 0
-        );
-        console.log(
-          "[Comparativo] Projetado internation count:",
-          resp?.projetado?.internation?.length || 0
-        );
-        console.log(
-          "[Comparativo] Projetado assistance count:",
-          resp?.projetado?.assistance?.length || 0
-        );
-        console.log("[Comparativo] ==========================");
         if (!mounted) return;
         // Defensive: ensure arrays for both atual and projetado
         let atual = resp?.atual ?? {
@@ -164,7 +129,7 @@ export const DashboardComparativoScreen: React.FC<{
                   quantity,
                 })
               );
-              console.log(`[Comparativo] Flattened ${sector.name}:`, flattened);
+
               return { ...sector, projectedStaff: flattened };
             }
             return sector;
@@ -195,7 +160,7 @@ export const DashboardComparativoScreen: React.FC<{
                   quantity,
                 })
               );
-              console.log(`[Comparativo] Flattened ${sector.name}:`, flattened);
+
               return { ...sector, projectedStaff: flattened };
             }
             return sector;
@@ -218,30 +183,12 @@ export const DashboardComparativoScreen: React.FC<{
     };
   }, [isGlobalView, hospitalId]);
 
-  useEffect(() => {
-    console.log("[DashboardComparativoScreen] loading state changed", {
-      loading,
-    });
-  }, [loading]);
+  useEffect(() => {}, [loading]);
 
-  useEffect(() => {
-    console.log(
-      "[DashboardComparativoScreen] selectedSector changed:",
-      selectedSector
-    );
-  }, [selectedSector]);
+  useEffect(() => {}, [selectedSector]);
 
   // Single processedData useMemo that handles both hospital view and global view
   const processedData = useMemo(() => {
-    console.log("[DashboardComparativoScreen] processedData - inputs:", {
-      hospitalDataExists: !!hospitalData,
-      externalAtualDataExists: !!externalAtualData,
-      externalProjectedDataExists: !!externalProjectedData,
-      isGlobalView,
-      activeTab,
-      selectedSector,
-    });
-
     // choose sources depending on view
     const atualSource = isGlobalView
       ? externalAtualData ?? globalAtualData
@@ -251,9 +198,6 @@ export const DashboardComparativoScreen: React.FC<{
       : globalProjectedData; // ← FIX: use globalProjectedData for hospital view too!
 
     if (!atualSource && !projectedSource) {
-      console.log(
-        "⚠️ processedData: no data source available (atual/projected)"
-      );
       return null;
     }
 
@@ -278,18 +222,6 @@ export const DashboardComparativoScreen: React.FC<{
 
     const atual = extract(atualSource);
     const projetado = extract(projectedSource);
-
-    console.log("[DashboardComparativoScreen] Dados extraídos:", {
-      atualInternation: atual.internation?.length || 0,
-      atualAssistance: atual.assistance?.length || 0,
-      projetadoInternation: projetado.internation?.length || 0,
-      projetadoAssistance: projetado.assistance?.length || 0,
-      atualInternationNames: atual.internation?.map((s) => s.name) || [],
-      atualAssistanceNames: atual.assistance?.map((s) => s.name) || [],
-      projetadoInternationNames:
-        projetado.internation?.map((s) => s.name) || [],
-      projetadoAssistanceNames: projetado.assistance?.map((s) => s.name) || [],
-    });
 
     let baseSectors: any[] = [];
     if (activeTab === "global")
@@ -326,10 +258,6 @@ export const DashboardComparativoScreen: React.FC<{
         : projectedBase.filter((s) => {
             // First try: match by ID (in case the projected sector has the same ID)
             if (s.id === selectedSector) {
-              console.log(
-                "[DashboardComparativoScreen] Match direto por ID:",
-                s.name
-              );
               return true;
             }
 
@@ -354,36 +282,7 @@ export const DashboardComparativoScreen: React.FC<{
             return hasMatch;
           });
 
-    console.log("[DashboardComparativoScreen] setores:", {
-      baseSectors: baseSectors.length,
-      projectedBase: projectedBase.length,
-      filteredAtual: filteredAtual.length,
-      filteredProjected: filteredProjected.length,
-      atualNames: filteredAtual.map((s) => s.name),
-      projectedNames: filteredProjected.map((s) => s.name),
-      selectedSector,
-    });
-
     const sumCost = (arr: any[], useProjected = false) => {
-      console.log(
-        `[sumCost] Calculando ${useProjected ? "PROJETADO" : "ATUAL"}:`,
-        {
-          arrayLength: arr.length,
-          sectors: arr.map((s) => ({
-            id: s.id,
-            name: s.name,
-            costAmount: s.costAmount,
-            projectedCostAmount: s.projectedCostAmount,
-            hasProjectedStaff: !!s.projectedStaff,
-            projectedStaffType: s.projectedStaff
-              ? isProjectedBySitio(s.projectedStaff)
-                ? "sitio"
-                : "array"
-              : "none",
-          })),
-        }
-      );
-
       return arr.reduce((sum, sector, index) => {
         let sectorCost = 0;
 
@@ -394,31 +293,18 @@ export const DashboardComparativoScreen: React.FC<{
           ) {
             const val = parseCostUtil(sector.projectedCostAmount);
             sectorCost = val;
-            console.log(
-              `  [${index}] ${sector.name} - usando projectedCostAmount:`,
-              val
-            );
           } else if (
             sector.projectedStaff &&
             isProjectedBySitio(sector.projectedStaff)
           ) {
             const fromSitios = computeProjectedCostFromSitios(sector);
             sectorCost = fromSitios;
-            console.log(
-              `  [${index}] ${sector.name} - calculando de sítios:`,
-              fromSitios
-            );
           } else {
             const raw = sector.costAmount ?? 0;
             sectorCost = parseCostUtil(raw);
-            console.log(
-              `  [${index}] ${sector.name} - usando costAmount como fallback:`,
-              sectorCost
-            );
           }
         } else {
           sectorCost = parseCostUtil(sector.costAmount ?? 0);
-          console.log(`  [${index}] ${sector.name} - custo atual:`, sectorCost);
         }
 
         return sum + sectorCost;
@@ -426,27 +312,6 @@ export const DashboardComparativoScreen: React.FC<{
     };
 
     const sumStaff = (arr: any[], useProjected = false) => {
-      console.log(
-        `[sumStaff] Calculando ${useProjected ? "PROJETADO" : "ATUAL"}:`,
-        {
-          arrayLength: arr.length,
-          sectors: arr.map((s) => ({
-            id: s.id,
-            name: s.name,
-            staff: s.staff,
-            projectedStaff: s.projectedStaff,
-            hasProjectedStaff: !!s.projectedStaff,
-            projectedStaffType: s.projectedStaff
-              ? isProjectedBySitio(s.projectedStaff)
-                ? "sitio"
-                : Array.isArray(s.projectedStaff)
-                ? "array"
-                : "other"
-              : "none",
-          })),
-        }
-      );
-
       return arr.reduce((sum, sector, index) => {
         let sectorStaff = 0;
 
@@ -460,11 +325,6 @@ export const DashboardComparativoScreen: React.FC<{
               (s, it) => s + (it.quantity || 0),
               0
             );
-            console.log(
-              `  [${index}] ${sector.name} - pessoal de sítios:`,
-              sectorStaff,
-              flattened
-            );
           } else {
             const staffArr =
               sector.projectedStaff && Array.isArray(sector.projectedStaff)
@@ -474,18 +334,9 @@ export const DashboardComparativoScreen: React.FC<{
               (s: number, it: any) => s + (it.quantity || 0),
               0
             );
-            console.log(
-              `  [${index}] ${sector.name} - pessoal projetado array:`,
-              sectorStaff,
-              staffArr
-            );
           }
         } else {
           sectorStaff = sumStaffUtil(sector);
-          console.log(
-            `  [${index}] ${sector.name} - pessoal atual:`,
-            sectorStaff
-          );
         }
 
         return sum + sectorStaff;
@@ -501,33 +352,9 @@ export const DashboardComparativoScreen: React.FC<{
     const variacaoPessoal = pessoalProjetado - pessoalAtual;
 
     // Log detailed calculation for debugging
-    console.log("[DashboardComparativoScreen] Cálculos detalhados:", {
-      activeTab,
-      selectedSector,
-      filteredAtual: filteredAtual.map((s) => ({
-        id: s.id,
-        name: s.name,
-        cost: s.costAmount,
-      })),
-      filteredProjected: filteredProjected.map((s) => ({
-        id: s.id,
-        name: s.name,
-        projectedCost: s.projectedCostAmount,
-        projectedStaff: s.projectedStaff,
-      })),
-      custoAtual,
-      custoProjetado,
-      variacaoCusto,
-      pessoalAtual,
-      pessoalProjetado,
-      variacaoPessoal,
-    });
 
     // Log only the variation of projected staff for 'Unidades de Não Internação'
     if (activeTab === "nao-internacao") {
-      console.log(
-        `[Comparativo] Variação de pessoas (Não Internação): Atual = ${pessoalAtual}, Projetado = ${pessoalProjetado}, Variação = ${variacaoPessoal}`
-      );
     }
 
     const financialWaterfall = [
@@ -546,16 +373,6 @@ export const DashboardComparativoScreen: React.FC<{
 
     const variacaoPercentual =
       custoAtual > 0 ? (variacaoCusto / custoAtual) * 100 : 0;
-
-    console.log("[DashboardComparativoScreen] processedData result:", {
-      custoAtual,
-      custoProjetado,
-      variacaoCusto,
-      pessoalAtual,
-      pessoalProjetado,
-      variacaoPessoal,
-      setorListLength: setorList.length,
-    });
 
     return {
       financialWaterfall,
@@ -603,15 +420,6 @@ export const DashboardComparativoScreen: React.FC<{
   } = processedData;
 
   // Log data passed to charts (moved out of JSX to avoid ReactNode issues)
-  console.log("[DashboardComparativoScreen] prepared chart data:", {
-    financialWaterfall,
-    personnelWaterfall,
-    variacaoCusto,
-    variacaoPercentual,
-    setorListLength: setorList.length,
-    selectedSector,
-    activeTab,
-  });
 
   const renderContent = () => (
     <div className="space-y-6">
@@ -636,7 +444,7 @@ export const DashboardComparativoScreen: React.FC<{
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <VariationCard
           title="VARIAÇÃO MENSAL"
-          value={`R$ ${(Math.abs(variacaoCusto) / 1000).toFixed(1)}k`}
+          value={formatAmountBRL(Math.abs(variacaoCusto))}
           isReduction={variacaoCusto < 0}
           icon={<DollarSign className="h-6 w-6" />}
         />
@@ -648,7 +456,7 @@ export const DashboardComparativoScreen: React.FC<{
         />
         <VariationCard
           title="VARIAÇÃO A 12 MESES"
-          value={`R$ ${(Math.abs(variacaoCusto * 12) / 1000).toFixed(1)}k`}
+          value={formatAmountBRL(Math.abs(variacaoCusto * 12))}
           isReduction={variacaoCusto < 0}
           icon={<Calendar className="h-6 w-6" />}
           footer="Variação mensal x 12"

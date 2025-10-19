@@ -1,4 +1,7 @@
-import { DashboardAnalytics, hospitalDashboardMock } from "./mocksDashAtualDatabase";
+import {
+  DashboardAnalytics,
+  hospitalDashboardMock,
+} from "./mocksDashAtualDatabase";
 
 /**
  * Simula uma chamada de API para buscar os dados do dashboard.
@@ -6,13 +9,11 @@ import { DashboardAnalytics, hospitalDashboardMock } from "./mocksDashAtualDatab
  * @returns {Promise<DashboardAnalytics>}
  */
 export const fetchDashboardAtualData = (): Promise<DashboardAnalytics> => {
-    console.log("Iniciando busca dos dados...");
-
-    return new Promise((resolve) => {
-        // Simula o tempo de espera da rede (1000ms = 1 segundo)
-        setTimeout(() => {
-            console.log("Dados recebidos com sucesso!");
-            resolve(hospitalDashboardMock);
-        }, 300);
-    });
+  return new Promise((resolve) => {
+    // Simula o tempo de espera da rede (1000ms = 1 segundo)
+    setTimeout(() => {
+      console.log("Dados recebidos com sucesso!");
+      resolve(hospitalDashboardMock);
+    }, 300);
+  });
 };

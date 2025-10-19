@@ -10,6 +10,8 @@ import {
   UpdateCargoDTO,
 } from "@/lib/api";
 import { Trash2, Edit } from "lucide-react";
+import CurrencyInput from "@/components/shared/CurrencyInput";
+import { useModal } from "@/contexts/ModalContext";
 
 const initialFormState: Omit<Cargo, "id"> = {
   nome: "",
@@ -21,6 +23,7 @@ const initialFormState: Omit<Cargo, "id"> = {
 
 export default function CargosPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
+  const { showModal } = useModal();
   const [cargos, setCargos] = useState<Cargo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +69,12 @@ export default function CargosPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    // Força número na carga horária
+    if (name === "carga_horaria") {
+      const onlyDigits = value.replace(/[^0-9]/g, "");
+      setFormData((prev) => ({ ...prev, [name]: onlyDigits }));
+      return;
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -76,6 +85,15 @@ export default function CargosPage() {
     try {
       if (formData.id) {
         const updateData: UpdateCargoDTO = { ...formData };
+        // Normaliza campos monetários (strings numéricas com ponto) e numéricos
+        if (updateData.salario !== undefined)
+          updateData.salario = String(updateData.salario);
+        if (updateData.adicionais_tributos !== undefined)
+          updateData.adicionais_tributos = String(
+            updateData.adicionais_tributos
+          );
+        if (updateData.carga_horaria !== undefined)
+          updateData.carga_horaria = String(updateData.carga_horaria);
         delete updateData.id;
         await updateCargo(hospitalId, formData.id, updateData);
       } else {
@@ -84,6 +102,15 @@ export default function CargosPage() {
           ...initialFormState,
           ...formData,
         };
+        // Normaliza campos
+        if (createData.salario !== undefined)
+          createData.salario = String(createData.salario);
+        if (createData.adicionais_tributos !== undefined)
+          createData.adicionais_tributos = String(
+            createData.adicionais_tributos
+          );
+        if (createData.carga_horaria !== undefined)
+          createData.carga_horaria = String(createData.carga_horaria);
         await createCargo(createData);
       }
       handleCancel();
@@ -98,15 +125,23 @@ export default function CargosPage() {
 
   const handleDelete = async (cargoId: string) => {
     if (!hospitalId) return;
-    if (window.confirm("Tem certeza que deseja excluir este cargo?")) {
-      try {
-        await deleteCargo(hospitalId, cargoId);
-        fetchCargos();
-      } catch (err) {
-        setError("Falha ao excluir o cargo.");
-        console.error(err);
-      }
-    }
+    showModal({
+      type: "confirm",
+      title: "Excluir cargo",
+      message:
+        "Esta ação não pode ser desfeita. Tem certeza de que deseja excluir este cargo?",
+      confirmText: "Excluir",
+      cancelText: "Cancelar",
+      onConfirm: async () => {
+        try {
+          await deleteCargo(hospitalId, cargoId);
+          fetchCargos();
+        } catch (err) {
+          setError("Falha ao excluir o cargo.");
+          console.error(err);
+        }
+      },
+    });
   };
 
   return (
@@ -131,6 +166,7 @@ export default function CargosPage() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Nome do cargo */}
               <div>
                 <label
                   htmlFor="nome"
@@ -148,6 +184,8 @@ export default function CargosPage() {
                   className="mt-1 block w-full p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
                 />
               </div>
+
+              {/* Salário (R$) - monetário */}
               <div>
                 <label
                   htmlFor="salario"
@@ -155,15 +193,17 @@ export default function CargosPage() {
                 >
                   Salário (R$)
                 </label>
-                <input
-                  type="text"
-                  name="salario"
-                  id="salario"
-                  value={formData.salario || ""}
-                  onChange={handleChange}
-                  className="mt-1 block w-full p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
+                <CurrencyInput
+                  value={formData.salario || "0"}
+                  onChange={(val) =>
+                    setFormData((prev) => ({ ...prev, salario: val }))
+                  }
+                  placeholder="R$ 0,00"
+                  className="mt-1 block w-full"
                 />
               </div>
+
+              {/* Carga horária - número */}
               <div>
                 <label
                   htmlFor="carga_horaria"
@@ -172,14 +212,18 @@ export default function CargosPage() {
                   Carga Horária (horas/mês)
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   name="carga_horaria"
                   id="carga_horaria"
                   value={formData.carga_horaria || ""}
                   onChange={handleChange}
+                  min={0}
+                  step={1}
                   className="mt-1 block w-full p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
                 />
               </div>
+
+              {/* Adicionais e Tributos (R$) - monetário */}
               <div>
                 <label
                   htmlFor="adicionais_tributos"
@@ -187,13 +231,16 @@ export default function CargosPage() {
                 >
                   Adicionais e Tributos (R$)
                 </label>
-                <input
-                  type="text"
-                  name="adicionais_tributos"
-                  id="adicionais_tributos"
-                  value={formData.adicionais_tributos || ""}
-                  onChange={handleChange}
-                  className="mt-1 block w-full p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
+                <CurrencyInput
+                  value={formData.adicionais_tributos || "0"}
+                  onChange={(val) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      adicionais_tributos: val,
+                    }))
+                  }
+                  placeholder="R$ 0,00"
+                  className="mt-1 block w-full"
                 />
               </div>
             </div>

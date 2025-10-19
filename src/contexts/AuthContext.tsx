@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem("authToken", token);
         api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         const decoded = jwtDecode<UserPayload>(token);
-        console.log("Token decodificado", decoded);
+
         // Unifica o papel do usuário em uma única propriedade 'appRole'
         let finalRole: UserPayload["appRole"] = "COMUM";
         if (decoded.role === "ADMIN") {
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, pass: string) => {
     try {
       const response = await api.post("/login", { email: email, senha: pass });
-      console.log(response);
+
       const { token: newToken } = response.data;
 
       if (newToken) {

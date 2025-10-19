@@ -70,7 +70,38 @@ export default function HospitaisPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Apply masks for specific fields
+    const applyMask = (n: string, v: string) => {
+      if (n === "cnpj") return formatCNPJ(v);
+      if (n === "telefone") return formatPhone(v);
+      return v;
+    };
+
+    setFormData((prev) => ({ ...prev, [name]: applyMask(name, value) }));
+  };
+
+  // Helpers: mask CNPJ (##.###.###/####-##) and Brazilian celular (optional)
+  const onlyDigits = (s: string) => (s || "").replace(/\D+/g, "");
+
+  const formatCNPJ = (raw: string) => {
+    const d = onlyDigits(raw).slice(0, 14);
+    return d
+      .replace(/^(\d{2})(\d)/, "$1.$2")
+      .replace(/^(\d{2}\.\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{2}\.\d{3}\.\d{3})(\d)/, "$1/$2")
+      .replace(/^(\d{2}\.\d{3}\.\d{3}\/\d{4})(\d)/, "$1-$2");
+  };
+
+  const formatPhone = (raw: string) => {
+    const d = onlyDigits(raw);
+    // Accept up to 11 digits (2 for area + 9 for celular) or 10 for landline
+    const p = d.slice(0, 11);
+    if (p.length <= 2) return `(${p}`;
+    if (p.length <= 6) return `(${p.slice(0, 2)}) ${p.slice(2)}`;
+    if (p.length <= 10)
+      return `(${p.slice(0, 2)}) ${p.slice(2, 6)}-${p.slice(6)}`;
+    // 11 digits (celular): (AA) 9XXXX-XXXX
+    return `(${p.slice(0, 2)}) ${p.slice(2, 7)}-${p.slice(7)}`;
   };
 
   const handleSubmit = async (e: FormEvent) => {

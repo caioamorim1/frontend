@@ -4,6 +4,7 @@ import {
   SessaoAtiva,
   getAnaliseInternacao,
   AnaliseInternacaoResponse,
+  getProjetadoFinalInternacao,
 } from "@/lib/api";
 type LinhaAnalise = AnaliseInternacaoResponse["tabela"][number];
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,9 +34,29 @@ export default function DimensionamentoTab({
       try {
         const data = await getAnaliseInternacao(unidade.id);
         setAnaliseData(data);
-        console.log("=== DADOS COMPLETOS DA ANÁLISE DE INTERNAÇÃO ===");
-        console.log(JSON.stringify(data, null, 2));
-        setTabelaData(data?.tabela ?? []);
+
+        // Tentar carregar projetado final salvo e sobrepor na coluna "Projetado"
+        try {
+          const saved = await getProjetadoFinalInternacao(unidade.id);
+          if (saved?.cargos?.length) {
+            const savedMap = new Map<string, number>();
+            saved.cargos.forEach((c: any) => {
+              const v = Math.max(0, Math.floor(c.projetadoFinal ?? 0));
+              savedMap.set(c.cargoId ?? c.cargo_id, v);
+            });
+            const ajustada = (data?.tabela ?? []).map((l) => ({
+              ...l,
+              quantidadeProjetada:
+                savedMap.get(l.cargoId) ?? l.quantidadeProjetada,
+            }));
+            setTabelaData(ajustada);
+          } else {
+            setTabelaData(data?.tabela ?? []);
+          }
+        } catch (e) {
+          // Se não houver salvo (ex.: 404), usa dados originais
+          setTabelaData(data?.tabela ?? []);
+        }
       } catch (err: any) {
         const isNotFound =
           err?.response?.status === 404 ||

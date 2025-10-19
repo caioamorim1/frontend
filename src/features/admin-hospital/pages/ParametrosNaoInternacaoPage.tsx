@@ -14,7 +14,8 @@ export default function ParametrosNaoInternacaoPage() {
   >({
     jornadaSemanalEnfermeiro: 36,
     jornadaSemanalTecnico: 36,
-    indiceSegurancaTecnica: 0.15,
+    // UI usa porcentagem inteira (ex: 15 = 15%)
+    indiceSegurancaTecnica: 15,
     equipeComRestricao: false,
     diasFuncionamentoMensal: 30,
     diasSemana: 7,
@@ -33,16 +34,22 @@ export default function ParametrosNaoInternacaoPage() {
       try {
         const data = await getParametrosNaoInternacao(setorId);
         if (!mounted) return;
-        setParametros(
-          data ?? {
+        if (data) {
+          // Converte valor decimal (ex: 0.15) para inteiro (%) (ex: 15)
+          const istPercent = Math.round(
+            (data.indiceSegurancaTecnica ?? 0) * 100
+          );
+          setParametros({ ...data, indiceSegurancaTecnica: istPercent });
+        } else {
+          setParametros({
             jornadaSemanalEnfermeiro: 36,
             jornadaSemanalTecnico: 36,
-            indiceSegurancaTecnica: 0.15,
+            indiceSegurancaTecnica: 15,
             equipeComRestricao: false,
             diasFuncionamentoMensal: 30,
             diasSemana: 7,
-          }
-        );
+          });
+        }
       } catch (err: any) {
         const status = err?.response?.status ?? err?.status;
         const isNotFound =
@@ -52,7 +59,7 @@ export default function ParametrosNaoInternacaoPage() {
             setParametros({
               jornadaSemanalEnfermeiro: 36,
               jornadaSemanalTecnico: 36,
-              indiceSegurancaTecnica: 0.15,
+              indiceSegurancaTecnica: 15,
               equipeComRestricao: false,
               diasFuncionamentoMensal: 30,
               diasSemana: 7,
@@ -72,6 +79,16 @@ export default function ParametrosNaoInternacaoPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
+    // Tratamento específico: IST como porcentagem inteira (0-100)
+    if (name === "indiceSegurancaTecnica") {
+      const onlyDigits = value.replace(/\D/g, "");
+      const num =
+        onlyDigits === ""
+          ? undefined
+          : Math.min(100, Math.max(0, parseInt(onlyDigits, 10)));
+      setParametros((prev) => ({ ...prev, indiceSegurancaTecnica: num }));
+      return;
+    }
 
     let finalValue: any;
     if (type === "checkbox") {
@@ -96,10 +113,14 @@ export default function ParametrosNaoInternacaoPage() {
     setSuccessMessage(null);
 
     try {
-      await saveParametrosNaoInternacao(
-        setorId,
-        parametros as CreateParametrosNaoInternacaoDTO
-      );
+      // Converte IST de porcentagem inteira para decimal antes de enviar
+      const payload: CreateParametrosNaoInternacaoDTO = {
+        ...parametros,
+        indiceSegurancaTecnica:
+          ((parametros.indiceSegurancaTecnica ?? 0) as number) / 100,
+      } as CreateParametrosNaoInternacaoDTO;
+
+      await saveParametrosNaoInternacao(setorId, payload);
       setSuccessMessage("Parâmetros salvos com sucesso!");
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
@@ -214,15 +235,16 @@ export default function ParametrosNaoInternacaoPage() {
               <input
                 name="indiceSegurancaTecnica"
                 type="number"
-                step="0.01"
-                value={parametros.indiceSegurancaTecnica ?? 0.15}
+                inputMode="numeric"
+                step="1"
+                value={parametros.indiceSegurancaTecnica ?? 15}
                 onChange={handleChange}
                 min="0"
-                max="1"
+                max="100"
                 className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Valor decimal (ex: 0.15 = 15%)
+                Informe em porcentagem. Ex: 15 = 15%
               </p>
             </div>
 
