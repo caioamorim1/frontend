@@ -680,6 +680,10 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         value: delta,
       })
     );
+    // Remove entradas com variação zero para não poluir o gráfico
+    const variacoesArrayFiltered = variacoesArray.filter(
+      (v) => Math.abs(v.value) > 1e-6
+    );
 
     // Construir o array cumulativo (Baseline, Atual, variações..., Projetado)
     const custoPorFuncao: {
@@ -708,7 +712,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     });
 
     // Funções
-    variacoesArray.forEach(({ role, value }) => {
+    variacoesArrayFiltered.forEach(({ role, value }) => {
       const start = cumulative;
       const end = cumulative + value;
       cumulative = end;
@@ -775,6 +779,10 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         value: delta,
       })
     );
+    // Remove entradas com variação zero para não poluir o gráfico
+    const variacoesQtdArrayFiltered = variacoesQtdArray.filter(
+      (v) => Math.abs(v.value) > 1e-6
+    );
 
     const quantidadePorFuncao: {
       role: string;
@@ -801,7 +809,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     });
 
     // Funções
-    variacoesQtdArray.forEach(({ role, value }) => {
+    variacoesQtdArrayFiltered.forEach(({ role, value }) => {
       const start = cumulative;
       const end = cumulative + value;
       cumulative = end;
@@ -835,10 +843,10 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         sectorFilter: selectedSector,
         costModel: "unitCost x deltaQty",
         totals: { totalAtual, totalProjetado, baseline },
-        variacoesByRole: variacoesArray,
+        variacoesByRole: variacoesArrayFiltered,
         custoPorFuncao,
         totalsQtd: { totalAtualQtd, totalProjetadoQtd, baselineQtd },
-        variacoesQtdByRole: variacoesQtdArray,
+        variacoesQtdByRole: variacoesQtdArrayFiltered,
         quantidadePorFuncao,
       });
     } catch {}

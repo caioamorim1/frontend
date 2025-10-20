@@ -57,12 +57,22 @@ const CostBreakdownCard: React.FC<CostBreakdownCardProps> = ({
     (item) => item.custo < averageCost * 0.5
   );
 
-  // Regra 80/20 - setores que representam 80% dos custos selecionados
+  // Regra 80/20 - incluir setores (ordenados por custo desc) até atingir no máximo 80% do total selecionado
+  const sortedByCostDesc = [...selectedData].sort((a, b) => b.custo - a.custo);
+  const threshold = (totalSelected || 0) * 0.8;
   let accumulated = 0;
-  const pareto80Sectors = selectedData.filter((item) => {
-    accumulated += item.custo;
-    return accumulated <= totalSelected * 0.8;
-  });
+  const pareto80Sectors: CostItem[] = [];
+  for (const item of sortedByCostDesc) {
+    const next = accumulated + item.custo;
+    if (next <= threshold) {
+      pareto80Sectors.push(item);
+      accumulated = next;
+    } else {
+      break; // se ultrapassar 80%, não considera os próximos
+    }
+  }
+  const paretoPercent =
+    totalSelected > 0 ? (accumulated / totalSelected) * 100 : 0;
 
   const MetricCard = ({
     title,
@@ -279,7 +289,11 @@ const CostBreakdownCard: React.FC<CostBreakdownCardProps> = ({
           <div>
             <SectionHeader
               title="Análise Pareto (80/20)"
-              description={`${pareto80Sectors.length} setores representam 80% dos custos`}
+              description={`${
+                pareto80Sectors.length
+              } setores somam ${paretoPercent.toFixed(
+                1
+              )}% dos custos (até 80%)`}
               sectionKey="pareto"
               icon={TrendingUp}
             />

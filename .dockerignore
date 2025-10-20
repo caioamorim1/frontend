@@ -9,5 +9,5 @@ Dockerfile.*
 README.md
 .vscode
 .env*
-
+frontend.tar
 ./node_modules
