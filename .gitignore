@@ -6,5 +6,6 @@ node_modules
 ./.env
 frontend.tar.
 ./frontend.tar
-
+.vscode
+./.vscode
 frontend.tar
