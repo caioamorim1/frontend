@@ -71,7 +71,8 @@ const CostBreakdownCard: React.FC<CostBreakdownCardProps> = ({
       break; // se ultrapassar 80%, não considera os próximos
     }
   }
-  const paretoPercent = totalSelected > 0 ? (accumulated / totalSelected) * 100 : 0;
+  const paretoPercent =
+    totalSelected > 0 ? (accumulated / totalSelected) * 100 : 0;
 
   const MetricCard = ({
     title,
@@ -288,7 +289,11 @@ const CostBreakdownCard: React.FC<CostBreakdownCardProps> = ({
           <div>
             <SectionHeader
               title="Análise Pareto (80/20)"
-              description={`${pareto80Sectors.length} setores somam ${paretoPercent.toFixed(1)}% dos custos (até 80%)`}
+              description={`${
+                pareto80Sectors.length
+              } setores somam ${paretoPercent.toFixed(
+                1
+              )}% dos custos (até 80%)`}
               sectionKey="pareto"
               icon={TrendingUp}
             />
