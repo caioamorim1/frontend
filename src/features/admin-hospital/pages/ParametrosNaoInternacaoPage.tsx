@@ -6,11 +6,11 @@ import {
   CreateParametrosNaoInternacaoDTO,
 } from "@/lib/api";
 import { Settings } from "lucide-react";
-import { useModal } from "@/contexts/ModalContext";
+import { useAlert } from "@/contexts/AlertContext";
 
 export default function ParametrosNaoInternacaoPage() {
   const { setorId } = useParams<{ setorId: string }>();
-  const { showModal } = useModal();
+  const { showAlert } = useAlert();
   const [parametros, setParametros] = useState<
     Partial<CreateParametrosNaoInternacaoDTO>
   >({
@@ -121,14 +121,10 @@ export default function ParametrosNaoInternacaoPage() {
       } as CreateParametrosNaoInternacaoDTO;
 
       await saveParametrosNaoInternacao(setorId, payload);
-      showModal({
-        type: "success",
-        title: "Sucesso",
-        message: "Parâmetros salvos com sucesso!",
-        confirmText: "OK",
-      });
+      showAlert("success", "Sucesso", "Parâmetros salvos com sucesso!");
     } catch (err) {
       setError("Falha ao salvar parâmetros.");
+      showAlert("destructive", "Erro", "Falha ao salvar parâmetros.");
     }
   };
 

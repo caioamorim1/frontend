@@ -7,11 +7,11 @@ import {
   CreateParametrosDTO,
 } from "@/lib/api";
 import { Settings } from "lucide-react";
-import { useModal } from "@/contexts/ModalContext";
+import { useAlert } from "@/contexts/AlertContext";
 
 export default function ParametrosPage() {
   const { setorId } = useParams<{ setorId: string }>();
-  const { showModal } = useModal();
+  const { showAlert } = useAlert();
   const [parametros, setParametros] = useState<Partial<CreateParametrosDTO>>(
     {}
   );
@@ -170,14 +170,10 @@ export default function ParametrosPage() {
       } as CreateParametrosDTO;
 
       await saveParametros(setorId, payload);
-      showModal({
-        type: "success",
-        title: "Sucesso",
-        message: "Parâmetros salvos com sucesso!",
-        confirmText: "OK",
-      });
+      showAlert("success", "Sucesso", "Parâmetros salvos com sucesso!");
     } catch (err) {
       setError("Falha ao salvar parâmetros.");
+      showAlert("destructive", "Erro", "Falha ao salvar parâmetros.");
     }
   };
 
