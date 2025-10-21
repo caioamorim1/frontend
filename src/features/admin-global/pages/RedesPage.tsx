@@ -2,9 +2,11 @@ import { useState, useEffect, FormEvent } from "react";
 import { getRedes, createRede, updateRede, deleteRede, Rede } from "@/lib/api";
 import { Trash2, Edit } from "lucide-react";
 import { useModal } from "@/contexts/ModalContext";
+import { useAlert } from "@/contexts/AlertContext";
 
 export default function RedesPage() {
   const { showModal } = useModal();
+  const { showAlert } = useAlert();
   const [redes, setRedes] = useState<Rede[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,13 +54,20 @@ export default function RedesPage() {
     try {
       if (formData.id) {
         await updateRede(formData.id, formData.nome);
+        showAlert("success", "Sucesso", "Rede atualizada com sucesso.");
       } else {
         await createRede(formData.nome);
+        showAlert("success", "Sucesso", "Rede criada com sucesso.");
       }
       handleCancel();
       fetchRedes();
     } catch (err) {
       setError(
+        formData.id ? "Falha ao atualizar a rede." : "Falha ao criar a rede."
+      );
+      showAlert(
+        "destructive",
+        "Erro",
         formData.id ? "Falha ao atualizar a rede." : "Falha ao criar a rede."
       );
       console.error(err);
@@ -76,9 +85,11 @@ export default function RedesPage() {
       onConfirm: async () => {
         try {
           await deleteRede(redeId);
+          showAlert("success", "Sucesso", "Rede excluída com sucesso.");
           fetchRedes();
         } catch (err) {
           setError("Falha ao excluir a rede.");
+          showAlert("destructive", "Erro", "Falha ao excluir a rede.");
           console.error(err);
         }
       },

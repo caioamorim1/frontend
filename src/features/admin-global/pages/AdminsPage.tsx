@@ -2,9 +2,11 @@ import { useState, useEffect, FormEvent } from "react";
 import { getAdmins, createAdmin, deleteAdmin, Admin } from "@/lib/api";
 import { Trash2, ShieldPlus } from "lucide-react";
 import { useModal } from "@/contexts/ModalContext";
+import { useAlert } from "@/contexts/AlertContext";
 
 export default function AdminsPage() {
   const { showModal } = useModal();
+  const { showAlert } = useAlert();
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,16 +39,16 @@ export default function AdminsPage() {
     setError(null);
     try {
       await createAdmin(formData);
-      showModal({
-        type: "success",
-        title: "Sucesso",
-        message: "Administrador criado com sucesso!",
-        confirmText: "OK",
-      });
+      showAlert("success", "Sucesso", "Administrador criado com sucesso!");
       setFormData({ nome: "", email: "", senha: "" }); // Limpa o formulário
       fetchData(); // Recarrega a lista
     } catch (err) {
       setError(
+        "Falha ao criar administrador. Verifique se o e-mail já está em uso."
+      );
+      showAlert(
+        "destructive",
+        "Erro",
         "Falha ao criar administrador. Verifique se o e-mail já está em uso."
       );
     }
@@ -63,9 +65,15 @@ export default function AdminsPage() {
       onConfirm: async () => {
         try {
           await deleteAdmin(id);
+          showAlert(
+            "success",
+            "Sucesso",
+            "Administrador excluído com sucesso."
+          );
           fetchData();
         } catch (err) {
           setError("Falha ao excluir administrador.");
+          showAlert("destructive", "Erro", "Falha ao excluir administrador.");
         }
       },
     });

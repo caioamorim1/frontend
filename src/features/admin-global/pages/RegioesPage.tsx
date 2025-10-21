@@ -11,9 +11,11 @@ import {
 } from "@/lib/api";
 import { Trash2, Edit } from "lucide-react";
 import { useModal } from "@/contexts/ModalContext";
+import { useAlert } from "@/contexts/AlertContext";
 
 export default function RegioesPage() {
   const { showModal } = useModal();
+  const { showAlert } = useAlert();
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,13 +83,22 @@ export default function RegioesPage() {
           grupoId: formData.grupoId,
         };
         await updateRegiao(formData.id, updateData);
+        showAlert("success", "Sucesso", "Região atualizada com sucesso.");
       } else {
         await createRegiao({ nome: formData.nome, grupoId: formData.grupoId });
+        showAlert("success", "Sucesso", "Região criada com sucesso.");
       }
       handleCancel();
       fetchData();
     } catch (err) {
       setError(
+        formData.id
+          ? "Falha ao atualizar a região."
+          : "Falha ao criar a região."
+      );
+      showAlert(
+        "destructive",
+        "Erro",
         formData.id
           ? "Falha ao atualizar a região."
           : "Falha ao criar a região."
@@ -107,9 +118,11 @@ export default function RegioesPage() {
       onConfirm: async () => {
         try {
           await deleteRegiao(regiaoId);
+          showAlert("success", "Sucesso", "Região excluída com sucesso.");
           fetchData();
         } catch (err) {
           setError("Falha ao excluir a região.");
+          showAlert("destructive", "Erro", "Falha ao excluir a região.");
           console.error(err);
         }
       },

@@ -37,10 +37,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useModal } from "@/contexts/ModalContext";
+import { useAlert } from "@/contexts/AlertContext";
 
 export default function SetoresPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const { showModal } = useModal();
+  const { showAlert } = useAlert();
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [scpMetodos, setScpMetodos] = useState<ScpMetodo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,6 +69,7 @@ export default function SetoresPage() {
     try {
       await createSnapshotHospitalSectors(hospitalId);
       await fetchData();
+      showAlert("success", "Sucesso", "Baseline gerada com sucesso.");
     } catch (error: any) {
       console.error("❌ Erro ao criar snapshot:", error);
       const errorMessage =
@@ -74,10 +77,35 @@ export default function SetoresPage() {
         error?.message ||
         "Erro ao criar snapshot";
       setError(errorMessage);
+      showAlert("destructive", "Erro", errorMessage);
     } finally {
       setLoading(false);
     }
   };
+
+  // Map scpMetodoKey to scpMetodoId to prefill select when editing
+  const resolveScpMetodoId = (
+    unidade: Unidade | null,
+    metodos: ScpMetodo[]
+  ): string => {
+    if (!unidade || unidade.tipo !== "internacao") return "";
+    const rawKey = (unidade.scpMetodoKey ?? "").toString().trim().toLowerCase();
+    if (rawKey) {
+      const m = metodos.find(
+        (mm) => (mm.key ?? "").toString().trim().toLowerCase() === rawKey
+      );
+      if (m) return m.id;
+    }
+    const possibleId = (unidade as any).scpMetodoId as string | undefined;
+    if (possibleId && metodos.some((m) => m.id === possibleId))
+      return possibleId;
+    return "";
+  };
+  useEffect(() => {
+    if (!editingUnidade || editingUnidade.tipo !== "internacao") return;
+    const resolved = resolveScpMetodoId(editingUnidade, scpMetodos);
+    if (resolved) setScpMetodoId(resolved);
+  }, [editingUnidade, scpMetodos]);
 
   const fetchData = async () => {
     if (!hospitalId) return;
@@ -93,6 +121,7 @@ export default function SetoresPage() {
       setScpMetodos(scpData);
     } catch (err) {
       setError("Falha ao carregar os setores.");
+      showAlert("destructive", "Erro", "Falha ao carregar os setores.");
     } finally {
       setLoading(false);
     }
@@ -137,7 +166,9 @@ export default function SetoresPage() {
 
     if (unidade.tipo === "internacao") {
       setNumeroLeitos(unidade.leitos?.length || 0);
-      setScpMetodoId(unidade.scpMetodoKey || "");
+      // Map scpMetodoKey (stored on unidade) to the actual scp metodo id so the Select shows correctly
+      const resolved = resolveScpMetodoId(unidade, scpMetodos);
+      setScpMetodoId(resolved);
     } else {
       setDescricao(unidade.descricao || "");
     }
@@ -161,6 +192,15 @@ export default function SetoresPage() {
 
       if (editingUnidade) {
         if (tipoUnidade === "internacao") {
+          // Must have an SCP method selected for internacao
+          if (!scpMetodoId || scpMetodoId.trim() === "") {
+            showAlert(
+              "destructive",
+              "Erro",
+              "Selecione um método SCP para unidades de internação."
+            );
+            return;
+          }
           await updateUnidadeInternacao(editingUnidade.id, {
             nome,
             scpMetodoId,
@@ -177,6 +217,14 @@ export default function SetoresPage() {
         }
       } else {
         if (tipoUnidade === "internacao") {
+          if (!scpMetodoId || scpMetodoId.trim() === "") {
+            showAlert(
+              "destructive",
+              "Erro",
+              "Selecione um método SCP para unidades de internação."
+            );
+            return;
+          }
           await createUnidadeInternacao({
             hospitalId,
             nome,
@@ -200,9 +248,17 @@ export default function SetoresPage() {
 
       resetForm();
       fetchData();
+      showAlert(
+        "success",
+        "Sucesso",
+        editingUnidade
+          ? "Setor atualizado com sucesso."
+          : "Setor criado com sucesso."
+      );
     } catch (err) {
       const action = editingUnidade ? "atualizar" : "criar";
       setError(`Falha ao ${action} o setor.`);
+      showAlert("destructive", "Erro", `Falha ao ${action} o setor.`);
     }
   };
 
@@ -221,8 +277,10 @@ export default function SetoresPage() {
             await deleteUnidadeNaoInternacao(unidade.id);
           }
           fetchData();
+          showAlert("success", "Sucesso", "Setor excluído com sucesso.");
         } catch (err) {
           setError(`Falha ao excluir o setor.`);
+          showAlert("destructive", "Erro", "Falha ao excluir o setor.");
         }
       },
     });
@@ -357,9 +415,14 @@ export default function SetoresPage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="scpMetodoId">Método SCP (Opcional)</Label>
+                      <Label htmlFor="scpMetodoId">
+                        Método SCP (Obrigatório)
+                      </Label>
                       <Select
-                        onValueChange={setScpMetodoId}
+                        onValueChange={(val) => {
+                          setScpMetodoId(val);
+                          setError(null);
+                        }}
                         value={scpMetodoId}
                       >
                         <SelectTrigger id="scpMetodoId" className="mt-1">

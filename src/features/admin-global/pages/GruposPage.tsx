@@ -10,9 +10,11 @@ import {
 } from "@/lib/api";
 import { Trash2, Edit } from "lucide-react";
 import { useModal } from "@/contexts/ModalContext";
+import { useAlert } from "@/contexts/AlertContext";
 
 export default function GruposPage() {
   const { showModal } = useModal();
+  const { showAlert } = useAlert();
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [redes, setRedes] = useState<Rede[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,13 +77,20 @@ export default function GruposPage() {
           nome: formData.nome,
           redeId: formData.redeId,
         });
+        showAlert("success", "Sucesso", "Grupo atualizado com sucesso.");
       } else {
         await createGrupo({ nome: formData.nome, redeId: formData.redeId });
+        showAlert("success", "Sucesso", "Grupo criado com sucesso.");
       }
       handleCancel();
       fetchData();
     } catch (err) {
       setError(
+        formData.id ? "Falha ao atualizar o grupo." : "Falha ao criar o grupo."
+      );
+      showAlert(
+        "destructive",
+        "Erro",
         formData.id ? "Falha ao atualizar o grupo." : "Falha ao criar o grupo."
       );
       console.error(err);
@@ -99,9 +108,11 @@ export default function GruposPage() {
       onConfirm: async () => {
         try {
           await deleteGrupo(grupoId);
+          showAlert("success", "Sucesso", "Grupo excluído com sucesso.");
           fetchData();
         } catch (err) {
           setError("Falha ao excluir o grupo.");
+          showAlert("destructive", "Erro", "Falha ao excluir o grupo.");
           console.error(err);
         }
       },
