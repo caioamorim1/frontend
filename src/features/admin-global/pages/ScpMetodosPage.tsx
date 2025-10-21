@@ -3,11 +3,10 @@ import {
   getScpMetodos,
   createScpMetodo,
   updateScpMetodo,
-  deleteScpMetodo,
   ScpMetodo,
   CreateScpMetodoDTO,
 } from "@/lib/api";
-import { Trash2, Edit, PlusCircle } from "lucide-react";
+import { Edit, PlusCircle } from "lucide-react";
 import { useModal } from "@/contexts/ModalContext";
 import { useAlert } from "@/contexts/AlertContext";
 
@@ -220,26 +219,7 @@ export default function ScpMetodosPage() {
     }
   };
 
-  const handleDelete = async (metodoId: string) => {
-    showModal({
-      type: "confirm",
-      title: "Excluir método SCP",
-      message:
-        "Tem certeza que deseja excluir este método? Esta ação não pode ser desfeita.",
-      confirmText: "Excluir",
-      cancelText: "Cancelar",
-      onConfirm: async () => {
-        try {
-          await deleteScpMetodo(metodoId);
-          showAlert("success", "Sucesso", "Método SCP excluído com sucesso.");
-          fetchMetodos();
-        } catch (err) {
-          setError("Falha ao excluir o método.");
-          showAlert("destructive", "Erro", "Falha ao excluir o método.");
-        }
-      },
-    });
-  };
+  // Removida ação de excluir método SCP
 
   // Funções para manipular questões e faixas (simplificado, pode ser expandido)
   const addQuestion = () => {
@@ -571,12 +551,6 @@ export default function ScpMetodosPage() {
                       className="text-secondary hover:opacity-70"
                     >
                       <Edit size={20} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(metodo.id)}
-                      className="text-red-600 hover:opacity-70"
-                    >
-                      <Trash2 size={20} />
                     </button>
                   </td>
                 </tr>
