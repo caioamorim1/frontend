@@ -16,6 +16,7 @@ import {
 } from "@/lib/api";
 import { Trash2, Edit, PlusCircle, TrendingUp, BarChart3 } from "lucide-react";
 import { useModal } from "@/contexts/ModalContext";
+import { useAlert } from "@/contexts/AlertContext";
 import CurrencyInput from "@/components/shared/CurrencyInput";
 import BaselinePareto from "../components/BaselinePareto";
 
@@ -29,6 +30,7 @@ const initialFormState: Omit<Baseline, "id" | "quantidade_funcionarios"> = {
 export default function ParetoPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const { showModal } = useModal();
+  const { showAlert } = useAlert();
   const [baseline, setBaseline] = useState<Baseline | null>(null);
   const [hospital, setHospital] = useState<Hospital | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,6 +87,11 @@ export default function ParetoPage() {
       }
     } catch (err) {
       setError("Falha ao carregar o pareto do hospital.");
+      showAlert(
+        "destructive",
+        "Erro",
+        "Falha ao carregar o pareto do hospital."
+      );
     } finally {
       setLoading(false);
     }
@@ -161,6 +168,7 @@ export default function ParetoPage() {
           setores: formData.setores ?? [],
         };
         await updateBaseline(baseline.id, updateData);
+        showAlert("success", "Sucesso", "Pareto atualizado com sucesso.");
       } else {
         const createData: CreateBaselineDTO = {
           hospitalId,
@@ -170,11 +178,17 @@ export default function ParetoPage() {
           quantidade_funcionarios: 0, // Envia 0 ou omite, dependendo da API
         };
         await createBaseline(createData);
+        showAlert("success", "Sucesso", "Pareto criado com sucesso.");
       }
       setIsFormVisible(false);
       fetchBaseline();
     } catch (err) {
       setError(
+        baseline ? "Falha ao atualizar o Pareto." : "Falha ao criar o Pareto."
+      );
+      showAlert(
+        "destructive",
+        "Erro",
         baseline ? "Falha ao atualizar o Pareto." : "Falha ao criar o Pareto."
       );
     }
@@ -195,8 +209,10 @@ export default function ParetoPage() {
           setBaseline(null);
           setFormData(initialFormState);
           setIsFormVisible(true);
+          showAlert("success", "Sucesso", "Pareto excluído com sucesso.");
         } catch (err) {
           setError("Falha ao excluir o pareto.");
+          showAlert("destructive", "Erro", "Falha ao excluir o Pareto.");
         }
       },
     });
@@ -211,7 +227,6 @@ export default function ParetoPage() {
   }, [formData.custo_total]);
 
   if (loading) return <p>Carregando...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
 
   return (
     <div className="space-y-6">

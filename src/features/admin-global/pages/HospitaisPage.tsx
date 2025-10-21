@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import { Trash2, Edit } from "lucide-react";
 import { useModal } from "@/contexts/ModalContext";
+import { useAlert } from "@/contexts/AlertContext";
 
 const initialFormState: Partial<CreateHospitalDTO> = {
   nome: "",
@@ -27,6 +28,7 @@ export default function HospitaisPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { showModal } = useModal();
+  const { showAlert } = useAlert();
 
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [formData, setFormData] =
@@ -44,6 +46,7 @@ export default function HospitaisPage() {
       setRegioes(regioesData);
     } catch (err) {
       setError("Falha ao carregar os dados.");
+      showAlert("destructive", "Erro", "Falha ao carregar os dados.");
     } finally {
       setLoading(false);
     }
@@ -108,6 +111,15 @@ export default function HospitaisPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const isCnpjComplete = onlyDigits(formData.cnpj || "").length === 14;
+    if (!isCnpjComplete) {
+      showAlert(
+        "destructive",
+        "Erro",
+        "CNPJ incompleto. Preencha os 14 dígitos antes de salvar."
+      );
+      return;
+    }
     const dataToSubmit = {
       nome: formData.nome || "",
       cnpj: formData.cnpj || "",
@@ -119,13 +131,22 @@ export default function HospitaisPage() {
     try {
       if (formData.id) {
         await updateHospital(formData.id, dataToSubmit);
+        showAlert("success", "Sucesso", "Hospital atualizado com sucesso.");
       } else {
         await createHospital(dataToSubmit as CreateHospitalDTO);
+        showAlert("success", "Sucesso", "Hospital criado com sucesso.");
       }
       handleCancel();
       fetchData();
     } catch (err) {
       setError(
+        formData.id
+          ? "Falha ao atualizar o hospital."
+          : "Falha ao criar o hospital."
+      );
+      showAlert(
+        "destructive",
+        "Erro",
         formData.id
           ? "Falha ao atualizar o hospital."
           : "Falha ao criar o hospital."
@@ -144,9 +165,11 @@ export default function HospitaisPage() {
       onConfirm: async () => {
         try {
           await deleteHospital(hospitalId);
+          showAlert("success", "Sucesso", "Hospital excluído com sucesso.");
           fetchData();
         } catch (err) {
           setError("Falha ao excluir o hospital.");
+          showAlert("destructive", "Erro", "Falha ao excluir o hospital.");
         }
       },
     });
@@ -231,8 +254,7 @@ export default function HospitaisPage() {
 
       <div className="bg-white p-6 rounded-lg border">
         {loading && <p>A carregar hospitais...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-        {!loading && !error && (
+        {!loading && (
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>

@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 import { Trash2, Edit } from "lucide-react";
 import { useModal } from "@/contexts/ModalContext";
+import { useAlert } from "@/contexts/AlertContext";
 import { CpfInput, EmailInput } from "@/components/shared/MaskedInputs";
 
 // O DTO para criação inclui a senha inicial
@@ -24,6 +25,7 @@ const initialFormState: Omit<CreateUsuarioDTO, "hospitalId" | "senha"> = {
 export default function UsuariosPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const { showModal } = useModal();
+  const { showAlert } = useAlert();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +42,7 @@ export default function UsuariosPage() {
       setUsuarios(data);
     } catch (err) {
       setError("Falha ao carregar os usuários.");
+      showAlert("destructive", "Erro", "Falha ao carregar os usuários.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -76,36 +79,59 @@ export default function UsuariosPage() {
     e.preventDefault();
     if (!hospitalId) return;
 
+    const cpfDigits = (formData.cpf || "").replace(/\D/g, "");
+    if (cpfDigits.length !== 11) {
+      showAlert(
+        "destructive",
+        "Erro",
+        "CPF incompleto. Preencha os 11 dígitos antes de salvar."
+      );
+      return;
+    }
+
     try {
       if (formData.id) {
         // A lógica de atualização não muda, pois não alteramos a palavra-passe aqui
         const updateData: UpdateUsuarioDTO = {
           nome: formData.nome,
           email: formData.email,
-          cpf: formData.cpf?.replace(/\D/g, ""),
+          cpf: cpfDigits,
           permissao: formData.permissao,
         };
         await updateUsuario(formData.id, updateData);
       } else {
         // Enviamos o CPF como a palavra-passe inicial
-        const cpfNumeros = formData.cpf?.replace(/\D/g, "") || ""; // Remove formatação do CPF
         const createData: CreateUsuarioDTO = {
           hospitalId,
           nome: formData.nome || "",
           email: formData.email || "",
-          cpf: cpfNumeros,
+          cpf: cpfDigits,
           permissao: formData.permissao || "COMUM",
-          senha: cpfNumeros, // Define o CPF (apenas números) como a palavra-passe
+          senha: cpfDigits, // Define o CPF (apenas números) como a palavra-passe
         };
         await createUsuario(createData);
       }
       handleCancel();
       fetchUsuarios();
+      showAlert(
+        "success",
+        "Sucesso",
+        formData.id
+          ? "Usuário atualizado com sucesso."
+          : "Usuário criado com sucesso."
+      );
     } catch (err) {
       setError(
         formData.id
           ? "Falha ao atualizar o utilizador."
           : "Falha ao criar o utilizador."
+      );
+      showAlert(
+        "destructive",
+        "Erro",
+        formData.id
+          ? "Falha ao atualizar o usuário."
+          : "Falha ao criar o usuário."
       );
       console.error(err);
     }
@@ -123,8 +149,10 @@ export default function UsuariosPage() {
         try {
           await deleteUsuario(usuarioId);
           fetchUsuarios();
+          showAlert("success", "Sucesso", "Usuário excluído com sucesso.");
         } catch (err) {
           setError("Falha ao excluir o usuário.");
+          showAlert("destructive", "Erro", "Falha ao excluir o usuário.");
           console.error(err);
         }
       },
@@ -204,8 +232,7 @@ export default function UsuariosPage() {
 
       <div className="bg-white p-6 rounded-lg border">
         {loading && <p>A carregar utilizadores...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-        {!loading && !error && (
+        {!loading && (
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>

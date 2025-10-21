@@ -12,6 +12,7 @@ import {
 import { Trash2, Edit } from "lucide-react";
 import CurrencyInput from "@/components/shared/CurrencyInput";
 import { useModal } from "@/contexts/ModalContext";
+import { useAlert } from "@/contexts/AlertContext";
 
 const initialFormState: Omit<Cargo, "id"> = {
   nome: "",
@@ -24,6 +25,7 @@ const initialFormState: Omit<Cargo, "id"> = {
 export default function CargosPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const { showModal } = useModal();
+  const { showAlert } = useAlert();
   const [cargos, setCargos] = useState<Cargo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +42,7 @@ export default function CargosPage() {
       setCargos(data);
     } catch (err) {
       setError("Falha ao carregar os cargos.");
+      showAlert("destructive", "Erro", "Falha ao carregar os cargos.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -115,8 +118,20 @@ export default function CargosPage() {
       }
       handleCancel();
       fetchCargos();
+      showAlert(
+        "success",
+        "Sucesso",
+        formData.id
+          ? "Cargo atualizado com sucesso."
+          : "Cargo criado com sucesso."
+      );
     } catch (err) {
       setError(
+        formData.id ? "Falha ao atualizar o cargo." : "Falha ao criar o cargo."
+      );
+      showAlert(
+        "destructive",
+        "Erro",
         formData.id ? "Falha ao atualizar o cargo." : "Falha ao criar o cargo."
       );
       console.error(err);
@@ -136,8 +151,10 @@ export default function CargosPage() {
         try {
           await deleteCargo(hospitalId, cargoId);
           fetchCargos();
+          showAlert("success", "Sucesso", "Cargo excluído com sucesso.");
         } catch (err) {
           setError("Falha ao excluir o cargo.");
+          showAlert("destructive", "Erro", "Falha ao excluir o cargo.");
           console.error(err);
         }
       },
@@ -276,8 +293,7 @@ export default function CargosPage() {
 
       <div className="bg-white p-6 rounded-lg border">
         {loading && <p>A carregar...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-        {!loading && !error && (
+        {!loading && (
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>

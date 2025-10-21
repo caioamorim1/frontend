@@ -9,6 +9,7 @@ import {
 } from "@/lib/api";
 import { Trash2, Edit, PlusCircle } from "lucide-react";
 import { useModal } from "@/contexts/ModalContext";
+import { useAlert } from "@/contexts/AlertContext";
 
 const initialFormState: CreateScpMetodoDTO = {
   key: "",
@@ -20,6 +21,7 @@ const initialFormState: CreateScpMetodoDTO = {
 
 export default function ScpMetodosPage() {
   const { showModal } = useModal();
+  const { showAlert } = useAlert();
   const [metodos, setMetodos] = useState<ScpMetodo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -195,13 +197,22 @@ export default function ScpMetodosPage() {
     try {
       if (formData.id) {
         await updateScpMetodo(formData.id, payload);
+        showAlert("success", "Sucesso", "Método SCP atualizado com sucesso.");
       } else {
         await createScpMetodo(payload);
+        showAlert("success", "Sucesso", "Método SCP criado com sucesso.");
       }
       handleCancel();
       fetchMetodos();
     } catch (err) {
       setError(
+        formData.id
+          ? "Falha ao atualizar o método."
+          : "Falha ao criar o método."
+      );
+      showAlert(
+        "destructive",
+        "Erro",
         formData.id
           ? "Falha ao atualizar o método."
           : "Falha ao criar o método."
@@ -220,9 +231,11 @@ export default function ScpMetodosPage() {
       onConfirm: async () => {
         try {
           await deleteScpMetodo(metodoId);
+          showAlert("success", "Sucesso", "Método SCP excluído com sucesso.");
           fetchMetodos();
         } catch (err) {
           setError("Falha ao excluir o método.");
+          showAlert("destructive", "Erro", "Falha ao excluir o método.");
         }
       },
     });

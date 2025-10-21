@@ -259,6 +259,11 @@ const LeitoCard: FC<{
           >
             <Bed className="mr-2 h-4 w-4" /> Marcar como Vago
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onSetStatus(leito.id, StatusLeito.PENDENTE)}
+          >
+            <Calendar className="mr-2 h-4 w-4" /> Marcar como Pendente
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => onAction(leito, "INACTIVATE")}>
             <Ban className="mr-2 h-4 w-4" /> Marcar como Inativo
           </DropdownMenuItem>
