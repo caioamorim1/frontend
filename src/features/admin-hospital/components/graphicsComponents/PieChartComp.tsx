@@ -52,7 +52,23 @@ export const PieChartComp: React.FC<{
   description?: string;
   labelType?: "percent" | "value";
   totalForPercent?: number;
-}> = ({ data, title, description, labelType = "percent", totalForPercent }) => {
+  height?: number;
+  innerRadius?: number;
+  outerRadius?: number;
+  className?: string;
+  color?: string; // Monochromatic color for all slices
+}> = ({
+  data,
+  title,
+  description,
+  labelType = "percent",
+  totalForPercent,
+  height = 260,
+  innerRadius = 50,
+  outerRadius = 80,
+  className,
+  color = "#0b6f88",
+}) => {
   if (!data || data.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground">
@@ -62,13 +78,15 @@ export const PieChartComp: React.FC<{
     );
   }
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="text-lg font-semibold text-primary mb-4 text-center">
+          {title}
+        </CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveContainer width="100%" height={height}>
           <PieChart>
             <Tooltip content={<CustomTooltip />} />
             <Legend
@@ -80,9 +98,9 @@ export const PieChartComp: React.FC<{
             <Pie
               data={data}
               cx="50%"
-              cy="45%"
-              outerRadius={100}
-              innerRadius={60}
+              cy="50%"
+              outerRadius={outerRadius}
+              innerRadius={innerRadius}
               dataKey="value"
               nameKey="name"
               labelLine={false}
@@ -131,7 +149,12 @@ export const PieChartComp: React.FC<{
               }}
             >
               {data.map((entry) => (
-                <Cell key={`cell-${entry.name}`} fill={entry.color} />
+                <Cell
+                  key={`cell-${entry.name}`}
+                  fill={color}
+                  stroke="#ffffff"
+                  strokeWidth={2}
+                />
               ))}
             </Pie>
           </PieChart>

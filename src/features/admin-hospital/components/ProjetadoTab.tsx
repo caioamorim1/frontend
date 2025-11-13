@@ -62,9 +62,13 @@ const AjusteInput = ({
 
 interface ProjetadoTabProps {
   unidade: UnidadeInternacao;
+  dateRange?: { inicio?: string; fim?: string };
 }
 
-export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
+export default function ProjetadoTab({
+  unidade,
+  dateRange,
+}: ProjetadoTabProps) {
   const { showAlert } = useAlert();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -76,7 +80,10 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const analiseData = await getAnaliseInternacao(unidade.id);
+        const analiseData = await getAnaliseInternacao(
+          unidade.id,
+          dateRange && dateRange.inicio && dateRange.fim ? dateRange : undefined
+        );
 
         if (analiseData && analiseData.tabela) {
           setAnaliseBase(analiseData.tabela);
@@ -139,7 +146,7 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
       }
     };
     fetchData();
-  }, [unidade.id]);
+  }, [unidade.id, dateRange?.inicio, dateRange?.fim]);
 
   const handleAjusteChange = (cargoId: string, novoValor: number) => {
     setAjustes((prev) => ({ ...prev, [cargoId]: novoValor }));
@@ -377,24 +384,8 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
                   {cargosComProjetado.map((linha) => {
                     const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
                     const ajusteAtual = ajustes[linha.cargoId] || 0;
-                    const projetadoFinal =
-                      linha.quantidadeProjetada + ajusteAtual;
-                    // DEBUG row log
-                    try {
-                      if (typeof window !== "undefined") {
-                        const lower = (linha.cargoNome || "").toLowerCase();
-                        if (lower.includes("tec") || lower.includes("téc")) {
-                          console.log("[ProjetadoTab] Linha TEC render:", {
-                            cargoId: linha.cargoId,
-                            cargoNome: linha.cargoNome,
-                            quantidadeAtual,
-                            quantidadeProjetada: linha.quantidadeProjetada,
-                            ajusteAtual,
-                            projetadoFinal,
-                          });
-                        }
-                      }
-                    } catch {}
+                    // Usa quantidadeAtual como base para o ajuste qualitativo
+                    const projetadoFinal = quantidadeAtual + ajusteAtual;
                     return (
                       <TableRow key={linha.cargoId}>
                         <TableCell className="font-medium">
@@ -426,24 +417,6 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
                     const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
                     const ajusteAtual = ajustes[linha.cargoId] || 0;
                     const projetadoFinal = quantidadeAtual + ajusteAtual;
-                    // DEBUG row log (não SCP)
-                    try {
-                      if (typeof window !== "undefined") {
-                        const lower = (linha.cargoNome || "").toLowerCase();
-                        if (lower.includes("tec") || lower.includes("téc")) {
-                          console.log(
-                            "[ProjetadoTab] Linha TEC (sem projetado) render:",
-                            {
-                              cargoId: linha.cargoId,
-                              cargoNome: linha.cargoNome,
-                              quantidadeAtual,
-                              ajusteAtual,
-                              projetadoFinal,
-                            }
-                          );
-                        }
-                      }
-                    } catch {}
                     return (
                       <TableRow key={linha.cargoId}>
                         <TableCell className="font-medium">

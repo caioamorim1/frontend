@@ -140,6 +140,40 @@ api.interceptors.request.use(
   }
 );
 
+export interface ControlePeriodoPayload {
+  unidadeId: string;
+  travado: boolean;
+  dataInicial: string;
+  dataFinal: string;
+}
+
+export interface ControlePeriodo extends ControlePeriodoPayload {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getControlePeriodoByUnidadeId(
+  unidadeId: string
+): Promise<ControlePeriodo | null> {
+  try {
+    const res = await api.get(`/controle-periodo/${unidadeId}`);
+    return (res.data?.data as ControlePeriodo) ?? null;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function saveControlePeriodo(
+  payload: ControlePeriodoPayload
+): Promise<ControlePeriodo> {
+  const res = await api.post("/controle-periodo", payload);
+  return (res.data?.data as ControlePeriodo) ?? (res.data as ControlePeriodo);
+}
+
 // --- INTERFACES GERAIS ---
 export interface Admin {
   id: string;
@@ -190,6 +224,7 @@ export type CargoUnidade = {
   cargo: Cargo;
   quantidade_funcionarios: number;
   cargoId: any;
+  quantidade_atualizada_em?: Date | string | null;
 };
 
 export type CreateUnidadeInternacaoDTO = {
@@ -417,7 +452,24 @@ export interface CreateSitioFuncionalDTO {
   unidadeId: string;
   nome: string;
   descricao?: string;
-  cargos?: { cargoId: string; quantidade_funcionarios: number }[];
+  cargos?: Array<
+    | { cargoId: string; quantidade_funcionarios: number }
+    | {
+        cargoUnidadeId: string;
+        seg_sex_manha?: number;
+        seg_sex_tarde?: number;
+        seg_sex_noite1?: number;
+        seg_sex_noite2?: number;
+        sab_dom_manha?: number;
+        sab_dom_tarde?: number;
+        sab_dom_noite1?: number;
+        sab_dom_noite2?: number;
+      }
+    | {
+        cargoUnidadeId: string;
+        quantidade_funcionarios: number;
+      }
+  >;
   distribuicoes?: SitioDistribuicao[];
 }
 
@@ -482,6 +534,16 @@ export interface Coleta {
 export interface CargoSitio {
   id: string;
   quantidade_funcionarios: number;
+  quantidade_atualizada_em?: Date | string | null;
+  // Campos de turnos
+  seg_sex_manha?: number;
+  seg_sex_tarde?: number;
+  seg_sex_noite1?: number;
+  seg_sex_noite2?: number;
+  sab_dom_manha?: number;
+  sab_dom_tarde?: number;
+  sab_dom_noite1?: number;
+  sab_dom_noite2?: number;
   cargoUnidade: {
     id: string;
     cargo: Cargo;
@@ -558,6 +620,10 @@ export interface AnaliseInternacaoResponse {
     totalLeitosDia: number;
     totalAvaliacoes: number;
     taxaOcupacaoMensal: number;
+    // Campos opcionais que podem vir do backend para enriquecer os KPIs
+    percentualLeitosAvaliadosHojePercent?: number;
+    taxaOcupacaoMensalPercent?: number;
+    distribuicaoTotalClassificacao?: Record<string, number>;
   };
   tabela: LinhaAnaliseFinanceira[];
 }
@@ -1074,9 +1140,13 @@ export const changePassword = async (
 
 // --- NOVAS ROTAS DE DIMENSIONAMENTO ---
 export const getAnaliseInternacao = async (
-  unidadeId: string
+  unidadeId: string,
+  params?: { inicio?: string; fim?: string }
 ): Promise<AnaliseInternacaoResponse> => {
-  const response = await api.get(`/dimensionamento/internacao/${unidadeId}`);
+  const response = await api.get(
+    `/dimensionamento/internacao/${unidadeId}`,
+    params && (params.inicio || params.fim) ? { params } : undefined
+  );
   return response.data;
 };
 

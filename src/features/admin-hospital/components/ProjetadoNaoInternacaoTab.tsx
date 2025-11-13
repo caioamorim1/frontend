@@ -5,6 +5,7 @@ import {
   AjustesPayload,
   saveProjetadoFinalNaoInternacao,
   getProjetadoFinalNaoInternacao,
+  SitioFuncional,
 } from "@/lib/api";
 import {
   Table,
@@ -25,6 +26,7 @@ import {
   Settings,
   Target,
   TrendingUp,
+  Users,
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { GrupoDeCargos } from "@/components/shared/AnaliseFinanceira";
@@ -32,6 +34,7 @@ import { EvaluationsTab } from "@/features/qualitativo/components/EvaluationsTab
 import React from "react";
 import { useAlert } from "@/contexts/AlertContext";
 import brainIcon from "@/assets/brain_ia.jpg";
+import CargoSitioManager from "./CargoSitioManager";
 // Componente para o input de ajuste
 const AjusteInput = ({
   value,
@@ -85,6 +88,9 @@ export default function ProjetadoNaoInternacaoTab({
   const [analiseBase, setAnaliseBase] = useState<GrupoDeCargos[]>([]);
   const [ajustes, setAjustes] = useState<AjustesPayload>({});
   const [showAvaliarPage, setShowAvaliarPage] = useState(false);
+  const [managingSitio, setManagingSitio] = useState<SitioFuncional | null>(
+    null
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -112,10 +118,8 @@ export default function ProjetadoNaoInternacaoTab({
                   (c: any) => c.cargoId === cargo.cargoId
                 );
                 if (!savedCargo) return;
-                // Para cargos que NÃO são projetados pelo sistema, usar quantidadeAtual como base
-                const base = cargo.isScpCargo
-                  ? cargo.quantidadeProjetada
-                  : cargo.quantidadeAtual;
+                // Usa quantidadeAtual como base para todos os cargos
+                const base = cargo.quantidadeAtual;
                 const delta =
                   Math.max(0, savedCargo.projetadoFinal ?? 0) - base;
                 if (delta !== 0) {
@@ -163,10 +167,8 @@ export default function ProjetadoNaoInternacaoTab({
           cargos: (sitio.cargos || []).map((cargo) => {
             const key = cargo.cargoId + sitio.id;
             const ajusteAtual = ajustes[key] || 0;
-            // Para cargos que NÃO são projetados pelo sistema, usa quantidadeAtual como base
-            const base = cargo.isScpCargo
-              ? cargo.quantidadeProjetada
-              : cargo.quantidadeAtual;
+            // Usa quantidadeAtual como base para todos os cargos
+            const base = cargo.quantidadeAtual;
             const projetadoFinal = Math.max(0, Math.floor(base + ajusteAtual));
             return {
               cargoId: cargo.cargoId,
@@ -252,6 +254,45 @@ export default function ProjetadoNaoInternacaoTab({
 
   return (
     <>
+      {managingSitio && (
+        <CargoSitioManager
+          sitioId={managingSitio.id}
+          sitio={managingSitio}
+          onClose={() => {
+            setManagingSitio(null);
+            // Recarrega os dados após fechar o modal
+            const fetchData = async () => {
+              setLoading(true);
+              try {
+                const analiseData = await getAnaliseNaoInternacao(unidade.id);
+                if (analiseData && analiseData.tabela) {
+                  setAnaliseBase(analiseData.tabela);
+                }
+              } catch (error) {
+                console.error("Erro ao recarregar dados:", error);
+              } finally {
+                setLoading(false);
+              }
+            };
+            fetchData();
+          }}
+          onUpdate={() => {
+            // Recarrega os dados quando houver atualização
+            const fetchData = async () => {
+              try {
+                const analiseData = await getAnaliseNaoInternacao(unidade.id);
+                if (analiseData && analiseData.tabela) {
+                  setAnaliseBase(analiseData.tabela);
+                }
+              } catch (error) {
+                console.error("Erro ao recarregar dados:", error);
+              }
+            };
+            fetchData();
+          }}
+        />
+      )}
+
       {showAvaliarPage ? (
         <EvaluationsTab
           onClose={() => setShowAvaliarPage(false)}
@@ -333,7 +374,7 @@ export default function ProjetadoNaoInternacaoTab({
                           className="bg-muted/50 hover:bg-muted/50"
                         >
                           <TableCell
-                            colSpan={2}
+                            colSpan={1}
                             className="font-semibold text-primary"
                           >
                             {sitio.nome}
@@ -342,6 +383,18 @@ export default function ProjetadoNaoInternacaoTab({
                               {cargosDoSitio.length !== 1 ? "s" : ""})
                             </span>
                           </TableCell>
+                          <TableCell className="text-right">
+                            <button
+                              onClick={() =>
+                                setManagingSitio(sitio as SitioFuncional)
+                              }
+                              className="inline-flex items-center gap-1 text-green-600 hover:text-green-800 text-sm"
+                              title="Gerenciar Cargos"
+                            >
+                              <Users size={18} />
+                              <span>Gerenciar Cargos</span>
+                            </button>
+                          </TableCell>
                         </TableRow>
 
                         {/* Linhas de Cargos do Sítio */}
@@ -349,9 +402,9 @@ export default function ProjetadoNaoInternacaoTab({
                           const idAjusteKey = cargoSitio.cargoId + sitio.id;
                           //const quantidadeAtual = getQuantidadeAtual(cargoSitio.cargoId);
                           const ajusteAtual = ajustes[idAjusteKey] || 0;
-                          const projetadoFinal = cargoSitio.isScpCargo
-                            ? cargoSitio.quantidadeProjetada + ajusteAtual
-                            : cargoSitio.quantidadeAtual + ajusteAtual;
+                          // Usa quantidadeAtual como base para o ajuste qualitativo (tanto SCP quanto outros)
+                          const projetadoFinal =
+                            cargoSitio.quantidadeAtual + ajusteAtual;
                           // const cargo = cargosHospital.find(
                           //   (c) => c.id === cargoSitio.cargoUnidade.cargo.id
                           // );
