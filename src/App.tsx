@@ -12,6 +12,7 @@ import GruposPage from "./features/admin-global/pages/GruposPage";
 import RegioesPage from "./features/admin-global/pages/RegioesPage";
 import ScpMetodosPage from "./features/admin-global/pages/ScpMetodosPage";
 import SetoresPage from "./features/admin-hospital/pages/SetoresPage";
+import SetoresCardPage from "./features/admin-hospital/pages/SetoresCardPage";
 import SetorDetailPage from "./features/admin-hospital/pages/SetorDetailPage";
 import UsuariosPage from "./features/admin-hospital/pages/UsuariosPage";
 import CargosPage from "./features/admin-hospital/pages/CargosPage";
@@ -56,11 +57,12 @@ function App() {
         <Route path="/hospital/:hospitalId" element={<HospitalAdminLayout />}>
           <Route path="dashboard" element={<HospitalDashboardPage />} />
           <Route path="unidades-leitos" element={<MinhasUnidadesPage />} />
-          <Route path="setores" element={<SetoresPage />} />
-          <Route path="setores/:setorId" element={<SetorDetailPage />} />
-          <Route path="setores/:setorId/leitos" element={<LeitosAdminPage />} />
+          <Route path="setores" element={<SetoresCardPage />} />
+          <Route path="gerir-setores" element={<SetoresPage />} />
+          <Route path="gerir-setores/:setorId" element={<SetorDetailPage />} />
+          <Route path="gerir-setores/:setorId/leitos" element={<LeitosAdminPage />} />
           <Route
-            path="setores/:setorId/parametros"
+            path="gerir-setores/:setorId/parametros"
             element={<ParametrosPage />}
           />
           <Route path="usuarios" element={<UsuariosPage />} />
