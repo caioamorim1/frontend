@@ -497,7 +497,7 @@ const TabContentInternacao: React.FC<{
   const detailedData = safeSourceData.filter(
     (sector) => selectedSector === "all" || sector.id === selectedSector
   );
-
+  console.log("detailedData", detailedData);
   const totalMinimumCare = detailedData.reduce((acc, sector) => {
     // Suportar tanto CareLevel quanto careLevel
     const careLevel = sector.CareLevel || (sector as any).careLevel;
@@ -573,10 +573,15 @@ const TabContentInternacao: React.FC<{
   ];
 
   // Agrupar tudo que não for 'ocupado' como 'Leito Livre'
-  const calculatedFreeBeds = Math.max(0, totalBeds - totalEvaluatedBeds);
+  const calculatedFreeBeds = Math.max(
+    0,
+    totalBeds - (totalEvaluatedBeds + totalInactiveBeds + totalVacantBeds)
+  );
   const chartDataBedStates = [
     { name: "Leito Ocupado", value: totalEvaluatedBeds, color: COLORS[1] },
-    { name: "Leito Livre", value: calculatedFreeBeds, color: COLORS[2] },
+    { name: "Leito Não Avaliado", value: calculatedFreeBeds, color: COLORS[2] },
+    { name: "Leito Inativo", value: totalInactiveBeds, color: COLORS[3] },
+    { name: "Leito Vago", value: totalVacantBeds, color: COLORS[4] },
   ];
 
   const chartDataAtual: ChartData[] = detailedData
