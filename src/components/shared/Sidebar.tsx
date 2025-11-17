@@ -15,6 +15,7 @@ import {
   FileText,
   ListChecks,
   Shield,
+  BarChart3,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getHospitais, Hospital } from "@/lib/api";
@@ -33,9 +34,10 @@ const NavItem = ({
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${isActive
-          ? "bg-secondary/10 text-secondary font-semibold"
-          : "text-gray-200 hover:bg-white/10"
+        `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${
+          isActive
+            ? "bg-secondary/10 text-secondary font-semibold"
+            : "text-gray-200 hover:bg-white/10"
         }`
       }
     >
@@ -87,6 +89,11 @@ const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
       to: `/hospital/${hospital.id}/pareto`,
       icon: <ClipboardList size={16} />,
       label: "Pareto",
+    },
+    {
+      to: `/hospital/${hospital.id}/baseline`,
+      icon: <BarChart3 size={16} />,
+      label: "Baseline",
     },
   ];
 
@@ -166,9 +173,9 @@ export default function Sidebar() {
   return (
     <aside className="w-72 bg-primary text-primary-foreground flex flex-col flex-shrink-0">
       <div className="h-20 flex items-center justify-center border-b border-white/20 px-6 py-3">
-        <img 
-          src="/logo.png" 
-          alt="Dimensiona+" 
+        <img
+          src="/logo.png"
+          alt="Dimensiona+"
           className="h-14 w-auto object-contain"
         />
       </div>
@@ -206,11 +213,6 @@ export default function Sidebar() {
               to="/meu-hospital"
               icon={<HospitalIcon size={18} />}
               label="Minhas Unidades"
-            />
-            <NavItem
-              to="/coletas"
-              icon={<ListChecks size={18} />}
-              label="Coleta de Dados"
             />
           </ul>
         )}

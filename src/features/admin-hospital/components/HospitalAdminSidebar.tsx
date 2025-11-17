@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Bed,
   ArrowLeft,
+  BarChart3,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -77,9 +78,9 @@ export default function HospitalAdminSidebar() {
       label: "Pareto",
     },
     {
-      to: `/hospital/${hospitalId}/coletas`,
-      icon: <ListCollapse size={18} />,
-      label: "Histórico de Coletas",
+      to: `/hospital/${hospitalId}/baseline`,
+      icon: <BarChart3 size={18} />,
+      label: "Baseline",
     },
   ];
 

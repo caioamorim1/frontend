@@ -16,6 +16,7 @@ import SetorDetailPage from "./features/admin-hospital/pages/SetorDetailPage";
 import UsuariosPage from "./features/admin-hospital/pages/UsuariosPage";
 import CargosPage from "./features/admin-hospital/pages/CargosPage";
 import ParetoPage from "./features/admin-hospital/pages/ParetoPage";
+import BaselinePage from "./features/admin-hospital/pages/BaselinePage";
 import MinhasUnidadesPage from "./features/colab/pages/MinhasUnidadesPage";
 import VisaoLeitosPage from "./features/colab/pages/VisaoLeitosPage";
 import AvaliacaoScpPage from "./features/colab/pages/AvaliacaoScpPage";
@@ -65,6 +66,7 @@ function App() {
           <Route path="usuarios" element={<UsuariosPage />} />
           <Route path="cargos" element={<CargosPage />} />
           <Route path="pareto" element={<ParetoPage />} />
+          <Route path="baseline" element={<BaselinePage />} />
           <Route path="coletas" element={<HistoricoColetasPage />} />
         </Route>
 
@@ -82,7 +84,6 @@ function App() {
 
           {/* ✅ NOVAS ROTAS PARA COLETA DE DADOS */}
           <Route path="/coletas" element={<ColetasPage />} />
-
         </Route>
 
         {/* Redirecionamento principal: se logado, vai para o painel de admin */}

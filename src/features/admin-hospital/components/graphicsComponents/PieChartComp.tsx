@@ -23,12 +23,22 @@ interface ChartData {
 
 // --- PALETA DE CORES CUSTOMIZADA ---
 const COLORS = [
-  "#003151",
-  "#0b6f88",
-  "#6497b1",
-  "#a8dadc",
-  "#457b9d",
-  "#1d3557",
+  "#003151", // Azul escuro
+  "#0b6f88", // Azul médio
+  "#6497b1", // Azul claro
+  "#a8dadc", // Azul muito claro
+  "#457b9d", // Azul acinzentado
+  "#1d3557", // Azul petróleo
+];
+
+// --- PALETA PARA NÍVEIS DE CUIDADO (cores mais distintas) ---
+const CARE_LEVEL_COLORS = [
+  "#004d73", // Azul escuro forte
+  "#0088cc", // Azul médio vibrante
+  "#33adff", // Azul claro
+  "#66c2ff", // Azul muito claro
+  "#005f8f", // Azul petróleo
+  "#0073a8", // Azul intermediário
 ];
 
 const CustomTooltip = ({ active, payload }: any) => {
@@ -67,7 +77,7 @@ export const PieChartComp: React.FC<{
   innerRadius = 50,
   outerRadius = 80,
   className,
-  color = "#0b6f88",
+  color, // Removido valor padrão para permitir usar paleta
 }) => {
   if (!data || data.length === 0) {
     return (
@@ -148,10 +158,14 @@ export const PieChartComp: React.FC<{
                 );
               }}
             >
-              {data.map((entry) => (
+              {data.map((entry, index) => (
                 <Cell
                   key={`cell-${entry.name}`}
-                  fill={color}
+                  fill={
+                    color
+                      ? color
+                      : CARE_LEVEL_COLORS[index % CARE_LEVEL_COLORS.length]
+                  }
                   stroke="#ffffff"
                   strokeWidth={2}
                 />

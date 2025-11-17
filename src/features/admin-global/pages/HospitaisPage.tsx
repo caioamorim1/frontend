@@ -5,10 +5,18 @@ import {
   createHospital,
   updateHospital,
   deleteHospital,
+  getRedes,
+  getGrupos,
   getRegioes,
   Hospital,
   CreateHospitalDTO,
+  Rede,
+  Grupo,
   Regiao,
+  TipoHospital,
+  GestaoHospital,
+  PerfilHospital,
+  ComplexidadeHospital,
 } from "@/lib/api";
 import { Trash2, Edit } from "lucide-react";
 import { useModal } from "@/contexts/ModalContext";
@@ -20,10 +28,19 @@ const initialFormState: Partial<CreateHospitalDTO> = {
   endereco: "",
   telefone: "",
   regiaoId: "",
+  tipo: undefined,
+  gestao: undefined,
+  perfil: undefined,
+  complexidade: undefined,
+  numeroTotalLeitos: undefined,
+  numeroLeitosUTI: undefined,
+  numeroSalasCirurgicas: undefined,
 };
 
 export default function HospitaisPage() {
   const [hospitais, setHospitais] = useState<Hospital[]>([]);
+  const [redes, setRedes] = useState<Rede[]>([]);
+  const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,18 +49,40 @@ export default function HospitaisPage() {
 
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [formData, setFormData] =
-    useState<Partial<Hospital & { regiaoId?: string }>>(initialFormState);
+    useState<
+      Partial<
+        Hospital & { redeId?: string; grupoId?: string; regiaoId?: string }
+      >
+    >(initialFormState);
+
+  // Estados para controlar seleções em cascata
+  const [selectedRedeId, setSelectedRedeId] = useState<string>("");
+  const [selectedGrupoId, setSelectedGrupoId] = useState<string>("");
+  const [filteredGrupos, setFilteredGrupos] = useState<Grupo[]>([]);
+  const [filteredRegioes, setFilteredRegioes] = useState<Regiao[]>([]);
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [hospitaisData, regioesData] = await Promise.all([
-        getHospitais(),
-        getRegioes(),
-      ]);
+      const [hospitaisData, redesData, gruposData, regioesData] =
+        await Promise.all([
+          getHospitais(),
+          getRedes(),
+          getGrupos(),
+          getRegioes(),
+        ]);
       setHospitais(hospitaisData);
+      setRedes(redesData);
+      setGrupos(gruposData);
       setRegioes(regioesData);
+
+      console.log("📊 [HospitaisPage] Dados carregados:", {
+        hospitais: hospitaisData,
+        redes: redesData,
+        grupos: gruposData,
+        regioes: regioesData,
+      });
     } catch (err) {
       setError("Falha ao carregar os dados.");
       showAlert("destructive", "Erro", "Falha ao carregar os dados.");
@@ -57,32 +96,96 @@ export default function HospitaisPage() {
   }, []);
 
   const handleEdit = (hospital: any) => {
-    setFormData({ ...hospital, regiaoId: hospital.regiao?.id });
+    console.log(
+      "🔍 [HospitaisPage] Hospital selecionado para edição:",
+      hospital
+    );
+
+    const regiaoId = hospital.regiao?.id;
+    const grupoId = hospital.grupo?.id;
+    const redeId = hospital.rede?.id;
+
+    console.log("Regiao ID:", regiaoId);
+    console.log("Grupo ID:", grupoId);
+    console.log("Rede ID:", redeId);
+
+    setFormData({ ...hospital, regiaoId, grupoId, redeId });
+    setSelectedRedeId(redeId || "");
+    setSelectedGrupoId(grupoId || "");
+
+    // Filtrar grupos e regiões baseado na hierarquia
+    if (redeId) {
+      const gruposDaRede = grupos.filter((g) => g.rede.id === redeId);
+      console.log("🔍 [HospitaisPage] Grupos filtrados da rede:", gruposDaRede);
+      setFilteredGrupos(gruposDaRede);
+    }
+    if (grupoId) {
+      const regioesDoGrupo = regioes.filter((r) => r.grupo.id === grupoId);
+      console.log(
+        "🔍 [HospitaisPage] Regiões filtradas do grupo:",
+        regioesDoGrupo
+      );
+      setFilteredRegioes(regioesDoGrupo);
+    }
+
     setIsFormVisible(true);
   };
 
   const handleAddNew = () => {
     setFormData(initialFormState);
+    setSelectedRedeId("");
+    setSelectedGrupoId("");
+    setFilteredGrupos([]);
+    setFilteredRegioes([]);
     setIsFormVisible(true);
   };
 
   const handleCancel = () => {
     setIsFormVisible(false);
     setFormData(initialFormState);
+    setSelectedRedeId("");
+    setSelectedGrupoId("");
+    setFilteredGrupos([]);
+    setFilteredRegioes([]);
   };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    // Apply masks for specific fields
-    const applyMask = (n: string, v: string) => {
-      if (n === "cnpj") return formatCNPJ(v);
-      if (n === "telefone") return formatPhone(v);
-      return v;
-    };
 
-    setFormData((prev) => ({ ...prev, [name]: applyMask(name, value) }));
+    // Lógica em cascata para seleção de Rede -> Grupo -> Região
+    if (name === "redeId") {
+      setSelectedRedeId(value);
+      setSelectedGrupoId("");
+      setFormData((prev) => ({
+        ...prev,
+        redeId: value,
+        grupoId: "",
+        regiaoId: "",
+      }));
+
+      // Filtrar grupos da rede selecionada
+      const gruposDaRede = grupos.filter((g) => g.rede.id === value);
+      setFilteredGrupos(gruposDaRede);
+      setFilteredRegioes([]);
+    } else if (name === "grupoId") {
+      setSelectedGrupoId(value);
+      setFormData((prev) => ({ ...prev, grupoId: value, regiaoId: "" }));
+
+      // Filtrar regiões do grupo selecionado
+      const regioesDoGrupo = regioes.filter((r) => r.grupo.id === value);
+      setFilteredRegioes(regioesDoGrupo);
+    } else {
+      // Apply masks for specific fields
+      const applyMask = (n: string, v: string) => {
+        if (n === "cnpj") return formatCNPJ(v);
+        if (n === "telefone") return formatPhone(v);
+        return v;
+      };
+
+      setFormData((prev) => ({ ...prev, [name]: applyMask(name, value) }));
+    }
   };
 
   // Helpers: mask CNPJ (##.###.###/####-##) and Brazilian celular (optional)
@@ -120,20 +223,54 @@ export default function HospitaisPage() {
       );
       return;
     }
+
     const dataToSubmit = {
       nome: formData.nome || "",
       cnpj: formData.cnpj || "",
       endereco: formData.endereco || "",
       telefone: formData.telefone || "",
-      regiaoId: formData.regiaoId || undefined,
+      regiaoId: formData.regiaoId || null,
+      grupoId: formData.grupoId || null,
+      redeId: formData.redeId || null,
+      tipo: formData.tipo || undefined,
+      gestao: formData.gestao || undefined,
+      perfil: formData.perfil || undefined,
+      complexidade: formData.complexidade || undefined,
+      numeroTotalLeitos: formData.numeroTotalLeitos
+        ? Number(formData.numeroTotalLeitos)
+        : undefined,
+      numeroLeitosUTI: formData.numeroLeitosUTI
+        ? Number(formData.numeroLeitosUTI)
+        : undefined,
+      numeroSalasCirurgicas: formData.numeroSalasCirurgicas
+        ? Number(formData.numeroSalasCirurgicas)
+        : undefined,
     };
+
+    console.log("📤 [HospitaisPage] Dados sendo enviados ao backend:", {
+      isUpdate: !!formData.id,
+      hospitalId: formData.id,
+      dataToSubmit,
+      selectedRedeId,
+      selectedGrupoId,
+    });
 
     try {
       if (formData.id) {
-        await updateHospital(formData.id, dataToSubmit);
+        const resultado = await updateHospital(formData.id, dataToSubmit);
+        console.log(
+          "✅ [HospitaisPage] Resposta do backend (update):",
+          resultado
+        );
         showAlert("success", "Sucesso", "Hospital atualizado com sucesso.");
       } else {
-        await createHospital(dataToSubmit as CreateHospitalDTO);
+        const resultado = await createHospital(
+          dataToSubmit as CreateHospitalDTO
+        );
+        console.log(
+          "✅ [HospitaisPage] Resposta do backend (create):",
+          resultado
+        );
         showAlert("success", "Sucesso", "Hospital criado com sucesso.");
       }
       handleCancel();
@@ -227,18 +364,159 @@ export default function HospitaisPage() {
                 className="p-2 border rounded-md"
               />
               <select
-                name="regiaoId"
-                value={formData.regiaoId || ""}
+                name="redeId"
+                value={selectedRedeId}
                 onChange={handleChange}
                 className="p-2 border rounded-md"
               >
-                <option value="">Selecione uma Região (Opcional)</option>
-                {regioes.map((regiao) => (
+                <option value="">Selecione uma Rede (Opcional)</option>
+                {redes.map((rede) => (
+                  <option key={rede.id} value={rede.id}>
+                    {rede.nome}
+                  </option>
+                ))}
+              </select>
+              <select
+                name="grupoId"
+                value={selectedGrupoId}
+                onChange={handleChange}
+                disabled={!selectedRedeId}
+                className="p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <option value="">
+                  {selectedRedeId
+                    ? "Selecione um Grupo"
+                    : "Selecione uma Rede primeiro"}
+                </option>
+                {filteredGrupos.map((grupo) => (
+                  <option key={grupo.id} value={grupo.id}>
+                    {grupo.nome}
+                  </option>
+                ))}
+              </select>
+              <select
+                name="regiaoId"
+                value={formData.regiaoId || ""}
+                onChange={handleChange}
+                disabled={!selectedGrupoId}
+                className="p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed md:col-span-2"
+              >
+                <option value="">
+                  {selectedGrupoId
+                    ? "Selecione uma Região"
+                    : "Selecione um Grupo primeiro"}
+                </option>
+                {filteredRegioes.map((regiao) => (
                   <option key={regiao.id} value={regiao.id}>
                     {regiao.nome}
                   </option>
                 ))}
               </select>
+
+              {/* Novos campos */}
+              <select
+                name="tipo"
+                value={formData.tipo || ""}
+                onChange={handleChange}
+                className="p-2 border rounded-md"
+              >
+                <option value="">Selecione o Tipo</option>
+                <option value={TipoHospital.PUBLICO}>Público</option>
+                <option value={TipoHospital.PRIVADO}>Privado</option>
+                <option value={TipoHospital.FILANTROPICO}>Filantrópico</option>
+                <option value={TipoHospital.OUTROS}>Outros</option>
+              </select>
+
+              <select
+                name="gestao"
+                value={formData.gestao || ""}
+                onChange={handleChange}
+                className="p-2 border rounded-md"
+              >
+                <option value="">Selecione a Gestão</option>
+                <option value={GestaoHospital.GESTAO_DIRETA}>
+                  Gestão Direta
+                </option>
+                <option value={GestaoHospital.ORGANIZACAO_SOCIAL}>
+                  Organização Social
+                </option>
+                <option value={GestaoHospital.GESTAO_TERCEIRIZADA}>
+                  Gestão Terceirizada
+                </option>
+              </select>
+
+              <select
+                name="perfil"
+                value={formData.perfil || ""}
+                onChange={handleChange}
+                className="p-2 border rounded-md"
+              >
+                <option value="">Selecione o Perfil</option>
+                <option value={PerfilHospital.GERAL}>Geral</option>
+                <option value={PerfilHospital.ESPECIALIZADO}>
+                  Especializado
+                </option>
+                <option value={PerfilHospital.ENSINO_UNIVERSITARIO}>
+                  Ensino Universitário
+                </option>
+                <option value={PerfilHospital.REFERENCIA_ALTA_COMPLEXIDADE}>
+                  Referência Alta Complexidade
+                </option>
+                <option value={PerfilHospital.REFERENCIA_CURTA_PERMANENCIA}>
+                  Referência Curta Permanência
+                </option>
+                <option value={PerfilHospital.REFERENCIA_LONGA_PERMANENCIA}>
+                  Referência Longa Permanência
+                </option>
+              </select>
+
+              <select
+                name="complexidade"
+                value={formData.complexidade || ""}
+                onChange={handleChange}
+                className="p-2 border rounded-md"
+              >
+                <option value="">Selecione a Complexidade</option>
+                <option value={ComplexidadeHospital.BAIXA}>Baixa</option>
+                <option value={ComplexidadeHospital.MEDIA}>Média</option>
+                <option value={ComplexidadeHospital.ALTA}>Alta</option>
+                <option value={ComplexidadeHospital.MEDIA_ALTA}>
+                  Média-Alta
+                </option>
+                <option value={ComplexidadeHospital.BAIXA_MEDIA}>
+                  Baixa-Média
+                </option>
+              </select>
+
+              <input
+                name="numeroTotalLeitos"
+                type="number"
+                min="0"
+                value={formData.numeroTotalLeitos || ""}
+                onChange={handleChange}
+                placeholder="Número Total de Leitos"
+                className="p-2 border rounded-md"
+              />
+
+              <input
+                name="numeroLeitosUTI"
+                type="number"
+                min="0"
+                value={formData.numeroLeitosUTI || ""}
+                onChange={handleChange}
+                placeholder="Número Total de Leitos de UTI"
+                className="p-2 border rounded-md"
+              />
+
+              <input
+                name="numeroSalasCirurgicas"
+                type="number"
+                min="0"
+                value={formData.numeroSalasCirurgicas || ""}
+                onChange={handleChange}
+                placeholder="Número de Salas Cirúrgicas"
+                className="p-2 border rounded-md"
+              />
             </div>
             <div className="flex justify-end mt-4">
               <button

@@ -348,26 +348,49 @@ const TabContentInternacao: React.FC<{
     return acc + (careLevel?.intensive || 0);
   }, 0);
 
-  const totalBeds = detailedData.reduce(
-    (acc, sector) => acc + sector.bedCount,
-    0
+  // Calcular totais usando dados do dimensionamento quando disponível
+  const totalBedsDia = detailedData.reduce((acc, sector) => {
+    const dimensionamento = (sector as any).projetadoFinal?.dimensionamento;
+    return acc + (dimensionamento?.totalLeitosDia || 0);
+  }, 0);
+
+  const totalOccupiedBeds = detailedData.reduce((acc, sector) => {
+    const dimensionamento = (sector as any).projetadoFinal?.dimensionamento;
+    return (
+      acc +
+      (dimensionamento?.leitosOcupados || sector.bedStatus?.evaluated || 0)
+    );
+  }, 0);
+
+  const totalVacantBeds = detailedData.reduce((acc, sector) => {
+    const dimensionamento = (sector as any).projetadoFinal?.dimensionamento;
+    return (
+      acc + (dimensionamento?.leitosVagos || sector.bedStatus?.vacant || 0)
+    );
+  }, 0);
+
+  const totalInactiveBeds = detailedData.reduce((acc, sector) => {
+    const dimensionamento = (sector as any).projetadoFinal?.dimensionamento;
+    return (
+      acc + (dimensionamento?.leitosInativos || sector.bedStatus?.inactive || 0)
+    );
+  }, 0);
+
+  // Não avaliados = totalLeitosDia - (ocupados + vagos + inativos)
+  const totalUnevaluatedBeds = Math.max(
+    0,
+    totalBedsDia - (totalOccupiedBeds + totalVacantBeds + totalInactiveBeds)
   );
-  const totalEvaluatedBeds = detailedData.reduce(
-    (acc, sector) => acc + (sector.bedStatus?.evaluated || 0),
-    0
-  );
-  const totalVacantBeds = detailedData.reduce(
-    (acc, sector) => acc + (sector.bedStatus?.vacant || 0),
-    0
-  );
-  const totalInactiveBeds = detailedData.reduce(
-    (acc, sector) => acc + (sector.bedStatus?.inactive || 0),
-    0
-  );
+
+  const totalBeds = detailedData.reduce((acc, sector) => {
+    const dimensionamento = (sector as any).projetadoFinal?.dimensionamento;
+    return acc + (dimensionamento?.totalLeitos || sector.bedCount || 0);
+  }, 0);
+
   const averageOccupancyPercentage =
-    totalBeds > 0 ? Math.round((totalEvaluatedBeds / totalBeds) * 100) : 0;
+    totalBeds > 0 ? Math.round((totalOccupiedBeds / totalBeds) * 100) : 0;
   const assessmentsCompletedPercentage =
-    totalBeds > 0 ? Math.round((totalEvaluatedBeds / totalBeds) * 100) : 0;
+    totalBeds > 0 ? Math.round((totalOccupiedBeds / totalBeds) * 100) : 0;
 
   const totalStaff = detailedData.reduce(
     (acc, sector) => acc + sumStaff(sector),
@@ -390,11 +413,21 @@ const TabContentInternacao: React.FC<{
     { name: "Intensivo", value: totalIntensive, color: COLORS[4] },
   ];
 
-  const calculatedFreeBeds = Math.max(0, totalBeds - totalEvaluatedBeds);
   const chartDataBedStates = [
-    { name: "Leito Ocupado", value: totalEvaluatedBeds, color: COLORS[1] },
-    { name: "Leito Livre", value: calculatedFreeBeds, color: COLORS[2] },
+    { name: "Leitos Ocupados", value: totalOccupiedBeds, color: COLORS[0] },
+    { name: "Leitos Vagos", value: totalVacantBeds, color: COLORS[1] },
+    { name: "Leitos Inativos", value: totalInactiveBeds, color: COLORS[2] },
+    { name: "Não Avaliados", value: totalUnevaluatedBeds, color: COLORS[3] },
   ];
+
+  console.log("📊 [Gráfico Rosca - Estados dos Leitos]", {
+    totalBedsDia,
+    totalOccupiedBeds,
+    totalVacantBeds,
+    totalInactiveBeds,
+    totalUnevaluatedBeds,
+    chartData: chartDataBedStates,
+  });
 
   const chartDataAtual: ChartData[] = detailedData
     ? detailedData
@@ -502,7 +535,7 @@ const TabContentInternacao: React.FC<{
         <PieChartComp
           data={chartDataBedStates}
           title="Estados dos Leitos"
-          totalForPercent={totalBeds}
+          totalForPercent={totalBedsDia}
         />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
@@ -726,7 +759,12 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
           dashboardData = { internation: [], assistance: [] };
         }
       } else {
+        console.log(
+          "📊 [Dashboard Baseline - loadData] Buscando snapshot para hospitalId: " +
+            hospitalId
+        );
         const snapshotData = await getAllSnapshotHospitalSectors(hospitalId); // Usa hospitalId da URL
+        console.log("📊 [Dashboard Baseline - Dados carregados]", snapshotData);
         dashboardData = snapshotData;
       }
       const tipo = activeTab === "internacao" ? "Internacao" : "NaoInternacao";

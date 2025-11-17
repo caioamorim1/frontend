@@ -65,19 +65,26 @@ export default function SetoresPage() {
   const handleGenerateBaselineConfirm = async () => {
     if (!hospitalId) return;
     setLoading(true);
-    setError(null);
     try {
       await createSnapshotHospitalSectors(hospitalId);
       await fetchData();
       showAlert("success", "Sucesso", "Baseline gerada com sucesso.");
     } catch (error: any) {
       console.error("❌ Erro ao criar snapshot:", error);
-      const errorMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Erro ao criar snapshot";
-      setError(errorMessage);
-      showAlert("destructive", "Erro", errorMessage);
+
+      // Verifica se é o erro de setores pendentes
+      if (error?.response?.data?.setoresPendentes) {
+        const setoresPendentes = error.response.data.setoresPendentes;
+        const mensagemSetores = setoresPendentes.join(", ");
+        const errorMessage = `Não é possível criar o baseline. Os seguintes setores não estão com status concluído: ${mensagemSetores}`;
+        showAlert("destructive", "Setores Pendentes", errorMessage);
+      } else {
+        const errorMessage =
+          error?.response?.data?.message ||
+          error?.message ||
+          "Erro ao criar snapshot";
+        showAlert("destructive", "Erro", errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -110,7 +117,6 @@ export default function SetoresPage() {
   const fetchData = async () => {
     if (!hospitalId) return;
     setLoading(true);
-    setError(null);
     try {
       const [internacaoData, naoInternacaoData, scpData] = await Promise.all([
         getUnidadesInternacao(hospitalId),
@@ -120,7 +126,6 @@ export default function SetoresPage() {
       setUnidades([...internacaoData, ...naoInternacaoData]);
       setScpMetodos(scpData);
     } catch (err) {
-      setError("Falha ao carregar os setores.");
       showAlert("destructive", "Erro", "Falha ao carregar os setores.");
     } finally {
       setLoading(false);
@@ -279,7 +284,6 @@ export default function SetoresPage() {
           fetchData();
           showAlert("success", "Sucesso", "Setor excluído com sucesso.");
         } catch (err) {
-          setError(`Falha ao excluir o setor.`);
           showAlert("destructive", "Erro", "Falha ao excluir o setor.");
         }
       },
@@ -477,8 +481,7 @@ export default function SetoresPage() {
       <Card>
         <CardContent className="p-6">
           {loading && <p>Carregando...</p>}
-          {error && <p className="text-red-500">{error}</p>}
-          {!loading && !error && (
+          {!loading && (
             <Table>
               <TableHeader>
                 <TableRow>

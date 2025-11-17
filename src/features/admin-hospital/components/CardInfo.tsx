@@ -384,38 +384,23 @@ export default function CardInfo({
           {analise && (
             <div className="border rounded-lg p-4 bg-white flex flex-col">
               <div className="flex flex-row border rounded-lg justify-around min-w-[200px]">
-                <div className="p-3 bg-white">
-                  <p className="text-xs text-gray-600">% Avaliações</p>
+                <div className="p-3 bg-white flex items-center gap-2">
+                  <p className="text-lg font-bold">Leitos Avaliados :</p>
                   <p className="text-2xl font-bold tracking-tight text-primary">
                     {(() => {
                       const ag = analise?.agregados as any;
-                      let v = ag?.percentualLeitosAvaliadosHojePercent;
-                      if ((v === undefined || v === null) && ag) {
-                        const totalLeitosDia = Number(ag.totalLeitosDia || 0);
-                        const totalAvaliacoes = Number(ag.totalAvaliacoes || 0);
-                        if (totalLeitosDia > 0) {
-                          v = (totalAvaliacoes / totalLeitosDia) * 100;
-                        }
-                      }
+                      const v = ag?.percentualLeitosAvaliados;
                       if (v === undefined || v === null) return "-";
                       return `${Number(v).toFixed(1)}%`;
                     })()}
                   </p>
                 </div>
-                <div className="p-3 bg-white">
-                  <p className="text-xs text-gray-600">% Taxa de Ocupação</p>
+                <div className="p-3 bg-white flex items-center gap-2">
+                  <p className="text-lg font-bold">Taxa Média de Ocupação :</p>
                   <p className="text-2xl font-bold tracking-tight text-primary">
                     {(() => {
-                      let v = (analise as any)?.agregados
-                        ?.taxaOcupacaoMensalPercent;
-                      if (v === undefined || v === null) {
-                        const raw = (analise as any)?.agregados
-                          ?.taxaOcupacaoMensal;
-                        if (raw !== undefined && raw !== null) {
-                          const num = Number(raw);
-                          v = num <= 1 ? num * 100 : num;
-                        }
-                      }
+                      const ag = analise?.agregados as any;
+                      const v = ag?.taxaOcupacaoPeriodoPercent;
                       if (v === undefined || v === null) return "-";
                       return `${Number(v).toFixed(1)}%`;
                     })()}
@@ -447,7 +432,6 @@ export default function CardInfo({
                     height={300}
                     innerRadius={45}
                     outerRadius={70}
-                    color="#0b6f88"
                     className="border-0 shadow-none p-0"
                     totalForPercent={(() => {
                       const dist =

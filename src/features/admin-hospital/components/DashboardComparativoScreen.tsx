@@ -37,342 +37,319 @@ import { SectorAssistance } from "@/mocks/noInternationDatabase";
 import { SectorInternation } from "@/mocks/internationDatabase";
 
 type SectorType = "global" | "internacao" | "nao-internacao";
+
+// Nova estrutura de dados da API
+interface NewComparativeData {
+  hospitalId: string;
+  snapshotId: string;
+  snapshotData: string;
+  sectors: {
+    internation: NewSectorData[];
+    assistance: NewSectorData[];
+  };
+}
+
+interface NewSectorData {
+  id: string;
+  name: string;
+  tipo: "INTERNACAO" | "NAO_INTERNACAO";
+  quadroAtualReal: Record<string, number>;
+  quadroAtualSnapshot: Record<string, number>;
+  custosAtualSnapshot: Record<string, number>;
+  quadroProjetadoSnapshot: Record<string, number>;
+  diferencas: Record<string, number>;
+  dimensionamento?: {
+    leitosOcupados: number;
+    leitosVagos: number;
+    leitosInativos: number;
+    totalLeitos: number;
+    distribuicaoClassificacao: Record<string, number>;
+  };
+}
 export const DashboardComparativoScreen: React.FC<{
   title: string;
-  externalAtualData?: any;
-  externalProjectedData?: any;
-  isGlobalView?: boolean;
-}> = ({ title, externalAtualData, externalProjectedData, isGlobalView }) => {
+}> = ({ title }) => {
   const { hospitalId } = useParams<{ hospitalId: string }>();
 
-  const [hospitalData, setHospitalData] = useState<HospitalSector | null>(null);
+  const [comparativeData, setComparativeData] =
+    useState<NewComparativeData | null>(null);
   const [activeTab, setActiveTab] = useState<SectorType>("global");
   const [selectedSector, setSelectedSector] = useState<string>("all");
   const [loading, setLoading] = useState(true);
-
-  // quando em visão global iremos usar estes estados para conter os dados atual e projetado
-  const [globalAtualData, setGlobalAtualData] = useState<any | null>(
-    externalAtualData || null
-  );
-  const [globalProjectedData, setGlobalProjectedData] = useState<any | null>(
-    externalProjectedData || null
-  );
 
   useEffect(() => {
     setSelectedSector("all");
   }, [activeTab]);
 
-  useEffect(() => {}, [
-    hospitalId,
-    isGlobalView,
-    externalAtualData,
-    externalProjectedData,
-  ]);
-
-  // Ensure we exit loading state when we have data to render.
   useEffect(() => {
-    if (isGlobalView) {
-      // For global view, we rely on external data being passed in.
-      if (externalAtualData || externalProjectedData) setLoading(false);
-      else setLoading(false); // still clear loading so debug logs can surface
-    } else {
-      if (hospitalData) setLoading(false);
-    }
-  }, [isGlobalView, externalAtualData, externalProjectedData, hospitalData]);
+    if (comparativeData) setLoading(false);
+  }, [comparativeData]);
 
-  // Se estivermos na visão de hospital (não global) e tivermos um hospitalId,
-  // buscar os setores do hospital para popular `hospitalData`.
+  // Buscar dados comparativos da nova API
   useEffect(() => {
     let mounted = true;
-    const shouldFetch = !isGlobalView && hospitalId;
-    if (!shouldFetch) return;
+    if (!hospitalId) return;
 
-    const fetchHospital = async () => {
+    const fetchComparativeData = async () => {
       try {
         setLoading(true);
 
-        const resp = await getHospitalComparative(hospitalId as string);
+        console.log("🔄 [Dashboard Comparativo - NOVA API] Chamando API:", {
+          url: `GET /hospital-sectors-aggregate/hospitals/${hospitalId}/comparative`,
+          hospitalId,
+          estrutura: {
+            quadroAtualReal: "Quadro atual do banco de dados (tempo real)",
+            quadroAtualSnapshot:
+              "Quadro atual congelado no snapshot - BARRA 'BASELINE' do gráfico",
+            quadroProjetadoSnapshot:
+              "Quadro projetado no snapshot - BARRA 'PROJETADO' do gráfico",
+            custosAtualSnapshot:
+              "Custos UNITÁRIOS por cargo (multiplica pela quantidade)",
+            diferencas: "Diferença entre projetado e baseline",
+          },
+        });
+
+        const resp = await getHospitalComparative(hospitalId);
+
+        console.log("📦 [Dashboard Comparativo - RESPOSTA DA API]", {
+          respostaCompleta: resp,
+          estrutura: {
+            temHospitalId: !!resp?.hospitalId,
+            temSnapshotId: !!resp?.snapshotId,
+            temSnapshotData: !!resp?.snapshotData,
+            temSectors: !!resp?.sectors,
+            temInternation: !!resp?.sectors?.internation,
+            temAssistance: !!resp?.sectors?.assistance,
+          },
+          quantidades: {
+            internation: resp?.sectors?.internation?.length || 0,
+            assistance: resp?.sectors?.assistance?.length || 0,
+          },
+          primeiroSetorInternacao: resp?.sectors?.internation?.[0],
+          primeiroSetorAssistencia: resp?.sectors?.assistance?.[0],
+        });
+
         if (!mounted) return;
-        // Defensive: ensure arrays for both atual and projetado
-        let atual = resp?.atual ?? {
-          id: hospitalId,
-          internation: [],
-          assistance: [],
-        };
-        let projetado = resp?.projetado ?? {
-          id: hospitalId,
-          internation: [],
-          assistance: [],
-        };
 
-        // Patch: normalize assistance.projectedStaff to always be array of cargos (flatten per-sitio if needed)
-        if (Array.isArray(projetado.assistance)) {
-          projetado.assistance = projetado.assistance.map((sector) => {
-            if (
-              Array.isArray(sector.projectedStaff) &&
-              sector.projectedStaff.length > 0 &&
-              sector.projectedStaff[0].sitioId
-            ) {
-              // Per-sitio format: flatten and aggregate by role
-              const roleMap = new Map<string, number>();
-              sector.projectedStaff.forEach((sitio: any) => {
-                if (Array.isArray(sitio.cargos)) {
-                  sitio.cargos.forEach((cargo: any) => {
-                    const currentQty = roleMap.get(cargo.role) || 0;
-                    roleMap.set(cargo.role, currentQty + (cargo.quantity || 0));
-                  });
-                }
-              });
-              const flattened = Array.from(roleMap.entries()).map(
-                ([role, quantity]) => ({
-                  role,
-                  quantity,
-                })
-              );
+        console.log("✅ [Dashboard Comparativo - NOVA API] Dados recebidos:", {
+          snapshotId: resp.snapshotId,
+          snapshotData: resp.snapshotData,
+          totalInternacao: resp.sectors?.internation?.length || 0,
+          totalAssistencia: resp.sectors?.assistance?.length || 0,
+          exemploSetor:
+            resp.sectors?.internation?.[0] || resp.sectors?.assistance?.[0],
+        });
 
-              return { ...sector, projectedStaff: flattened };
-            }
-            return sector;
-          });
-        }
-
-        // Also flatten internation if needed
-        if (Array.isArray(projetado.internation)) {
-          projetado.internation = projetado.internation.map((sector) => {
-            if (
-              Array.isArray(sector.projectedStaff) &&
-              sector.projectedStaff.length > 0 &&
-              sector.projectedStaff[0].sitioId
-            ) {
-              // Per-sitio format: flatten and aggregate by role
-              const roleMap = new Map<string, number>();
-              sector.projectedStaff.forEach((sitio: any) => {
-                if (Array.isArray(sitio.cargos)) {
-                  sitio.cargos.forEach((cargo: any) => {
-                    const currentQty = roleMap.get(cargo.role) || 0;
-                    roleMap.set(cargo.role, currentQty + (cargo.quantity || 0));
-                  });
-                }
-              });
-              const flattened = Array.from(roleMap.entries()).map(
-                ([role, quantity]) => ({
-                  role,
-                  quantity,
-                })
-              );
-
-              return { ...sector, projectedStaff: flattened };
-            }
-            return sector;
-          });
-        }
-
-        setHospitalData(atual as HospitalSector);
-        setGlobalProjectedData(projetado);
+        setComparativeData(resp);
       } catch (err) {
-        console.error("[Comparativo] Error fetching comparative data:", err);
+        console.error(
+          "[Comparativo - NOVA API] Error fetching comparative data:",
+          err
+        );
       } finally {
         if (mounted) setLoading(false);
       }
     };
 
-    fetchHospital();
+    fetchComparativeData();
 
     return () => {
       mounted = false;
     };
-  }, [isGlobalView, hospitalId]);
+  }, [hospitalId]);
 
-  useEffect(() => {}, [loading]);
-
-  useEffect(() => {}, [selectedSector]);
-
-  // Single processedData useMemo that handles both hospital view and global view
+  // Processar dados comparativos da nova estrutura
   const processedData = useMemo(() => {
-    // choose sources depending on view
-    const atualSource = isGlobalView
-      ? externalAtualData ?? globalAtualData
-      : hospitalData;
-    const projectedSource = isGlobalView
-      ? externalProjectedData ?? globalProjectedData
-      : globalProjectedData; // ← FIX: use globalProjectedData for hospital view too!
-
-    if (!atualSource && !projectedSource) {
+    if (!comparativeData) {
       return null;
     }
 
-    const extract = (src: any) => {
-      if (!src) return { internation: [], assistance: [] };
-      if (Array.isArray(src)) {
-        const allIntern: any[] = [];
-        const allAssist: any[] = [];
-        src.forEach((entity) => {
-          if (Array.isArray(entity.internation))
-            allIntern.push(...entity.internation);
-          if (Array.isArray(entity.assistance))
-            allAssist.push(...entity.assistance);
-        });
-        return { internation: allIntern, assistance: allAssist };
-      }
-      return {
-        internation: src.internation || [],
-        assistance: src.assistance || [],
-      };
-    };
+    const { sectors } = comparativeData;
 
-    const atual = extract(atualSource);
-    const projetado = extract(projectedSource);
-
-    let baseSectors: any[] = [];
-    if (activeTab === "global")
-      baseSectors = [...(atual.internation || []), ...(atual.assistance || [])];
-    else if (activeTab === "internacao") baseSectors = atual.internation || [];
-    else baseSectors = atual.assistance || [];
-
-    const projectedBase =
-      activeTab === "global"
-        ? [...(projetado.internation || []), ...(projetado.assistance || [])]
-        : activeTab === "internacao"
-        ? projetado.internation || []
-        : projetado.assistance || [];
-
-    // Build sector list using atual IDs but matching by name
-    const setorMap: Map<string, { id: string; name: string }> = new Map();
-    baseSectors.forEach((s: any) =>
-      setorMap.set(s.id, { id: s.id, name: s.name })
-    );
-    const setorList = Array.from(setorMap.values());
-
-    const filterBySelected = (arr: any[]) =>
-      selectedSector === "all"
-        ? arr
-        : arr.filter((s) => s.id === selectedSector);
-
-    const filteredAtual = filterBySelected(baseSectors);
-
-    // Match projected sectors by NAME instead of ID (since IDs differ between atual and projetado)
-    // Also try to match by ID if name matching fails
-    const filteredProjected =
-      selectedSector === "all"
-        ? projectedBase
-        : projectedBase.filter((s) => {
-            // First try: match by ID (in case the projected sector has the same ID)
-            if (s.id === selectedSector) {
-              return true;
-            }
-
-            // Second try: match by NAME (case-insensitive and trim whitespace)
-            const matchingAtual = filteredAtual.find(
-              (a) =>
-                a.name?.trim().toLowerCase() === s.name?.trim().toLowerCase()
-            );
-            const hasMatch = !!matchingAtual;
-
-            if (!hasMatch) {
-              console.warn(
-                "[DashboardComparativoScreen] Setor projetado não encontrou match:",
-                {
-                  projectedName: s.name,
-                  projectedId: s.id,
-                  availableAtualNames: filteredAtual.map((a) => a.name),
-                }
-              );
-            }
-
-            return hasMatch;
-          });
-
-    const sumCost = (arr: any[], useProjected = false) => {
-      return arr.reduce((sum, sector, index) => {
-        let sectorCost = 0;
-
-        if (useProjected) {
-          if (
-            sector.projectedCostAmount !== undefined &&
-            sector.projectedCostAmount !== null
-          ) {
-            const val = parseCostUtil(sector.projectedCostAmount);
-            sectorCost = val;
-          } else if (
-            sector.projectedStaff &&
-            isProjectedBySitio(sector.projectedStaff)
-          ) {
-            const fromSitios = computeProjectedCostFromSitios(sector);
-            sectorCost = fromSitios;
-          } else {
-            const raw = sector.costAmount ?? 0;
-            sectorCost = parseCostUtil(raw);
-          }
-        } else {
-          sectorCost = parseCostUtil(sector.costAmount ?? 0);
-        }
-
-        return sum + sectorCost;
-      }, 0);
-    };
-
-    const sumStaff = (arr: any[], useProjected = false) => {
-      return arr.reduce((sum, sector, index) => {
-        let sectorStaff = 0;
-
-        if (useProjected) {
-          if (
-            sector.projectedStaff &&
-            isProjectedBySitio(sector.projectedStaff)
-          ) {
-            const flattened = flattenProjectedBySitio(sector.projectedStaff);
-            sectorStaff = flattened.reduce(
-              (s, it) => s + (it.quantity || 0),
-              0
-            );
-          } else {
-            const staffArr =
-              sector.projectedStaff && Array.isArray(sector.projectedStaff)
-                ? sector.projectedStaff
-                : getStaffArray(sector);
-            sectorStaff = staffArr.reduce(
-              (s: number, it: any) => s + (it.quantity || 0),
-              0
-            );
-          }
-        } else {
-          sectorStaff = sumStaffUtil(sector);
-        }
-
-        return sum + sectorStaff;
-      }, 0);
-    };
-
-    const custoAtual = sumCost(filteredAtual, false);
-    const custoProjetado = sumCost(filteredProjected, true);
-    const variacaoCusto = custoProjetado - custoAtual;
-
-    const pessoalAtual = sumStaff(filteredAtual, false);
-    const pessoalProjetado = sumStaff(filteredProjected, true);
-    const variacaoPessoal = pessoalProjetado - pessoalAtual;
-
-    // Log detailed calculation for debugging
-
-    // Log only the variation of projected staff for 'Unidades de Não Internação'
-    if (activeTab === "nao-internacao") {
+    // Determinar quais setores usar baseado na aba ativa
+    let baseSectors: NewSectorData[] = [];
+    if (activeTab === "global") {
+      baseSectors = [...sectors.internation, ...sectors.assistance];
+    } else if (activeTab === "internacao") {
+      baseSectors = sectors.internation;
+    } else {
+      baseSectors = sectors.assistance;
     }
 
+    // Criar lista de setores para o dropdown
+    const setorList = baseSectors.map((s) => ({ id: s.id, name: s.name }));
+
+    // Filtrar setores baseado na seleção
+    const filteredSectors =
+      selectedSector === "all"
+        ? baseSectors
+        : baseSectors.filter((s) => s.id === selectedSector);
+
+    // Funções auxiliares para somar valores de objetos Record<string, number>
+    const somarValores = (obj: Record<string, number>) => {
+      return Object.values(obj).reduce((sum, val) => sum + val, 0);
+    };
+
+    // Calcular custo total do setor: custo unitário × quantidade de cada cargo
+    const calcularCustoSetor = (
+      custos: Record<string, number>,
+      quantidades: Record<string, number>
+    ) => {
+      let total = 0;
+      Object.keys(custos).forEach((cargo) => {
+        const custoUnitario = custos[cargo] || 0;
+        const quantidade = quantidades[cargo] || 0;
+        total += custoUnitario * quantidade;
+      });
+      return total;
+    };
+
+    // BARRA 1: Atual (quadroAtualReal - tempo real, antiga baseline)
+    const pessoalAtualReal = filteredSectors.reduce(
+      (sum, sector) => sum + somarValores(sector.quadroAtualReal),
+      0
+    );
+
+    // BARRA 2: Baseline (quadroAtualSnapshot - primeira barra do waterfall)
+    const pessoalAtualSnapshot = filteredSectors.reduce(
+      (sum, sector) => sum + somarValores(sector.quadroAtualSnapshot),
+      0
+    );
+
+    // Custo Baseline: custoUnitário × quantidade para cada cargo, somado por setor
+    const custoAtualSnapshot = filteredSectors.reduce(
+      (sum, sector) =>
+        sum +
+        calcularCustoSetor(
+          sector.custosAtualSnapshot,
+          sector.quadroAtualSnapshot
+        ),
+      0
+    );
+
+    // BARRA 3: Projetado (quadroProjetadoSnapshot - barra final do waterfall)
+    const pessoalProjetadoSnapshot = filteredSectors.reduce(
+      (sum, sector) => sum + somarValores(sector.quadroProjetadoSnapshot),
+      0
+    );
+
+    // Custo Projetado: custoUnitário × quantidade projetada para cada cargo
+    const custoProjetadoSnapshot = filteredSectors.reduce(
+      (sum, sector) =>
+        sum +
+        calcularCustoSetor(
+          sector.custosAtualSnapshot,
+          sector.quadroProjetadoSnapshot
+        ),
+      0
+    );
+
+    // Variação (diferencas - já vem calculado da API!)
+    const variacaoPessoal = filteredSectors.reduce(
+      (sum, sector) => sum + somarValores(sector.diferencas),
+      0
+    );
+
+    const variacaoCusto = custoProjetadoSnapshot - custoAtualSnapshot;
+
+    const variacaoPercentual =
+      custoAtualSnapshot > 0 ? (variacaoCusto / custoAtualSnapshot) * 100 : 0;
+
+    // Montar dados do gráfico waterfall com 3 barras
     const financialWaterfall = [
-      { name: "Baseline", value: custoAtual * 0.89 },
-      { name: "Custo Atual", value: custoAtual },
+      { name: "Baseline", value: custoAtualSnapshot },
       { name: "Variação", value: variacaoCusto },
-      { name: "Custo Projetado", value: custoProjetado },
+      { name: "Projetado", value: custoProjetadoSnapshot },
     ];
 
     const personnelWaterfall = [
-      { name: "Baseline", value: Math.round(pessoalAtual * 0.85) },
-      { name: "Pessoal Atual", value: pessoalAtual },
+      { name: "Baseline", value: pessoalAtualSnapshot },
       { name: "Variação", value: variacaoPessoal },
-      { name: "Pessoal Projetado", value: pessoalProjetado },
+      { name: "Projetado", value: pessoalProjetadoSnapshot },
     ];
 
-    const variacaoPercentual =
-      custoAtual > 0 ? (variacaoCusto / custoAtual) * 100 : 0;
+    // Log detalhado de onde vêm os dados
+    console.log(
+      "📊 [Dashboard Comparativo - NOVA ESTRUTURA - Dados Processados]",
+      {
+        tab: activeTab,
+        setoresFiltrados: filteredSectors.length,
+        estruturaDados: {
+          quadroAtualReal:
+            "Dados tempo real (não usado no waterfall - apenas para referência)",
+          quadroAtualSnapshot: "BARRA 'BASELINE' do gráfico (primeira barra)",
+          custosAtualSnapshot:
+            "Custo UNITÁRIO por cargo (multiplica pela quantidade)",
+          quadroProjetadoSnapshot:
+            "BARRA 'PROJETADO' do gráfico (última barra)",
+          diferencas:
+            "Variação entre baseline e projetado (já calculado pela API)",
+          calculoCusto:
+            "custoUnitário × quantidade para cada cargo, depois soma tudo",
+        },
+        valoresCalculados: {
+          pessoalAtualReal: `${pessoalAtualReal} (tempo real - referência)`,
+          pessoalBaseline: pessoalAtualSnapshot,
+          custoBaseline: `R$ ${custoAtualSnapshot.toFixed(2)}`,
+          pessoalProjetado: pessoalProjetadoSnapshot,
+          custoProjetado: `R$ ${custoProjetadoSnapshot.toFixed(2)}`,
+          variacaoPessoal: `${
+            variacaoPessoal > 0 ? "+" : ""
+          }${variacaoPessoal}`,
+          variacaoCusto: `R$ ${
+            variacaoCusto > 0 ? "+" : ""
+          }${variacaoCusto.toFixed(2)}`,
+          variacaoPercentual: `${
+            variacaoPercentual > 0 ? "+" : ""
+          }${variacaoPercentual.toFixed(2)}%`,
+        },
+        exemploSetor: filteredSectors[0]
+          ? {
+              nome: filteredSectors[0].name,
+              quadroAtualSnapshot: filteredSectors[0].quadroAtualSnapshot,
+              custosAtualSnapshot: filteredSectors[0].custosAtualSnapshot,
+              quadroProjetadoSnapshot:
+                filteredSectors[0].quadroProjetadoSnapshot,
+              diferencas: filteredSectors[0].diferencas,
+              calculoExemplo: (() => {
+                const setor = filteredSectors[0];
+                const custoBaseline = calcularCustoSetor(
+                  setor.custosAtualSnapshot,
+                  setor.quadroAtualSnapshot
+                );
+                const custoProjetado = calcularCustoSetor(
+                  setor.custosAtualSnapshot,
+                  setor.quadroProjetadoSnapshot
+                );
+                return {
+                  custoBaseline: `R$ ${custoBaseline.toFixed(2)}`,
+                  custoProjetado: `R$ ${custoProjetado.toFixed(2)}`,
+                  detalhamentoBaseline: Object.keys(
+                    setor.custosAtualSnapshot
+                  ).map((cargo) => ({
+                    cargo,
+                    custoUnitario: setor.custosAtualSnapshot[cargo],
+                    quantidade: setor.quadroAtualSnapshot[cargo] || 0,
+                    custoTotal:
+                      (setor.custosAtualSnapshot[cargo] || 0) *
+                      (setor.quadroAtualSnapshot[cargo] || 0),
+                  })),
+                  detalhamentoProjetado: Object.keys(
+                    setor.custosAtualSnapshot
+                  ).map((cargo) => ({
+                    cargo,
+                    custoUnitario: setor.custosAtualSnapshot[cargo],
+                    quantidade: setor.quadroProjetadoSnapshot[cargo] || 0,
+                    custoTotal:
+                      (setor.custosAtualSnapshot[cargo] || 0) *
+                      (setor.quadroProjetadoSnapshot[cargo] || 0),
+                  })),
+                };
+              })(),
+            }
+          : null,
+      }
+    );
 
     return {
       financialWaterfall,
@@ -381,16 +358,7 @@ export const DashboardComparativoScreen: React.FC<{
       variacaoPercentual,
       setorList,
     };
-  }, [
-    hospitalData,
-    externalAtualData,
-    externalProjectedData,
-    globalAtualData,
-    globalProjectedData,
-    activeTab,
-    selectedSector,
-    isGlobalView,
-  ]);
+  }, [comparativeData, activeTab, selectedSector]);
 
   if (loading) {
     return (

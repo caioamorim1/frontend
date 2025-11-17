@@ -155,9 +155,15 @@ export default function DimensionamentoTab({
             <div>
               <p>
                 <strong>Taxa de Ocupação Média (Período):</strong>{" "}
-                {(
-                  (analiseData?.agregados?.taxaOcupacaoMensal ?? 0) * 100
-                ).toFixed(2)}
+                {(() => {
+                  const totalLeitos =
+                    analiseData?.agregados?.totalLeitosDia ?? 0;
+                  const totalAvaliacoes =
+                    analiseData?.agregados?.totalAvaliacoes ?? 0;
+                  const taxaMedia =
+                    totalLeitos > 0 ? (totalAvaliacoes / totalLeitos) * 100 : 0;
+                  return taxaMedia.toFixed(2);
+                })()}
                 %
               </p>
               <p>

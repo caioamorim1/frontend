@@ -146,9 +146,25 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
   aggregationType, // 🆕 Tipo de agregação (hospital, grupo, região, rede)
   entityId, // 🆕 ID da entidade (opcional)
 }) => {
+  console.log("📊 [OccupationRateChart] Props recebidas:", {
+    data,
+    summary,
+    title,
+    hospitalId,
+    showViewSelector,
+    aggregationType,
+    entityId,
+  });
+
   const [view, setView] = useState<"setorial" | "global">("setorial");
   const { data: analysis, loading: analysisLoading } =
     useOccupationAnalysis(hospitalId);
+
+  console.log("📊 [OccupationRateChart] Análise da API:", {
+    analysis,
+    analysisLoading,
+    hasAnalysis: !!analysis,
+  });
 
   // Mapeia a análise oficial para o shape usado pelo gráfico
   const mappedSetorial: OccupationData[] | null = analysis
@@ -184,6 +200,14 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
     : view === "setorial"
     ? data
     : [summary];
+
+  console.log("📊 [OccupationRateChart] Dados do gráfico:", {
+    view,
+    chartData,
+    usandoAnaliseAPI: !!analysis,
+    mappedSetorial: mappedSetorial?.length || 0,
+    mappedSummary,
+  });
 
   const tableSummary: OccupationData | null = analysis
     ? mappedSummary
@@ -231,18 +255,12 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                    Taxa de Ocupação Diária
+                    Taxa de Ocupação Diária Média
                   </h3>
                   <p className="text-4xl font-bold text-primary">
                     {mappedSummary["Taxa de Ocupação Diária"]?.toFixed(2)}%
                   </p>
-                  {analysis && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {analysis.summary.leitosOcupados.toLocaleString()} leitos
-                      ocupados de{" "}
-                      {analysis.summary.totalLeitos.toLocaleString()} totais
-                    </p>
-                  )}
+                  
                 </div>
               </div>
             ) : summary["Taxa de Ocupação Diária"] !== undefined ? (

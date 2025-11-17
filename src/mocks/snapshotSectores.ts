@@ -34,7 +34,13 @@ export async function getAllSnapshotHospitalSectors(
   }
 
   try {
+    console.log(
+      "📸 [Dashboard Baseline] URL usada: GET /snapshot/hospital/" +
+        hospitalId +
+        "/ultimo"
+    );
     const apiData: any = await getSnapshotHospitalSectors(hospitalId);
+    console.log("✅ [Dashboard Baseline - Dados recebidos]", apiData);
 
     // Estrutura de fallback caso os dados da API venham vazios ou nulos
     const fallbackData: HospitalSector = {
@@ -71,34 +77,119 @@ export async function getAllSnapshotHospitalSectors(
       return parsed;
     };
 
+    // Mapear dados de projetadoFinal.internacao para enriquecer os setores
+    // ✅ CORREÇÃO: projetadoFinal está dentro de snapshot.dados, não diretamente em snapshot
+    const projetadoInternacao =
+      apiData.snapshot?.dados?.projetadoFinal?.internacao || [];
+    console.log(
+      "📊 [Projetado Final - Internação] Dados completos:",
+      projetadoInternacao
+    );
+    console.log(
+      "📊 [Projetado Final - Internação] Quantidade de unidades:",
+      projetadoInternacao.length
+    );
+
+    console.log(
+      "📊 [Snapshot - Internação] Quantidade de setores em snapshot.dados.internation:",
+      apiData.snapshot.dados.internation?.length || 0
+    );
+
     const internationSectors = Array.isArray(apiData.snapshot.dados.internation)
-      ? apiData.snapshot.dados.internation.map((sector) => {
+      ? apiData.snapshot.dados.internation.map((sector, index) => {
+          console.log(
+            `\n🔍 [Processando Setor ${index + 1}/${
+              apiData.snapshot.dados.internation.length
+            }] ID: ${sector.id}, Nome: ${sector.name}`
+          );
+
           const costAmount = normalizeCurrencyAmount(sector.costAmount);
           const staff = Array.isArray(sector.staff) ? sector.staff : [];
+
+          // Buscar dados de dimensionamento do projetadoFinal
+          const projetadoData = projetadoInternacao.find(
+            (p: any) => p.unidadeId === sector.id
+          );
+
+          console.log(
+            `   ➡️ [Projetado encontrado?]`,
+            projetadoData ? "SIM" : "NÃO"
+          );
+          if (projetadoData) {
+            console.log(
+              `   📋 [Dados do Projetado]:`,
+              JSON.stringify(projetadoData, null, 2)
+            );
+          }
+
+          const dimensionamento = projetadoData?.dimensionamento || null;
+
+          console.log(`   🛏️ [Dimensionamento]:`, dimensionamento);
+
+          // Se tiver dimensionamento, usar esses dados de leitos
+          const bedCount = dimensionamento?.totalLeitos || sector.bedCount || 0;
+          const evaluatedBeds =
+            dimensionamento?.leitosOcupados || sector.bedStatus?.evaluated || 0;
+          const vacantBeds =
+            dimensionamento?.leitosVagos || sector.bedStatus?.vacant || 0;
+          const inactiveBeds =
+            dimensionamento?.leitosInativos || sector.bedStatus?.inactive || 0;
+
+          // Mapear distribuição de classificação para CareLevel
+          const distribuicao = dimensionamento?.distribuicaoClassificacao || {};
+          console.log(`   📊 [Distribuição Classificação]:`, distribuicao);
+
+          const careLevel = {
+            minimumCare:
+              distribuicao.CUIDADOS_MINIMOS ||
+              sector.careLevel?.minimumCare ||
+              0,
+            intermediateCare:
+              distribuicao.INTERMEDIARIOS ||
+              sector.careLevel?.intermediateCare ||
+              0,
+            highDependency:
+              distribuicao.ALTA_DEPENDENCIA ||
+              sector.careLevel?.highDependency ||
+              0,
+            semiIntensive:
+              distribuicao.SEMI_INTENSIVOS ||
+              sector.careLevel?.semiIntensive ||
+              0,
+            intensive:
+              distribuicao.INTENSIVOS || sector.careLevel?.intensive || 0,
+          };
+
+          console.log(`   ✅ [CareLevel mapeado]:`, careLevel);
+          console.log(
+            `   🛏️ [Leitos] Total: ${bedCount}, Ocupados: ${evaluatedBeds}, Vagos: ${vacantBeds}, Inativos: ${inactiveBeds}`
+          );
 
           return {
             id: sector.id || `internation-${Math.random()}`,
             name: sector.name || "Setor sem nome",
             descr: sector.descr || "",
             costAmount: costAmount,
-            bedCount: sector.bedCount || 0,
-            CareLevel: {
-              minimumCare: sector.careLevel?.minimumCare || 0,
-              intermediateCare: sector.careLevel?.intermediateCare || 0,
-              highDependency: sector.careLevel?.highDependency || 0,
-              semiIntensive: sector.careLevel?.semiIntensive || 0,
-              intensive: sector.careLevel?.intensive || 0,
-            },
+            bedCount: bedCount,
+            CareLevel: careLevel,
             bedStatus: {
-              evaluated: sector.bedStatus?.evaluated || 0,
-              vacant: sector.bedStatus?.vacant || 0,
-              inactive: sector.bedStatus?.inactive || 0,
+              evaluated: evaluatedBeds,
+              vacant: vacantBeds,
+              inactive: inactiveBeds,
             },
             staff: staff.map((member) => ({
               id: member.id || `staff-${Math.random()}`,
               role: member.role || "Cargo desconhecido",
               quantity: member.quantity || 0,
             })),
+            // Dados adicionais do projetado
+            projetadoFinal: projetadoData
+              ? {
+                  cargos: projetadoData.cargos || [],
+                  periodoTravado: projetadoData.periodoTravado || null,
+                  dimensionamento: dimensionamento,
+                }
+              : null,
           };
         })
       : []; // Mapeamento seguro para setores de assistência
@@ -133,6 +224,13 @@ export async function getAllSnapshotHospitalSectors(
       internation: internationSectors,
       assistance: assistanceSectors,
     };
+
+    console.log("✅ [Dados Transformados - Final]", {
+      totalInternation: internationSectors.length,
+      totalAssistance: assistanceSectors.length,
+      internationNames: internationSectors.map((s) => s.name),
+      assistanceNames: assistanceSectors.map((s) => s.name),
+    });
 
     cachedData = transformedData;
     cachedHospitalId = hospitalId;
