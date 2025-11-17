@@ -18,10 +18,33 @@ export type {
 };
 
 // --- New: comparative endpoint for hospital (frontend helper) ---
+export interface NewSectorData {
+  id: string;
+  name: string;
+  tipo: "INTERNACAO" | "NAO_INTERNACAO";
+  quadroAtualReal: Record<string, number>;
+  custosAtualReal: Record<string, number>;
+  quadroAtualSnapshot: Record<string, number>;
+  custosAtualSnapshot: Record<string, number>;
+  quadroProjetadoSnapshot: Record<string, number>;
+  diferencas: Record<string, number>;
+  dimensionamento?: {
+    leitosOcupados: number;
+    leitosVagos: number;
+    leitosInativos: number;
+    totalLeitos: number;
+    distribuicaoClassificacao: Record<string, number>;
+  };
+}
+
 export interface HospitalComparativeResponse {
   hospitalId: string;
-  atual: any; // shape: { id, name, internation: [], assistance: [] }
-  projetado: any; // same shape
+  snapshotId: string;
+  snapshotData: string;
+  sectors: {
+    internation: NewSectorData[];
+    assistance: NewSectorData[];
+  };
 }
 
 export async function getHospitalComparative(
@@ -140,6 +163,40 @@ api.interceptors.request.use(
   }
 );
 
+export interface ControlePeriodoPayload {
+  unidadeId: string;
+  travado: boolean;
+  dataInicial: string;
+  dataFinal: string;
+}
+
+export interface ControlePeriodo extends ControlePeriodoPayload {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getControlePeriodoByUnidadeId(
+  unidadeId: string
+): Promise<ControlePeriodo | null> {
+  try {
+    const res = await api.get(`/controle-periodo/${unidadeId}`);
+    return (res.data?.data as ControlePeriodo) ?? null;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function saveControlePeriodo(
+  payload: ControlePeriodoPayload
+): Promise<ControlePeriodo> {
+  const res = await api.post("/controle-periodo", payload);
+  return (res.data?.data as ControlePeriodo) ?? (res.data as ControlePeriodo);
+}
+
 // --- INTERFACES GERAIS ---
 export interface Admin {
   id: string;
@@ -154,6 +211,13 @@ export interface Hospital {
   telefone: string;
   regiao?: Regiao;
   baseline?: Baseline;
+  tipo?: TipoHospital;
+  gestao?: GestaoHospital;
+  perfil?: PerfilHospital;
+  complexidade?: ComplexidadeHospital;
+  numeroTotalLeitos?: number;
+  numeroLeitosUTI?: number;
+  numeroSalasCirurgicas?: number;
 }
 
 export type CreateHospitalDTO = Omit<Hospital, "id" | "regiao"> & {
@@ -190,6 +254,7 @@ export type CargoUnidade = {
   cargo: Cargo;
   quantidade_funcionarios: number;
   cargoId: any;
+  quantidade_atualizada_em?: Date | string | null;
 };
 
 export type CreateUnidadeInternacaoDTO = {
@@ -286,6 +351,36 @@ export interface CreateRegiaoDTO {
 export interface UpdateRegiaoDTO {
   nome?: string;
   grupoId?: string;
+}
+
+export enum TipoHospital {
+  PUBLICO = "PUBLICO",
+  PRIVADO = "PRIVADO",
+  FILANTROPICO = "FILANTROPICO",
+  OUTROS = "OUTROS",
+}
+
+export enum GestaoHospital {
+  GESTAO_DIRETA = "GESTAO_DIRETA",
+  ORGANIZACAO_SOCIAL = "ORGANIZACAO_SOCIAL",
+  GESTAO_TERCEIRIZADA = "GESTAO_TERCEIRIZADA",
+}
+
+export enum PerfilHospital {
+  GERAL = "GERAL",
+  ESPECIALIZADO = "ESPECIALIZADO",
+  ENSINO_UNIVERSITARIO = "ENSINO_UNIVERSITARIO",
+  REFERENCIA_ALTA_COMPLEXIDADE = "REFERENCIA_ALTA_COMPLEXIDADE",
+  REFERENCIA_CURTA_PERMANENCIA = "REFERENCIA_CURTA_PERMANENCIA",
+  REFERENCIA_LONGA_PERMANENCIA = "REFERENCIA_LONGA_PERMANENCIA",
+}
+
+export enum ComplexidadeHospital {
+  BAIXA = "BAIXA",
+  MEDIA = "MEDIA",
+  ALTA = "ALTA",
+  MEDIA_ALTA = "MEDIA_ALTA",
+  BAIXA_MEDIA = "BAIXA_MEDIA",
 }
 
 export enum StatusLeito {
@@ -417,7 +512,24 @@ export interface CreateSitioFuncionalDTO {
   unidadeId: string;
   nome: string;
   descricao?: string;
-  cargos?: { cargoId: string; quantidade_funcionarios: number }[];
+  cargos?: Array<
+    | { cargoId: string; quantidade_funcionarios: number }
+    | {
+        cargoUnidadeId: string;
+        seg_sex_manha?: number;
+        seg_sex_tarde?: number;
+        seg_sex_noite1?: number;
+        seg_sex_noite2?: number;
+        sab_dom_manha?: number;
+        sab_dom_tarde?: number;
+        sab_dom_noite1?: number;
+        sab_dom_noite2?: number;
+      }
+    | {
+        cargoUnidadeId: string;
+        quantidade_funcionarios: number;
+      }
+  >;
   distribuicoes?: SitioDistribuicao[];
 }
 
@@ -482,6 +594,16 @@ export interface Coleta {
 export interface CargoSitio {
   id: string;
   quantidade_funcionarios: number;
+  quantidade_atualizada_em?: Date | string | null;
+  // Campos de turnos
+  seg_sex_manha?: number;
+  seg_sex_tarde?: number;
+  seg_sex_noite1?: number;
+  seg_sex_noite2?: number;
+  sab_dom_manha?: number;
+  sab_dom_tarde?: number;
+  sab_dom_noite1?: number;
+  sab_dom_noite2?: number;
   cargoUnidade: {
     id: string;
     cargo: Cargo;
@@ -558,6 +680,10 @@ export interface AnaliseInternacaoResponse {
     totalLeitosDia: number;
     totalAvaliacoes: number;
     taxaOcupacaoMensal: number;
+    // Campos opcionais que podem vir do backend para enriquecer os KPIs
+    percentualLeitosAvaliadosHojePercent?: number;
+    taxaOcupacaoMensalPercent?: number;
+    distribuicaoTotalClassificacao?: Record<string, number>;
   };
   tabela: LinhaAnaliseFinanceira[];
 }
@@ -698,7 +824,9 @@ export const getHospitaisAggregated = async (): Promise<any> => {
 export const getSnapshotHospitalSectors = async (
   hospitalId: string
 ): Promise<HospitalSectorsData> => {
-  const response = await api.get(`/snapshot/hospital/${hospitalId}/ultimo`);
+  const response = await api.get(
+    `/snapshot/hospital/${hospitalId}/selecionado`
+  );
   return response.data;
 };
 
@@ -711,6 +839,36 @@ export interface SnapshotUnitSummary {
   quantidade: number;
   custoFormatado?: string;
 }
+
+export interface Snapshot {
+  id: string;
+  escopo: string;
+  tipoUnidade: string | null;
+  hospitalId: string;
+  unidadeInternacaoId: string | null;
+  unidadeNaoInternacaoId: string | null;
+  cargoId: string | null;
+  dataHora: string;
+  acao: string;
+  usuarioId: string | null;
+  observacao: string;
+  dados: any;
+  resumo?: {
+    custoTotal: number;
+    totalProfissionais: number;
+    totalUnidadesInternacao: number;
+    totalUnidadesAssistencia: number;
+  };
+  hashDados: string;
+  selecionado?: boolean;
+}
+
+export interface SnapshotsListResponse {
+  hospitalId: string;
+  total: number;
+  snapshots: Snapshot[];
+}
+
 export interface SnapshotSummaryResponse {
   hospitalId: string;
   snapshotId: string;
@@ -750,15 +908,37 @@ export const getSnapshotAggregatedAll = async (): Promise<any> => {
 };
 
 export const createSnapshotHospitalSectors = async (
-  hospitalId: string
+  hospitalId: string,
+  nome?: string
 ): Promise<Boolean> => {
   try {
-    const response = await api.post(`/snapshot/hospital/${hospitalId}`, {});
+    const response = await api.post(`/snapshot/hospital/${hospitalId}`, {
+      observacao: nome || "",
+    });
 
     return true;
   } catch (error: any) {
     throw error;
   }
+};
+
+export const getHospitalSnapshots = async (
+  hospitalId: string,
+  limite: number = 10
+): Promise<SnapshotsListResponse> => {
+  const response = await api.get(`/snapshot/hospital/${hospitalId}`, {
+    params: { limite },
+  });
+  return response.data;
+};
+
+export const updateSnapshotSelecionado = async (
+  snapshotId: string,
+  selecionado: boolean
+): Promise<void> => {
+  await api.patch(`/snapshot/${snapshotId}/selecionado`, {
+    selecionado,
+  });
 };
 
 // REDES, GRUPOS, REGIOES
@@ -960,7 +1140,7 @@ export const deleteCargo = async (
 export const getBaselinesByHospitalId = async (
   hospitalId: string
 ): Promise<Baseline> => {
-  const response = await api.get("/baselines");
+  const response = await api.get(`/baselines/hospital/${hospitalId}`);
   const Baselines = response.data as Baseline;
   return Baselines || null;
 };
@@ -1074,9 +1254,13 @@ export const changePassword = async (
 
 // --- NOVAS ROTAS DE DIMENSIONAMENTO ---
 export const getAnaliseInternacao = async (
-  unidadeId: string
+  unidadeId: string,
+  params?: { inicio?: string; fim?: string }
 ): Promise<AnaliseInternacaoResponse> => {
-  const response = await api.get(`/dimensionamento/internacao/${unidadeId}`);
+  const response = await api.get(
+    `/dimensionamento/internacao/${unidadeId}`,
+    params && (params.inicio || params.fim) ? { params } : undefined
+  );
   return response.data;
 };
 
@@ -1094,6 +1278,8 @@ export const getAnaliseNaoInternacao = async (
 export interface ProjetadoFinalCargoDTO {
   cargoId: string;
   projetadoFinal: number; // inteiro >= 0
+  observacao?: string; // Campo opcional para observações
+  status?: string; // Campo opcional para status
 }
 
 export interface ProjetadoFinalSitioDTO {

@@ -23,12 +23,22 @@ interface ChartData {
 
 // --- PALETA DE CORES CUSTOMIZADA ---
 const COLORS = [
-  "#003151",
-  "#0b6f88",
-  "#6497b1",
-  "#a8dadc",
-  "#457b9d",
-  "#1d3557",
+  "#003151", // Azul escuro
+  "#0b6f88", // Azul médio
+  "#6497b1", // Azul claro
+  "#a8dadc", // Azul muito claro
+  "#457b9d", // Azul acinzentado
+  "#1d3557", // Azul petróleo
+];
+
+// --- PALETA PARA NÍVEIS DE CUIDADO (cores mais distintas) ---
+const CARE_LEVEL_COLORS = [
+  "#004d73", // Azul escuro forte
+  "#0088cc", // Azul médio vibrante
+  "#33adff", // Azul claro
+  "#66c2ff", // Azul muito claro
+  "#005f8f", // Azul petróleo
+  "#0073a8", // Azul intermediário
 ];
 
 const CustomTooltip = ({ active, payload }: any) => {
@@ -52,7 +62,23 @@ export const PieChartComp: React.FC<{
   description?: string;
   labelType?: "percent" | "value";
   totalForPercent?: number;
-}> = ({ data, title, description, labelType = "percent", totalForPercent }) => {
+  height?: number;
+  innerRadius?: number;
+  outerRadius?: number;
+  className?: string;
+  color?: string; // Monochromatic color for all slices
+}> = ({
+  data,
+  title,
+  description,
+  labelType = "percent",
+  totalForPercent,
+  height = 260,
+  innerRadius = 50,
+  outerRadius = 80,
+  className,
+  color, // Removido valor padrão para permitir usar paleta
+}) => {
   if (!data || data.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground">
@@ -62,13 +88,15 @@ export const PieChartComp: React.FC<{
     );
   }
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="text-lg font-semibold text-primary mb-4 text-center">
+          {title}
+        </CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveContainer width="100%" height={height}>
           <PieChart>
             <Tooltip content={<CustomTooltip />} />
             <Legend
@@ -80,9 +108,9 @@ export const PieChartComp: React.FC<{
             <Pie
               data={data}
               cx="50%"
-              cy="45%"
-              outerRadius={100}
-              innerRadius={60}
+              cy="50%"
+              outerRadius={outerRadius}
+              innerRadius={innerRadius}
               dataKey="value"
               nameKey="name"
               labelLine={false}
@@ -130,8 +158,17 @@ export const PieChartComp: React.FC<{
                 );
               }}
             >
-              {data.map((entry) => (
-                <Cell key={`cell-${entry.name}`} fill={entry.color} />
+              {data.map((entry, index) => (
+                <Cell
+                  key={`cell-${entry.name}`}
+                  fill={
+                    color
+                      ? color
+                      : CARE_LEVEL_COLORS[index % CARE_LEVEL_COLORS.length]
+                  }
+                  stroke="#ffffff"
+                  strokeWidth={2}
+                />
               ))}
             </Pie>
           </PieChart>

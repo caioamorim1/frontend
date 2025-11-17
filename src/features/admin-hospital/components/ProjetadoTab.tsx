@@ -30,14 +30,39 @@ import { LinhaAnalise } from "@/components/shared/AnaliseFinanceira";
 import { EvaluationsTab } from "@/features/qualitativo/components/EvaluationsTab";
 import { useAlert } from "@/contexts/AlertContext";
 import brainIcon from "@/assets/brain_ia.jpg";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ObservacaoModal, ObservacaoButton } from "./ObservacaoModal";
+
+// Tipos de status disponíveis
+const STATUS_OPTIONS = [
+  { value: "nao_iniciado", label: "Não iniciado" },
+  { value: "andamento_parcial", label: "Em andamento - Entrega Parcial" },
+  { value: "concluido_parcial", label: "Concluído - Entrega Parcial" },
+  { value: "andamento_final", label: "Em andamento - Entrega Final" },
+  { value: "concluido_final", label: "Concluído - Entrega Final" },
+];
+
+// Interface para dados adicionais de cada cargo
+interface CargoMetadata {
+  observacao?: string;
+  status?: string;
+}
 
 // Componente para o input de ajuste
 const AjusteInput = ({
   value,
   onChange,
+  disabled = false,
 }: {
   value: number;
   onChange: (newValue: number) => void;
+  disabled?: boolean;
 }) => (
   <div className="flex items-center justify-center gap-2">
     <Button
@@ -45,38 +70,63 @@ const AjusteInput = ({
       size="icon"
       className="h-7 w-7"
       onClick={() => onChange(value - 1)}
+      disabled={disabled}
     >
-      <MinusCircle className="h-5 w-5 text-red-500" />
+      <MinusCircle
+        className={`h-5 w-5 ${disabled ? "text-gray-300" : "text-red-500"}`}
+      />
     </Button>
-    <span className="font-bold text-lg w-8 text-center">{value}</span>
+    <span
+      className={`font-bold text-lg w-8 text-center ${
+        disabled ? "text-gray-400" : ""
+      }`}
+    >
+      {value}
+    </span>
     <Button
       variant="ghost"
       size="icon"
       className="h-7 w-7"
       onClick={() => onChange(value + 1)}
+      disabled={disabled}
     >
-      <PlusCircle className="h-5 w-5 text-green-500" />
+      <PlusCircle
+        className={`h-5 w-5 ${disabled ? "text-gray-300" : "text-green-500"}`}
+      />
     </Button>
   </div>
 );
 
 interface ProjetadoTabProps {
   unidade: UnidadeInternacao;
+  dateRange?: { inicio?: string; fim?: string };
 }
 
-export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
+export default function ProjetadoTab({
+  unidade,
+  dateRange,
+}: ProjetadoTabProps) {
   const { showAlert } = useAlert();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [analiseBase, setAnaliseBase] = useState<LinhaAnaliseFinanceira[]>([]);
   const [ajustes, setAjustes] = useState<AjustesPayload>({});
+  const [metadata, setMetadata] = useState<Record<string, CargoMetadata>>({});
   const [showAvaliarPage, setShowAvaliarPage] = useState(false);
+  const [modalObservacao, setModalObservacao] = useState<{
+    isOpen: boolean;
+    cargoId: string;
+    cargoNome: string;
+  }>({ isOpen: false, cargoId: "", cargoNome: "" });
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const analiseData = await getAnaliseInternacao(unidade.id);
+        const analiseData = await getAnaliseInternacao(
+          unidade.id,
+          dateRange && dateRange.inicio && dateRange.fim ? dateRange : undefined
+        );
 
         if (analiseData && analiseData.tabela) {
           setAnaliseBase(analiseData.tabela);
@@ -120,17 +170,27 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
             });
 
             const novoMapa: AjustesPayload = {};
+            const novoMetadata: Record<string, CargoMetadata> = {};
             saved.cargos.forEach((c: any) => {
               const base = baseByCargo.get(c.cargoId) ?? 0;
               const delta = Math.max(0, c.projetadoFinal ?? 0) - base;
               if (delta !== 0) novoMapa[c.cargoId] = delta;
+
+              // Carregar metadata (observação e status)
+              novoMetadata[c.cargoId] = {
+                observacao: c.observacao || "",
+                status: c.status || "nao_iniciado",
+              };
             });
             setAjustes(novoMapa);
+            setMetadata(novoMetadata);
           } else {
             setAjustes({});
+            setMetadata({});
           }
         } catch {
           setAjustes({});
+          setMetadata({});
         }
       } catch (error) {
         showAlert("destructive", "Erro", "Não foi possível carregar os dados.");
@@ -139,10 +199,32 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
       }
     };
     fetchData();
-  }, [unidade.id]);
+  }, [unidade.id, dateRange?.inicio, dateRange?.fim]);
 
   const handleAjusteChange = (cargoId: string, novoValor: number) => {
     setAjustes((prev) => ({ ...prev, [cargoId]: novoValor }));
+  };
+
+  const handleObservacaoChange = (cargoId: string, observacao: string) => {
+    setMetadata((prev) => ({
+      ...prev,
+      [cargoId]: { ...prev[cargoId], observacao },
+    }));
+  };
+
+  const handleOpenObservacaoModal = (cargoId: string, cargoNome: string) => {
+    setModalObservacao({ isOpen: true, cargoId, cargoNome });
+  };
+
+  const handleSaveObservacao = (observacao: string) => {
+    handleObservacaoChange(modalObservacao.cargoId, observacao);
+  };
+
+  const handleStatusChange = (cargoId: string, status: string) => {
+    setMetadata((prev) => ({
+      ...prev,
+      [cargoId]: { ...prev[cargoId], status },
+    }));
   };
 
   const handleSave = async () => {
@@ -189,6 +271,8 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
         cargos: cargos.map((c) => ({
           ...c,
           cargo_id: c.cargoId,
+          observacao: metadata[c.cargoId]?.observacao || "",
+          status: metadata[c.cargoId]?.status || "nao_iniciado",
         })),
       };
 
@@ -369,6 +453,14 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
                         </div>
                       </div>
                     </TableHead>
+
+                    <TableHead className="text-center w-[120px]">
+                      Observação
+                    </TableHead>
+
+                    <TableHead className="text-center w-[200px]">
+                      Status
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -377,24 +469,8 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
                   {cargosComProjetado.map((linha) => {
                     const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
                     const ajusteAtual = ajustes[linha.cargoId] || 0;
-                    const projetadoFinal =
-                      linha.quantidadeProjetada + ajusteAtual;
-                    // DEBUG row log
-                    try {
-                      if (typeof window !== "undefined") {
-                        const lower = (linha.cargoNome || "").toLowerCase();
-                        if (lower.includes("tec") || lower.includes("téc")) {
-                          console.log("[ProjetadoTab] Linha TEC render:", {
-                            cargoId: linha.cargoId,
-                            cargoNome: linha.cargoNome,
-                            quantidadeAtual,
-                            quantidadeProjetada: linha.quantidadeProjetada,
-                            ajusteAtual,
-                            projetadoFinal,
-                          });
-                        }
-                      }
-                    } catch {}
+                    // Usa quantidadeAtual como base para o ajuste qualitativo
+                    const projetadoFinal = quantidadeAtual + ajusteAtual;
                     return (
                       <TableRow key={linha.cargoId}>
                         <TableCell className="font-medium">
@@ -412,10 +488,54 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
                             onChange={(novoValor) =>
                               handleAjusteChange(linha.cargoId, novoValor)
                             }
+                            disabled={
+                              metadata[linha.cargoId]?.status ===
+                                "concluido_parcial" ||
+                              metadata[linha.cargoId]?.status ===
+                                "concluido_final"
+                            }
                           />
                         </TableCell>
                         <TableCell className="text-center font-bold text-xl text-primary">
                           {projetadoFinal}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <ObservacaoButton
+                            hasObservacao={
+                              !!metadata[linha.cargoId]?.observacao
+                            }
+                            onClick={() =>
+                              handleOpenObservacaoModal(
+                                linha.cargoId,
+                                linha.cargoNome
+                              )
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={
+                              metadata[linha.cargoId]?.status || "nao_iniciado"
+                            }
+                            onValueChange={(value) =>
+                              handleStatusChange(linha.cargoId, value)
+                            }
+                          >
+                            <SelectTrigger className="text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STATUS_OPTIONS.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                  className="text-xs"
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                       </TableRow>
                     );
@@ -426,24 +546,6 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
                     const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
                     const ajusteAtual = ajustes[linha.cargoId] || 0;
                     const projetadoFinal = quantidadeAtual + ajusteAtual;
-                    // DEBUG row log (não SCP)
-                    try {
-                      if (typeof window !== "undefined") {
-                        const lower = (linha.cargoNome || "").toLowerCase();
-                        if (lower.includes("tec") || lower.includes("téc")) {
-                          console.log(
-                            "[ProjetadoTab] Linha TEC (sem projetado) render:",
-                            {
-                              cargoId: linha.cargoId,
-                              cargoNome: linha.cargoNome,
-                              quantidadeAtual,
-                              ajusteAtual,
-                              projetadoFinal,
-                            }
-                          );
-                        }
-                      }
-                    } catch {}
                     return (
                       <TableRow key={linha.cargoId}>
                         <TableCell className="font-medium">
@@ -461,10 +563,54 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
                             onChange={(novoValor) =>
                               handleAjusteChange(linha.cargoId, novoValor)
                             }
+                            disabled={
+                              metadata[linha.cargoId]?.status ===
+                                "concluido_parcial" ||
+                              metadata[linha.cargoId]?.status ===
+                                "concluido_final"
+                            }
                           />
                         </TableCell>
                         <TableCell className="text-center font-bold text-xl text-primary">
                           {projetadoFinal}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <ObservacaoButton
+                            hasObservacao={
+                              !!metadata[linha.cargoId]?.observacao
+                            }
+                            onClick={() =>
+                              handleOpenObservacaoModal(
+                                linha.cargoId,
+                                linha.cargoNome
+                              )
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={
+                              metadata[linha.cargoId]?.status || "nao_iniciado"
+                            }
+                            onValueChange={(value) =>
+                              handleStatusChange(linha.cargoId, value)
+                            }
+                          >
+                            <SelectTrigger className="text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STATUS_OPTIONS.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                  className="text-xs"
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                       </TableRow>
                     );
@@ -494,6 +640,16 @@ export default function ProjetadoTab({ unidade }: ProjetadoTabProps) {
           </CardContent>
         </Card>
       )}
+
+      <ObservacaoModal
+        isOpen={modalObservacao.isOpen}
+        onClose={() =>
+          setModalObservacao({ isOpen: false, cargoId: "", cargoNome: "" })
+        }
+        onSave={handleSaveObservacao}
+        initialValue={metadata[modalObservacao.cargoId]?.observacao || ""}
+        cargoNome={modalObservacao.cargoNome}
+      />
     </>
   );
 }

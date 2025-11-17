@@ -12,10 +12,12 @@ import GruposPage from "./features/admin-global/pages/GruposPage";
 import RegioesPage from "./features/admin-global/pages/RegioesPage";
 import ScpMetodosPage from "./features/admin-global/pages/ScpMetodosPage";
 import SetoresPage from "./features/admin-hospital/pages/SetoresPage";
+import SetoresCardPage from "./features/admin-hospital/pages/SetoresCardPage";
 import SetorDetailPage from "./features/admin-hospital/pages/SetorDetailPage";
 import UsuariosPage from "./features/admin-hospital/pages/UsuariosPage";
 import CargosPage from "./features/admin-hospital/pages/CargosPage";
 import ParetoPage from "./features/admin-hospital/pages/ParetoPage";
+import BaselinePage from "./features/admin-hospital/pages/BaselinePage";
 import MinhasUnidadesPage from "./features/colab/pages/MinhasUnidadesPage";
 import VisaoLeitosPage from "./features/colab/pages/VisaoLeitosPage";
 import AvaliacaoScpPage from "./features/colab/pages/AvaliacaoScpPage";
@@ -55,16 +57,21 @@ function App() {
         <Route path="/hospital/:hospitalId" element={<HospitalAdminLayout />}>
           <Route path="dashboard" element={<HospitalDashboardPage />} />
           <Route path="unidades-leitos" element={<MinhasUnidadesPage />} />
-          <Route path="setores" element={<SetoresPage />} />
-          <Route path="setores/:setorId" element={<SetorDetailPage />} />
-          <Route path="setores/:setorId/leitos" element={<LeitosAdminPage />} />
+          <Route path="setores" element={<SetoresCardPage />} />
+          <Route path="gerir-setores" element={<SetoresPage />} />
+          <Route path="gerir-setores/:setorId" element={<SetorDetailPage />} />
           <Route
-            path="setores/:setorId/parametros"
+            path="gerir-setores/:setorId/leitos"
+            element={<LeitosAdminPage />}
+          />
+          <Route
+            path="gerir-setores/:setorId/parametros"
             element={<ParametrosPage />}
           />
           <Route path="usuarios" element={<UsuariosPage />} />
           <Route path="cargos" element={<CargosPage />} />
           <Route path="pareto" element={<ParetoPage />} />
+          <Route path="baseline" element={<BaselinePage />} />
           <Route path="coletas" element={<HistoricoColetasPage />} />
         </Route>
 
@@ -82,7 +89,6 @@ function App() {
 
           {/* ✅ NOVAS ROTAS PARA COLETA DE DADOS */}
           <Route path="/coletas" element={<ColetasPage />} />
-
         </Route>
 
         {/* Redirecionamento principal: se logado, vai para o painel de admin */}

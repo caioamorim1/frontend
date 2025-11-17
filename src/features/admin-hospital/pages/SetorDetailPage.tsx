@@ -8,6 +8,7 @@ import {
   UnidadeNaoInternacao,
   SessaoAtiva,
   Unidade,
+  getControlePeriodoByUnidadeId,
 } from "@/lib/api";
 
 import CardInfo from "../components/CardInfo";
@@ -36,18 +37,44 @@ export default function SetorDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("dimensionamento");
 
+  const [dateRange, setDateRange] = useState<{
+    inicio?: string;
+    fim?: string;
+  } | null>(null);
+  const [travadoControle, setTravadoControle] = useState(false);
+
   const fetchData = async () => {
     if (!setorId) return;
     setLoading(true);
     setError(null);
+    setDateRange(null);
+    setTravadoControle(false);
     try {
       const unidadeData = await getUnidadeById(setorId);
 
       if (unidadeData.tipo === "internacao") {
         setActiveTab("dimensionamento");
-        const sessoesData = await getSessoesAtivasByUnidadeId(setorId);
+        const [sessoesData, controlePeriodo] = await Promise.all([
+          getSessoesAtivasByUnidadeId(setorId),
+          getControlePeriodoByUnidadeId(setorId).catch((error) => {
+            console.error("Falha ao carregar controle de período:", error);
+            return null;
+          }),
+        ]);
         setSessoes(sessoesData);
         setUnidade(unidadeData);
+
+        if (
+          controlePeriodo &&
+          controlePeriodo.dataInicial &&
+          controlePeriodo.dataFinal
+        ) {
+          setDateRange({
+            inicio: controlePeriodo.dataInicial,
+            fim: controlePeriodo.dataFinal,
+          });
+        }
+        setTravadoControle(Boolean(controlePeriodo?.travado));
       } else {
         setActiveTab("analise-financeira");
         const sitiosDetalhados = await getSitiosFuncionaisByUnidadeId(setorId);
@@ -56,6 +83,7 @@ export default function SetorDetailPage() {
           sitiosFuncionais: sitiosDetalhados,
         };
         setUnidade(unidadeCompleta);
+        setTravadoControle(false);
       }
     } catch (err) {
       setError("Falha ao carregar dados do setor.");
@@ -163,7 +191,22 @@ export default function SetorDetailPage() {
         <h1 className="text-3xl font-bold text-primary">{unidade.nome}</h1>
       </div>
 
-      <CardInfo unidade={unidade} sessoes={sessoes} />
+      <CardInfo
+        unidade={unidade}
+        sessoes={sessoes}
+        initialRange={dateRange}
+        initialTravado={travadoControle}
+        onCalculate={(range) => {
+          // Salva intervalo selecionado; as abas de Internação irão refazer o fetch com esses parâmetros
+          if (range && range.inicio && range.fim) {
+            setDateRange({ inicio: range.inicio, fim: range.fim });
+            setTravadoControle(range.travado ?? false);
+          } else {
+            setDateRange(null);
+            setTravadoControle(range?.travado ?? false);
+          }
+        }}
+      />
 
       <div className="border-b">
         <nav className="-mb-px flex space-x-8 overflow-x-auto">
@@ -193,12 +236,16 @@ export default function SetorDetailPage() {
             <DimensionamentoTab
               unidade={unidade as UnidadeInternacao}
               sessoes={sessoes}
+              dateRange={dateRange ?? undefined}
             />
           )}
           {activeTab === "leitos" && <LeitosAdminPage />}
           {activeTab === "parametros" && <ParametrosPage />}
           {activeTab === "projetado" && (
-            <ProjetadoTab unidade={unidade as UnidadeInternacao} />
+            <ProjetadoTab
+              unidade={unidade as UnidadeInternacao}
+              dateRange={dateRange ?? undefined}
+            />
           )}
         </>
       )}

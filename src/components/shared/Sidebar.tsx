@@ -15,6 +15,7 @@ import {
   FileText,
   ListChecks,
   Shield,
+  BarChart3,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getHospitais, Hospital } from "@/lib/api";
@@ -33,9 +34,10 @@ const NavItem = ({
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${isActive
-          ? "bg-secondary/10 text-secondary font-semibold"
-          : "text-gray-200 hover:bg-white/10"
+        `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${
+          isActive
+            ? "bg-secondary/10 text-secondary font-semibold"
+            : "text-gray-200 hover:bg-white/10"
         }`
       }
     >
@@ -44,6 +46,36 @@ const NavItem = ({
     </NavLink>
   </li>
 );
+
+const ExpandableSubItem = ({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <li>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3 py-2 my-1 rounded-md text-sm text-gray-200 hover:bg-white/10 text-left"
+      >
+        <div className="flex items-center">
+          {icon}
+          <span className="ml-3 text-xs font-semibold uppercase tracking-wider">
+            {label}
+          </span>
+        </div>
+        {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+      </button>
+      {isOpen && <ul className="pl-3">{children}</ul>}
+    </li>
+  );
+};
 
 const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
   const { hospitalId: activeHospitalId } = useParams();
@@ -64,15 +96,28 @@ const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
       label: "Dashboard",
     },
     {
+      to: `/hospital/${hospital.id}/pareto`,
+      icon: <ClipboardList size={16} />,
+      label: "Pareto",
+    },
+    {
+      to: `/hospital/${hospital.id}/setores`,
+      icon: <Building size={16} />,
+      label: "Setores",
+    },
+    {
       to: `/hospital/${hospital.id}/unidades-leitos`,
       icon: <Bed size={16} />,
       label: "Unidades e Leitos",
     },
     {
-      to: `/hospital/${hospital.id}/setores`,
-      icon: <Building size={16} />,
-      label: "Gerir Setores",
+      to: `/hospital/${hospital.id}/baseline`,
+      icon: <BarChart3 size={16} />,
+      label: "Baseline",
     },
+  ];
+
+  const cadastrosItems = [
     {
       to: `/hospital/${hospital.id}/usuarios`,
       icon: <Users size={16} />,
@@ -84,9 +129,9 @@ const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
       label: "Cargos",
     },
     {
-      to: `/hospital/${hospital.id}/pareto`,
-      icon: <ClipboardList size={16} />,
-      label: "Pareto",
+      to: `/hospital/${hospital.id}/gerir-setores`,
+      icon: <Building size={16} />,
+      label: "Gerir Setores",
     },
   ];
 
@@ -107,6 +152,11 @@ const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
           {subItems.map((item) => (
             <NavItem key={item.to} {...item} />
           ))}
+          <ExpandableSubItem label="Cadastros" icon={<FileText size={16} />}>
+            {cadastrosItems.map((item) => (
+              <NavItem key={item.to} {...item} />
+            ))}
+          </ExpandableSubItem>
         </ul>
       )}
     </li>
@@ -166,9 +216,9 @@ export default function Sidebar() {
   return (
     <aside className="w-72 bg-primary text-primary-foreground flex flex-col flex-shrink-0">
       <div className="h-20 flex items-center justify-center border-b border-white/20 px-6 py-3">
-        <img 
-          src="/logo.png" 
-          alt="Dimensiona+" 
+        <img
+          src="/logo.png"
+          alt="Dimensiona+"
           className="h-14 w-auto object-contain"
         />
       </div>
@@ -201,18 +251,66 @@ export default function Sidebar() {
         )}
 
         {(user?.appRole === "GESTOR" || user?.appRole === "COMUM") && (
-          <ul>
-            <NavItem
-              to="/meu-hospital"
-              icon={<HospitalIcon size={18} />}
-              label="Minhas Unidades"
-            />
-            <NavItem
-              to="/coletas"
-              icon={<ListChecks size={18} />}
-              label="Coleta de Dados"
-            />
-          </ul>
+          <>
+            <h2 className="px-3 text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">
+              Gerir Hospital
+            </h2>
+            <ul>
+              <li>
+                <div className="flex items-center px-3 py-2 my-1 rounded-md text-sm text-gray-200">
+                  <HospitalIcon size={18} className="flex-shrink-0" />
+                  <span className="ml-3 font-medium">Meu Hospital</span>
+                </div>
+                <ul className="pl-5 border-l-2 border-white/20 ml-3">
+                  <NavItem
+                    to="/meu-hospital/dashboard"
+                    icon={<LayoutDashboard size={16} />}
+                    label="Dashboard"
+                  />
+                  <NavItem
+                    to="/meu-hospital/pareto"
+                    icon={<ClipboardList size={16} />}
+                    label="Pareto"
+                  />
+                  <NavItem
+                    to="/meu-hospital/setores"
+                    icon={<Building size={16} />}
+                    label="Setores"
+                  />
+                  <NavItem
+                    to="/meu-hospital/unidades-leitos"
+                    icon={<Bed size={16} />}
+                    label="Unidades e Leitos"
+                  />
+                  <NavItem
+                    to="/meu-hospital/baseline"
+                    icon={<BarChart3 size={16} />}
+                    label="Baseline"
+                  />
+                  <ExpandableSubItem
+                    label="Cadastros"
+                    icon={<FileText size={16} />}
+                  >
+                    <NavItem
+                      to="/meu-hospital/usuarios"
+                      icon={<Users size={16} />}
+                      label="Usuários"
+                    />
+                    <NavItem
+                      to="/meu-hospital/cargos"
+                      icon={<Briefcase size={16} />}
+                      label="Cargos"
+                    />
+                    <NavItem
+                      to="/meu-hospital/gerir-setores"
+                      icon={<Building size={16} />}
+                      label="Gerir Setores"
+                    />
+                  </ExpandableSubItem>
+                </ul>
+              </li>
+            </ul>
+          </>
         )}
       </nav>
     </aside>

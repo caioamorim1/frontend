@@ -7,6 +7,10 @@ import {
   LayoutDashboard,
   Bed,
   ArrowLeft,
+  BarChart3,
+  FileText,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,6 +43,36 @@ const NavItem = ({
   </li>
 );
 
+const ExpandableSubItem = ({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <li>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3 py-2 my-1 rounded-md text-sm text-gray-200 hover:bg-white/10 text-left"
+      >
+        <div className="flex items-center">
+          {icon}
+          <span className="ml-3 text-xs font-semibold uppercase tracking-wider">
+            {label}
+          </span>
+        </div>
+        {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+      </button>
+      {isOpen && <ul className="pl-3">{children}</ul>}
+    </li>
+  );
+};
+
 export default function HospitalAdminSidebar() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const [hospital, setHospital] = useState<Hospital | null>(null);
@@ -52,15 +86,28 @@ export default function HospitalAdminSidebar() {
       label: "Dashboard",
     },
     {
-      to: `/hospital/${hospitalId}/unidades-leitos`,
-      icon: <Bed size={18} />,
-      label: "Unidades e Leitos",
-    }, // Ponto 1 da sua lista
+      to: `/hospital/${hospitalId}/pareto`,
+      icon: <ClipboardList size={18} />,
+      label: "Pareto",
+    },
     {
       to: `/hospital/${hospitalId}/setores`,
       icon: <Building size={18} />,
-      label: "Gerir Setores",
+      label: "Setores",
     },
+    {
+      to: `/hospital/${hospitalId}/unidades-leitos`,
+      icon: <Bed size={18} />,
+      label: "Unidades e Leitos",
+    },
+    {
+      to: `/hospital/${hospitalId}/baseline`,
+      icon: <BarChart3 size={18} />,
+      label: "Baseline",
+    },
+  ];
+
+  const cadastrosItems = [
     {
       to: `/hospital/${hospitalId}/usuarios`,
       icon: <Users size={18} />,
@@ -72,14 +119,9 @@ export default function HospitalAdminSidebar() {
       label: "Cargos",
     },
     {
-      to: `/hospital/${hospitalId}/pareto`,
-      icon: <ClipboardList size={18} />,
-      label: "Pareto",
-    },
-    {
-      to: `/hospital/${hospitalId}/coletas`,
-      icon: <ListCollapse size={18} />,
-      label: "Histórico de Coletas",
+      to: `/hospital/${hospitalId}/gerir-setores`,
+      icon: <Building size={18} />,
+      label: "Gerir Setores",
     },
   ];
 
@@ -119,6 +161,11 @@ export default function HospitalAdminSidebar() {
           {navItems.map((item) => (
             <NavItem key={item.to} {...item} />
           ))}
+          <ExpandableSubItem label="Cadastros" icon={<FileText size={18} />}>
+            {cadastrosItems.map((item) => (
+              <NavItem key={item.to} {...item} />
+            ))}
+          </ExpandableSubItem>
         </ul>
       </nav>
 

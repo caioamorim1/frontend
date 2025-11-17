@@ -66,7 +66,7 @@ const processWaterfallData = (data: WaterfallDataItem[]) => {
       color = "#89A7D6"; // Azul claro para baseline
       cumulative = item.value;
     } else if (isAtual) {
-      color = "#0070B9"; // Azul médio para atual
+      color = "#60a5fa"; // Azul claro para atual (tempo real)
     } else if (isProjetado) {
       color = "#003151"; // Azul escuro para projetado
     }

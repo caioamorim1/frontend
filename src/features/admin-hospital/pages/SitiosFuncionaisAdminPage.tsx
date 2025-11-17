@@ -396,13 +396,6 @@ export default function SitiosFuncionaisAdminPage() {
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap text-right text-sm space-x-2">
                     <button
-                      onClick={() => setManagingSitio(sitio)}
-                      className="text-green-600 hover:text-green-800"
-                      title="Gerenciar Cargos"
-                    >
-                      <Users size={18} />
-                    </button>
-                    <button
                       onClick={() => handleOpenForm(sitio)}
                       className="text-secondary hover:opacity-70"
                       title="Editar Sítio"

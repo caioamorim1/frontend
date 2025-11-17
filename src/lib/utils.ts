@@ -10,7 +10,7 @@ export function formatAmountBRL(amount: number): string {
   if (amount >= 1_000_000) {
     const valueInMillions = amount / 1_000_000;
     // Formata com 2 casas decimais usando ponto
-    const formattedValue = valueInMillions.toFixed(2);
+    const formattedValue = valueInMillions.toFixed(3);
     return `R$ ${formattedValue} M`;
   }
 
@@ -18,8 +18,8 @@ export function formatAmountBRL(amount: number): string {
   if (amount >= 1_000) {
     const valueInThousands = amount / 1_000;
     // Formata com 2 casas decimais usando ponto
-    const formattedValue = valueInThousands.toFixed(2);
-    return `R$ ${formattedValue} k`;
+    const formattedValue = valueInThousands.toFixed(3);
+    return `R$ ${formattedValue}`;
   }
 
   // Para valores menores que 1000, usa a formatação padrão

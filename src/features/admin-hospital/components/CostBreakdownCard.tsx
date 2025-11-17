@@ -175,59 +175,63 @@ const CostBreakdownCard: React.FC<CostBreakdownCardProps> = ({
   return (
     <div className="space-y-6">
       {/* Métricas Principais */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4 flex items-center">
-          <Calculator className="h-5 w-5 mr-2 text-primary" />
-          Métricas dos Setores Selecionados
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard
-            title="Total Selecionado"
-            value={totalSelected.toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            })}
-            subtitle={`${percentOfTotal.toFixed(1)}% do total geral`}
-            icon={DollarSign}
-            trend="up"
-            colorClass="bg-gradient-primary"
-            textColorClass="text-primary-foreground"
-          />
-          <MetricCard
-            title="Custo Médio"
-            value={averageCost.toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            })}
-            subtitle={`Entre ${selectedData.length} setores`}
-            icon={BarChart3}
-            trend="neutral"
-            colorClass="bg-success"
-            textColorClass="text-success-foreground"
-          />
-          <MetricCard
-            title="Maior Custo"
-            value={highestCost.toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            })}
-            subtitle={selectedData[0]?.nome || "N/A"}
-            icon={TrendingUp}
-            trend="up"
-            colorClass="bg-warning"
-            textColorClass="text-warning-foreground"
-          />
-          <MetricCard
-            title="Variação"
-            value={`${costVariation.toFixed(1)}%`}
-            subtitle="Diferença maior/menor"
-            icon={Activity}
-            trend={costVariation > 50 ? "up" : "neutral"}
-            colorClass="bg-info"
-            textColorClass="text-info-foreground"
-          />
-        </div>
-      </div>
+      <Card className="shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Calculator className="h-5 w-5 mr-2 text-primary" />
+            Métricas dos Setores
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard
+              title="Total "
+              value={totalSelected.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })}
+              subtitle={`Valor total geral`}
+              icon={DollarSign}
+              trend="up"
+              colorClass="bg-gradient-primary"
+              textColorClass="text-primary-foreground"
+            />
+            <MetricCard
+              title="Custo Médio"
+              value={averageCost.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })}
+              subtitle={`Entre ${selectedData.length} setores`}
+              icon={BarChart3}
+              trend="neutral"
+              colorClass="bg-success"
+              textColorClass="text-success-foreground"
+            />
+            <MetricCard
+              title="Maior Custo"
+              value={highestCost.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })}
+              subtitle={selectedData[0]?.nome || "N/A"}
+              icon={TrendingUp}
+              trend="up"
+              colorClass="bg-warning"
+              textColorClass="text-warning-foreground"
+            />
+            <MetricCard
+              title="Variação"
+              value={`${costVariation.toFixed(1)}%`}
+              subtitle="Diferença maior/menor"
+              icon={Activity}
+              trend={costVariation > 50 ? "up" : "neutral"}
+              colorClass="bg-info"
+              textColorClass="text-info-foreground"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Análises Detalhadas */}
       <Card className="shadow-medium">
@@ -340,70 +344,7 @@ const CostBreakdownCard: React.FC<CostBreakdownCardProps> = ({
             )}
           </div>
 
-          {/* Comparação com Total Geral */}
-          <div>
-            <SectionHeader
-              title="Comparação com Total Geral"
-              description={`Impacto de ${percentOfTotal.toFixed(
-                1
-              )}% no custo total`}
-              sectionKey="comparison"
-              icon={PieChart}
-            />
-            {expandedSection === "comparison" && (
-              <div className="mt-4 pl-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card>
-                    <CardContent className="p-4">
-                      <h5 className="font-semibold mb-2">
-                        Setores Selecionados
-                      </h5>
-                      <p className="text-2xl font-bold text-primary">
-                        {totalSelected.toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        })}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedData.length} setores
-                      </p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <h5 className="font-semibold mb-2">Total Geral</h5>
-                      <p className="text-2xl font-bold text-muted-foreground">
-                        {" "}
-                        {totalAll.toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        })}{" "}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Todos os setores
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-                <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">
-                      Representatividade
-                    </span>
-                    <span className="text-sm font-bold">
-                      {percentOfTotal.toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-background rounded-full h-2">
-                    <div
-                      className="bg-gradient-primary h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(percentOfTotal, 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          {/* Comparação com Total Geral - Removido */}
         </CardContent>
       </Card>
     </div>

@@ -26,24 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DollarSign,
-  Users,
-  Building,
-  ChevronsRight,
-  Radar,
-  CircleDollarSign,
-} from "lucide-react";
+import { DollarSign, Users, Building, CircleDollarSign } from "lucide-react";
 import RadarChartComponent from "./graphicsComponents/RadarChart";
 import { calcularPerformanceParaGrafico } from "@/mocks/filterMocksRadar";
-import { fetchDashboardAtualData } from "@/mocks/filterMocksDashAtual";
-import { DashboardAnalytics } from "@/mocks/mocksDashAtualDatabase";
 import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import { HorizontalBarChartComp } from "./graphicsComponents/HorizontalBarChartComp";
 import BargraphicChart from "./graphicsComponents/BarChartComp";
 import {
   COLORS,
-  generateMultiColorScale,
   generateBlueMonochromaticScale,
 } from "@/lib/generateMultiColorScale";
 import { formatAmountBRL } from "@/lib/utils";
@@ -275,6 +265,7 @@ const GlobalTabContent: React.FC<{
   aggregationType?: "hospital" | "grupo" | "regiao" | "rede"; // 🆕
   entityId?: string; // 🆕
 }> = ({ sourceData, radarData, hospitalId, aggregationType, entityId }) => {
+  console.log("📊 [TAB GLOBAL] URL usada: GET /hospital-sectors/" + hospitalId);
   const { internation, assistance } = sourceData;
 
   const occupationData = useMemo(() => {
@@ -481,6 +472,9 @@ const TabContentInternacao: React.FC<{
   entityId?: string; // 🆕
   hospitalId?: string; // 🆕 usar rota oficial na aba de Internação
 }> = ({ sourceData, radarData, aggregationType, entityId, hospitalId }) => {
+  console.log(
+    "🏥 [TAB INTERNAÇÃO] URL usada: GET /hospital-sectors/" + hospitalId
+  );
   const [selectedSector, setSelectedSector] = useState<string>("all");
 
   // Dados de fallback (não usados quando hospitalId é fornecido, pois o gráfico usa a rota oficial)
@@ -503,7 +497,7 @@ const TabContentInternacao: React.FC<{
   const detailedData = safeSourceData.filter(
     (sector) => selectedSector === "all" || sector.id === selectedSector
   );
-
+  console.log("detailedData", detailedData);
   const totalMinimumCare = detailedData.reduce((acc, sector) => {
     // Suportar tanto CareLevel quanto careLevel
     const careLevel = sector.CareLevel || (sector as any).careLevel;
@@ -579,10 +573,15 @@ const TabContentInternacao: React.FC<{
   ];
 
   // Agrupar tudo que não for 'ocupado' como 'Leito Livre'
-  const calculatedFreeBeds = Math.max(0, totalBeds - totalEvaluatedBeds);
+  const calculatedFreeBeds = Math.max(
+    0,
+    totalBeds - (totalEvaluatedBeds + totalInactiveBeds + totalVacantBeds)
+  );
   const chartDataBedStates = [
     { name: "Leito Ocupado", value: totalEvaluatedBeds, color: COLORS[1] },
-    { name: "Leito Livre", value: calculatedFreeBeds, color: COLORS[2] },
+    { name: "Leito Não Avaliado", value: calculatedFreeBeds, color: COLORS[2] },
+    { name: "Leito Inativo", value: totalInactiveBeds, color: COLORS[3] },
+    { name: "Leito Vago", value: totalVacantBeds, color: COLORS[4] },
   ];
 
   const chartDataAtual: ChartData[] = detailedData
@@ -756,6 +755,9 @@ const TabContentNoInternacao: React.FC<{
   sourceData: SectorAssistance[];
   radarData: ChartDataItem[];
 }> = ({ sourceData, radarData }) => {
+  console.log(
+    "🏥 [TAB NÃO INTERNAÇÃO] URL usada: GET /hospital-sectors/:hospitalId (mesma rota, filtra dados de 'assistance')"
+  );
   const [selectedSector, setSelectedSector] = useState<string>("all");
 
   // Verificações de segurança para evitar erros com null/undefined
@@ -980,6 +982,7 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
       // Senão, busca dados normalmente por hospitalId
 
       dashboardData = await getAllHospitalSectors(hospitalId);
+      console.log("📊 [Dashboard Atual - Dados carregados]", dashboardData);
     }
 
     const tipo = activeTab === "internacao" ? "Internacao" : "NaoInternacao";

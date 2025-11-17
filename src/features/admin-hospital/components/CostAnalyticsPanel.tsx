@@ -169,7 +169,7 @@ const CostAnalyticsPanel: React.FC<CostAnalyticsPanelProps> = ({
                 {selectedData.length}
               </p>
               <p className="text-xs text-muted-foreground">Setores Ativos</p>
-            </div>
+            </div>{" "}
             <div className="text-center p-3 bg-success/5 rounded-lg border border-success/20">
               <p className="text-2xl font-bold text-success">
                 {totalSelected.toLocaleString("pt-BR", {
@@ -216,8 +216,8 @@ const CostAnalyticsPanel: React.FC<CostAnalyticsPanelProps> = ({
       {/* Conteúdo baseado na view ativa */}
       {activeView === "breakdown" && (
         <CostBreakdownCard
-          selectedData={selectedData}
-          totalSelected={totalSelected}
+          selectedData={allData}
+          totalSelected={totalAll}
           totalAll={totalAll}
         />
       )}
@@ -240,18 +240,16 @@ const CostAnalyticsPanel: React.FC<CostAnalyticsPanelProps> = ({
                 <div className="grid grid-cols-4 gap-2 mb-4">
                   {[1, 2, 3, 4].map((quartil) => {
                     const start = Math.floor(
-                      ((quartil - 1) * selectedData.length) / 4
+                      ((quartil - 1) * allData.length) / 4
                     );
-                    const end = Math.floor((quartil * selectedData.length) / 4);
-                    const quartilData = selectedData.slice(start, end);
+                    const end = Math.floor((quartil * allData.length) / 4);
+                    const quartilData = allData.slice(start, end);
                     const quartilTotal = quartilData.reduce(
                       (sum, item) => sum + item.custo,
                       0
                     );
                     const quartilPercent =
-                      totalSelected > 0
-                        ? (quartilTotal / totalSelected) * 100
-                        : 0;
+                      totalAll > 0 ? (quartilTotal / totalAll) * 100 : 0;
 
                     return (
                       <div
@@ -282,12 +280,6 @@ const CostAnalyticsPanel: React.FC<CostAnalyticsPanelProps> = ({
                     <span>Top 20% dos setores representam:</span>
                     <Badge variant="secondary">
                       {costConcentration.toFixed(1)}% dos custos
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                    <span>Taxa de seleção de setores:</span>
-                    <Badge variant={selectionRate > 50 ? "default" : "outline"}>
-                      {selectionRate.toFixed(1)}%
                     </Badge>
                   </div>
                 </div>
