@@ -60,7 +60,10 @@ function App() {
           <Route path="setores" element={<SetoresCardPage />} />
           <Route path="gerir-setores" element={<SetoresPage />} />
           <Route path="gerir-setores/:setorId" element={<SetorDetailPage />} />
-          <Route path="gerir-setores/:setorId/leitos" element={<LeitosAdminPage />} />
+          <Route
+            path="gerir-setores/:setorId/leitos"
+            element={<LeitosAdminPage />}
+          />
           <Route
             path="gerir-setores/:setorId/parametros"
             element={<ParametrosPage />}

@@ -110,7 +110,7 @@ const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
       icon: <Bed size={16} />,
       label: "Unidades e Leitos",
     },
-     {
+    {
       to: `/hospital/${hospital.id}/baseline`,
       icon: <BarChart3 size={16} />,
       label: "Baseline",
@@ -134,8 +134,6 @@ const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
       label: "Gerir Setores",
     },
   ];
-
- 
 
   return (
     <li>
@@ -289,7 +287,10 @@ export default function Sidebar() {
                     icon={<BarChart3 size={16} />}
                     label="Baseline"
                   />
-                  <ExpandableSubItem label="Cadastros" icon={<FileText size={16} />}>
+                  <ExpandableSubItem
+                    label="Cadastros"
+                    icon={<FileText size={16} />}
+                  >
                     <NavItem
                       to="/meu-hospital/usuarios"
                       icon={<Users size={16} />}
