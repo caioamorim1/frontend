@@ -7,13 +7,48 @@ import { DashboardBaselineScreen } from "@/features/admin-hospital/components/Da
 import { DashboardProjetadoScreen } from "@/features/admin-hospital/components/DashboardProjetadoScreen";
 // ✅ NOVO IMPORT
 import { DashboardComparativoHospitalScreen } from "@/features/admin-hospital/components/DashboardComparativoHospitalScreen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { clearSectorsCache } from "@/mocks/functionSectores";
+import { useParams } from "react-router-dom";
+import { getAllSnapshotHospitalSectors } from "@/lib/api";
 
 export default function HospitalDashboardPage() {
+  const { hospitalId } = useParams<{ hospitalId: string }>();
+  const [hasBaseline, setHasBaseline] = useState(false);
+  const [checkingBaseline, setCheckingBaseline] = useState(true);
+
   useEffect(() => {
     clearSectorsCache();
   }, []);
+
+  useEffect(() => {
+    const checkBaseline = async () => {
+      if (!hospitalId) {
+        setCheckingBaseline(false);
+        return;
+      }
+
+      try {
+        const snapshotData = await getAllSnapshotHospitalSectors(hospitalId);
+        const hasData =
+          snapshotData &&
+          ((snapshotData.internation && snapshotData.internation.length > 0) ||
+            (snapshotData.assistance && snapshotData.assistance.length > 0));
+        setHasBaseline(!!hasData);
+      } catch (error) {
+        console.error("Erro ao verificar baseline:", error);
+        setHasBaseline(false);
+      } finally {
+        setCheckingBaseline(false);
+      }
+    };
+
+    checkBaseline();
+  }, [hospitalId]);
+
+  if (checkingBaseline) {
+    return <div>Carregando...</div>;
+  }
 
   return (
     <div className="space-y-8 pb-10">
@@ -26,19 +61,21 @@ export default function HospitalDashboardPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="baseline">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="baseline">Baseline</TabsTrigger>
+      <Tabs defaultValue={hasBaseline ? "baseline" : "atual"}>
+        <TabsList className={`grid w-full ${hasBaseline ? "grid-cols-4" : "grid-cols-3"}`}>
+          {hasBaseline && <TabsTrigger value="baseline">Baseline</TabsTrigger>}
           <TabsTrigger value="atual">Atual</TabsTrigger>
           <TabsTrigger value="projetado">Projetado</TabsTrigger>
           <TabsTrigger value="comparativo">Comparativo</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="baseline">
-          <div className="grid grid-cols-1 gap-6 mt-6">
-            <DashboardBaselineScreen title="Análise Econômico-Financeira Base" />
-          </div>
-        </TabsContent>
+        {hasBaseline && (
+          <TabsContent value="baseline">
+            <div className="grid grid-cols-1 gap-6 mt-6">
+              <DashboardBaselineScreen title="Análise Econômico-Financeira Base" />
+            </div>
+          </TabsContent>
+        )}
 
         <TabsContent value="atual">
           <div className="grid grid-cols-1 gap-6 mt-6">

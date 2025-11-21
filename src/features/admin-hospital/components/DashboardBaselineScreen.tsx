@@ -806,6 +806,21 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     );
   }
 
+  if (!chartDataAtual) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{props.title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-64">
+            <p className="text-muted-foreground">Ainda não há baseline disponível.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <>
       {chartDataAtual && (

@@ -296,30 +296,12 @@ export default function SetoresPage() {
         <h1 className="text-3xl font-bold text-primary">
           Gerenciamento de Setores
         </h1>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <Button
-            onClick={isFormVisible ? resetForm : handleAddNew}
-            variant={isFormVisible ? "outline" : "default"}
-          >
-            {isFormVisible ? "Cancelar" : "+ Novo Setor"}
-          </Button>
-          <Button
-            onClick={() =>
-              showModal({
-                type: "confirm",
-                title: "Confirmar Nova Baseline",
-                message:
-                  "Deseja gerar a baseline com os dados atuais do hospital? Atenção: esta ação irá sobrescrever qualquer versão salva anteriormente.",
-                confirmText: "Gerar",
-                cancelText: "Cancelar",
-                onConfirm: handleGenerateBaselineConfirm,
-              })
-            }
-            variant={"default"}
-          >
-            {"Gerar Baseline"}
-          </Button>
-        </div>
+        <button
+          onClick={isFormVisible ? resetForm : handleAddNew}
+          className="px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
+        >
+          {isFormVisible ? "Cancelar" : "+ Novo Setor"}
+        </button>
       </div>
 
       {isFormVisible && (
