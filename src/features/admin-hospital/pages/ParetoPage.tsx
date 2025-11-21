@@ -396,7 +396,7 @@ export default function ParetoPage() {
           </p>
           <button
             onClick={() => setIsFormVisible(true)}
-            className="mt-4 px-4 py-2 text-white bg-primary rounded-md hover:opacity-90"
+            className="mt-4 px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
           >
             <PlusCircle className="inline-block mr-2 h-4 w-4" /> Criar Novo
             Pareto

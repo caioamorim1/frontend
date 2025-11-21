@@ -588,6 +588,36 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     </div>
   );
 
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-64">
+            <p className="text-muted-foreground">Carregando dados...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!comparativeData || !processedData) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-64">
+            <p className="text-muted-foreground">Ainda não há comparativo disponível.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>

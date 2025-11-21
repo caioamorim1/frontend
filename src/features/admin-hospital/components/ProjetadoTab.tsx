@@ -6,7 +6,16 @@ import {
   AjustesPayload,
   saveProjetadoFinalInternacao,
   getProjetadoFinalInternacao,
+  type AnaliseInternacaoResponse,
+  saveControlePeriodo,
 } from "@/lib/api";
+import { PieChartComp } from "./graphicsComponents/PieChartComp";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Table,
   TableBody,
@@ -118,6 +127,89 @@ export default function ProjetadoTab({
     cargoId: string;
     cargoNome: string;
   }>({ isOpen: false, cargoId: "", cargoNome: "" });
+  
+  const [dataInicial, setDataInicial] = useState<string>(
+    dateRange?.inicio ?? ""
+  );
+  const [dataFinal, setDataFinal] = useState<string>(dateRange?.fim ?? "");
+  const [travado, setTravado] = useState<boolean>(false);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [hideCalculoFields, setHideCalculoFields] = useState(false);
+  const [analise, setAnalise] = useState<AnaliseInternacaoResponse | null>(
+    null
+  );
+
+  useEffect(() => {
+    setDataInicial(dateRange?.inicio ?? "");
+    setDataFinal(dateRange?.fim ?? "");
+  }, [dateRange?.inicio, dateRange?.fim]);
+
+  const handleCalcular = async () => {
+    const hasInicio = Boolean(dataInicial);
+    const hasFim = Boolean(dataFinal);
+
+    if (!hasInicio && !hasFim) {
+      showAlert(
+        "destructive",
+        "Período obrigatório",
+        "Preencha a data inicial e a data final para calcular."
+      );
+      return;
+    }
+
+    if (!dataInicial || !dataFinal) {
+      showAlert(
+        "destructive",
+        "Período incompleto",
+        "Preencha a data inicial e a data final."
+      );
+      return;
+    }
+
+    if (new Date(dataFinal) < new Date(dataInicial)) {
+      showAlert(
+        "destructive",
+        "Período inválido",
+        "A data final deve ser maior ou igual à data inicial."
+      );
+      return;
+    }
+
+    try {
+      setIsCalculating(true);
+      const resp = await getAnaliseInternacao(unidade.id, {
+        inicio: dataInicial,
+        fim: dataFinal,
+      });
+      setAnalise(resp);
+      
+      // Salvar controle de período (não travado ainda)
+      try {
+        await saveControlePeriodo({
+          unidadeId: unidade.id,
+          travado: false,
+          dataInicial,
+          dataFinal,
+        });
+      } catch (saveError: any) {
+        console.error("Erro ao salvar período:", saveError);
+      }
+      
+      showAlert(
+        "success",
+        "Pronto",
+        "Indicadores calculados para o período."
+      );
+    } catch (e: any) {
+      showAlert(
+        "destructive",
+        "Erro",
+        e?.response?.data?.error || "Falha ao calcular indicadores."
+      );
+    } finally {
+      setIsCalculating(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -127,6 +219,10 @@ export default function ProjetadoTab({
           unidade.id,
           dateRange && dateRange.inicio && dateRange.fim ? dateRange : undefined
         );
+
+        if (analiseData) {
+          setAnalise(analiseData);
+        }
 
         if (analiseData && analiseData.tabela) {
           setAnaliseBase(analiseData.tabela);
@@ -278,7 +374,53 @@ export default function ProjetadoTab({
 
       await saveProjetadoFinalInternacao(unidade.id, payload);
 
-      showAlert("success", "Sucesso", "Projetado final salvo com sucesso.");
+      // Verificar se algum cargo tem status de conclusão e travar o período
+      const statusQueTravar = ["concluido_parcial", "concluido_final"];
+      const temStatusConclusao = Object.values(metadata).some((meta) =>
+        statusQueTravar.includes(meta.status || "")
+      );
+
+      if (temStatusConclusao && dataInicial && dataFinal) {
+        setTravado(true);
+        setHideCalculoFields(true);
+        try {
+          await saveControlePeriodo({
+            unidadeId: unidade.id,
+            travado: true,
+            dataInicial,
+            dataFinal,
+          });
+          showAlert(
+            "success",
+            "Sucesso",
+            "Projetado final salvo e período travado automaticamente."
+          );
+        } catch (error) {
+          console.error("Erro ao travar período:", error);
+          showAlert(
+            "success",
+            "Sucesso",
+            "Projetado final salvo, mas houve um erro ao travar o período."
+          );
+        }
+      } else {
+        // Se não há mais status de conclusão, destravar
+        setTravado(false);
+        setHideCalculoFields(false);
+        if (dataInicial && dataFinal) {
+          try {
+            await saveControlePeriodo({
+              unidadeId: unidade.id,
+              travado: false,
+              dataInicial,
+              dataFinal,
+            });
+          } catch (error) {
+            console.error("Erro ao destravar período:", error);
+          }
+        }
+        showAlert("success", "Sucesso", "Projetado final salvo com sucesso.");
+      }
     } catch (error) {
       showAlert(
         "destructive",
@@ -395,11 +537,127 @@ export default function ProjetadoTab({
           unidadeInternacao={unidade}
         />
       ) : (
-        <Card className="animate-fade-in-down">
-          <CardHeader>
-            <CardTitle>Ajuste Qualitativo do Quadro Projetado</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="space-y-6">
+          <Card className="animate-fade-in-down">
+            <CardHeader>
+              <CardTitle>Cálculo por Data Específica</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!hideCalculoFields && (
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+                    <div className="flex flex-col">
+                      <label className="text-sm text-gray-600 mb-1">
+                        Data inicial
+                      </label>
+                      <input
+                        type="date"
+                        value={dataInicial}
+                        onChange={(e) => setDataInicial(e.target.value)}
+                        className="w-full p-2 border rounded-md"
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <label className="text-sm text-gray-600 mb-1">Data final</label>
+                      <input
+                        type="date"
+                        value={dataFinal}
+                        onChange={(e) => setDataFinal(e.target.value)}
+                        className="w-full p-2 border rounded-md"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleCalcular}
+                      disabled={isCalculating}
+                      className="w-full sm:w-auto px-5 py-2.5 h-11 bg-secondary text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-60"
+                    >
+                      {isCalculating ? "Calculando..." : "Calcular"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {analise && (
+                <div className={`${!hideCalculoFields ? 'mt-6' : ''} border rounded-lg p-4 bg-white flex flex-col`}>
+                  <div className="flex flex-row border rounded-lg justify-around min-w-[200px]">
+                    <TooltipProvider>
+                      <Tooltip delayDuration={200}>
+                        <TooltipTrigger asChild>
+                          <div className="p-3 bg-white flex items-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors">
+                            <p className="text-lg font-bold">Leitos Avaliados :</p>
+                            <p className="text-2xl font-bold tracking-tight text-primary">
+                              {(() => {
+                                const ag = analise?.agregados as any;
+                                const v = ag?.percentualLeitosAvaliados;
+                                if (v === undefined || v === null) return "-";
+                                return `${Number(v).toFixed(1)}%`;
+                              })()}
+                            </p>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="p-0 border-0 shadow-lg">
+                          <div className="w-[400px] bg-white rounded-lg shadow-xl">
+                            <PieChartComp
+                              title="Níveis de Cuidado"
+                              data={(() => {
+                                const dist =
+                                  analise?.agregados?.distribuicaoTotalClassificacao ||
+                                  {};
+                                const entries = Object.entries(
+                                  dist as Record<string, number>
+                                );
+                                const normalize = (k: string) =>
+                                  k
+                                    .toLowerCase()
+                                    .replace(/_/g, " ")
+                                    .replace(/\b\w/g, (c) => c.toUpperCase());
+                                return entries.map(([name, value]) => ({
+                                  name: normalize(name),
+                                  value: Number(value || 0),
+                                }));
+                              })()}
+                              labelType="percent"
+                              height={300}
+                              innerRadius={45}
+                              outerRadius={70}
+                              className="border-0 shadow-none p-0"
+                              totalForPercent={(() => {
+                                const dist =
+                                  analise?.agregados?.distribuicaoTotalClassificacao ||
+                                  {};
+                                return Object.values(
+                                  dist as Record<string, number>
+                                ).reduce((sum, val) => sum + (val || 0), 0);
+                              })()}
+                            />
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <div className="p-3 bg-white flex items-center gap-2">
+                      <p className="text-lg font-bold">Taxa Média de Ocupação :</p>
+                      <p className="text-2xl font-bold tracking-tight text-primary">
+                        {(() => {
+                          const ag = analise?.agregados as any;
+                          const v = ag?.taxaOcupacaoPeriodoPercent;
+                          if (v === undefined || v === null) return "-";
+                          return `${Number(v).toFixed(1)}%`;
+                        })()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="animate-fade-in-down">
+            <CardHeader>
+              <CardTitle>Ajuste Qualitativo do Quadro Projetado</CardTitle>
+            </CardHeader>
+            <CardContent>
             <div className="border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
@@ -639,6 +897,7 @@ export default function ProjetadoTab({
             </div>
           </CardContent>
         </Card>
+        </div>
       )}
 
       <ObservacaoModal
