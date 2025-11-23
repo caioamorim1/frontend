@@ -62,10 +62,6 @@ export default function BaselinePareto({
   onToggle,
 }: BaselineParetoProps) {
   const baseline: any = hospital?.baseline;
-  console.log("[BaselinePareto] Componente renderizado");
-  console.log("[BaselinePareto] hospital.id:", hospital?.id);
-  console.log("[BaselinePareto] baseline:", baseline);
-  console.log("[BaselinePareto] baseline.id:", baseline?.id);
 
   const { showAlert } = useAlert();
   const [showAnalytics, setShowAnalytics] = useState(false);
@@ -111,11 +107,9 @@ export default function BaselinePareto({
   );
 
   useEffect(() => {
-    console.log("[BaselinePareto] useEffect disparado");
-    console.log("[BaselinePareto] baseline.setores:", baseline?.setores);
-    console.log("[BaselinePareto] hospital.id:", hospital?.id);
+    
     const novosSetores = normalizeSetores(baseline?.setores);
-    console.log("[BaselinePareto] Setando setores:", novosSetores);
+
     setSetores(novosSetores);
   }, [baseline?.setores, hospital?.id]);
 

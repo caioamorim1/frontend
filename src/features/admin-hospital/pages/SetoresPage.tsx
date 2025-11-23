@@ -53,6 +53,7 @@ export default function SetoresPage() {
     "internacao" | "nao-internacao" | null
   >(null);
   const [editingUnidade, setEditingUnidade] = useState<Unidade | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Estados para os formulários
   const [nome, setNome] = useState("");
@@ -290,6 +291,16 @@ export default function SetoresPage() {
     });
   };
 
+  // Filtrar unidades baseado na busca
+  const filteredUnidades = unidades.filter((unidade) => {
+    const search = searchTerm.toLowerCase();
+    return (
+      unidade.nome.toLowerCase().includes(search) ||
+      (unidade.tipo === "internacao" && "internação".includes(search)) ||
+      (unidade.tipo === "nao-internacao" && "não internação".includes(search))
+    );
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -302,6 +313,17 @@ export default function SetoresPage() {
         >
           {isFormVisible ? "Cancelar" : "+ Novo Setor"}
         </button>
+      </div>
+
+      {/* Barra de Busca */}
+      <div className="bg-white p-4 rounded-lg border">
+        <input
+          type="text"
+          placeholder="Buscar por nome ou tipo de setor..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full p-3 border rounded-md focus:ring-2 focus:ring-secondary focus:border-secondary"
+        />
       </div>
 
       {isFormVisible && (
@@ -473,16 +495,13 @@ export default function SetoresPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {unidades.length > 0 ? (
-                  unidades.map((unidade) => (
+                {filteredUnidades.length > 0 ? (
+                  filteredUnidades.map((unidade) => (
                     <TableRow key={unidade.id}>
                       <TableCell className="font-medium">
-                        <Link
-                          to={`/hospital/${hospitalId}/setores/${unidade.id}`}
-                          className="hover:underline text-primary"
-                        >
+                        <span className="text-gray-800">
                           {unidade.nome}
-                        </Link>
+                        </span>
                       </TableCell>
                       <TableCell>
                         <span
@@ -522,7 +541,9 @@ export default function SetoresPage() {
                       colSpan={3}
                       className="text-center text-sm text-gray-500"
                     >
-                      Nenhum setor cadastrado.
+                      {searchTerm
+                        ? "Nenhum setor encontrado com esse filtro."
+                        : "Nenhum setor cadastrado."}
                     </TableCell>
                   </TableRow>
                 )}

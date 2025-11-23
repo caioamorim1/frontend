@@ -1,17 +1,14 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import {
-  getBaselinesByHospitalId,
-  createBaseline,
   createSnapshotHospitalSectors,
   getHospitalSnapshots,
   updateSnapshotSelecionado,
-  Baseline,
   getHospitalById,
   Hospital,
   Snapshot,
 } from "@/lib/api";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, TrendingDown, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +27,6 @@ export default function BaselinePage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const { showAlert } = useAlert();
   const [hospital, setHospital] = useState<Hospital | null>(null);
-  const [baselines, setBaselines] = useState<Baseline[]>([]);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -42,31 +38,127 @@ export default function BaselinePage() {
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string>("");
   const selectedSnapshot = snapshots.find((s) => s.id === selectedSnapshotId);
 
+  // Função para calcular a variação de custo de um snapshot
+  const calcularVariacaoCusto = (snapshot: Snapshot) => {
+    if (!snapshot?.dados) return null;
+
+    let custoAtualTotal = 0;
+    let custoProjetadoTotal = 0;
+
+    // Processar unidades de internação
+    const internacao = snapshot.dados.internation || [];
+    const projetadoInternacao = snapshot.dados.projetadoFinal?.internacao || [];
+
+    internacao.forEach((unidade: any) => {
+      // Custo atual da unidade
+      const custoAtual = unidade.costAmount || 0;
+      custoAtualTotal += custoAtual;
+
+      // Encontrar dados projetados desta unidade
+      const unidadeProjetada = projetadoInternacao.find(
+        (up: any) => up.unidadeId === unidade.id
+      );
+
+      if (unidadeProjetada && unidadeProjetada.cargos) {
+        // Calcular custo projetado baseado nos cargos
+        let custoProjetadoUnidade = 0;
+        
+        unidadeProjetada.cargos.forEach((cargoProj: any) => {
+          // Encontrar o cargo no staff atual para pegar o unitCost
+          const cargoAtual = unidade.staff?.find(
+            (s: any) => s.id === cargoProj.cargoId
+          );
+          
+          if (cargoAtual) {
+            const unitCost = cargoAtual.unitCost || 0;
+            const quantidadeProjetada = cargoProj.projetadoFinal || 0;
+            custoProjetadoUnidade += unitCost * quantidadeProjetada;
+          }
+        });
+        
+        custoProjetadoTotal += custoProjetadoUnidade;
+      } else {
+        // Se não há projetado, mantém o custo atual
+        custoProjetadoTotal += custoAtual;
+      }
+    });
+
+    // Processar unidades de não-internação (assistência)
+    const assistance = snapshot.dados.assistance || [];
+    const projetadoAssistencia = snapshot.dados.projetadoFinal?.naoInternacao || [];
+
+    assistance.forEach((unidade: any) => {
+      const custoAtual = unidade.costAmount || 0;
+      custoAtualTotal += custoAtual;
+
+      const unidadeProjetada = projetadoAssistencia.find(
+        (up: any) => up.unidadeId === unidade.id
+      );
+
+      if (unidadeProjetada && unidadeProjetada.sitios) {
+        let custoProjetadoUnidade = 0;
+        
+        unidadeProjetada.sitios.forEach((sitio: any) => {
+          sitio.cargos?.forEach((cargoProj: any) => {
+            // Encontrar o cargo no staff atual
+            const sitioAtual = unidade.functionalSites?.find(
+              (fs: any) => fs.id === sitio.sitioId
+            );
+            const cargoAtual = sitioAtual?.staff?.find(
+              (s: any) => s.id === cargoProj.cargoId
+            );
+            
+            if (cargoAtual) {
+              const unitCost = cargoAtual.unitCost || 0;
+              const quantidadeProjetada = cargoProj.projetadoFinal || 0;
+              custoProjetadoUnidade += unitCost * quantidadeProjetada;
+            }
+          });
+        });
+        
+        custoProjetadoTotal += custoProjetadoUnidade;
+      } else {
+        custoProjetadoTotal += custoAtual;
+      }
+    });
+
+    const variacao = custoProjetadoTotal - (custoAtualTotal / 100);
+    const percentualVariacao = custoAtualTotal > 0 
+      ? (variacao / (custoAtualTotal / 100)) * 100 
+      : 0;
+
+    return {
+      custoAtual: custoAtualTotal,
+      custoProjetado: custoProjetadoTotal,
+      variacao,
+      percentualVariacao,
+    };
+  };
+
   const fetchData = async () => {
     if (!hospitalId) return;
 
     setLoading(true);
     try {
-      const [hospitalData, baselinesData, snapshotsData] = await Promise.all([
+      const [hospitalData, snapshotsData] = await Promise.all([
         getHospitalById(hospitalId),
-        getBaselinesByHospitalId(hospitalId),
         getHospitalSnapshots(hospitalId, 10),
       ]);
 
       setHospital(hospitalData);
-      setBaselines(
-        Array.isArray(baselinesData)
-          ? baselinesData
-          : baselinesData
-          ? [baselinesData]
-          : []
-      );
       setSnapshots(snapshotsData.snapshots || []);
 
       // Encontrar e selecionar o snapshot que está marcado como selecionado
       const snapshotSelecionado = snapshotsData.snapshots?.find(
         (s) => s.selecionado === true
       );
+      
+      // Console log para observação
+      console.log('=== BASELINE PAGE - SNAPSHOT CARREGADO ===');
+      console.log('Snapshot selecionado:', snapshotSelecionado);
+      console.log('Todos os snapshots:', snapshotsData.snapshots);
+      console.log('==========================================');
+      
       if (snapshotSelecionado) {
         setSelectedSnapshotId(snapshotSelecionado.id);
       }
@@ -202,60 +294,89 @@ export default function BaselinePage() {
             </p>
           ) : (
             <div className="space-y-3">
-              {snapshots.map((snapshot) => (
-                <div
-                  key={snapshot.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-lg">
-                      {snapshot.observacao || "Sem descrição"}
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      Criado em:{" "}
-                      {new Date(snapshot.dataHora).toLocaleString("pt-BR", {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      })}
-                    </p>
-                    {snapshot.resumo && (
-                      <div className="flex gap-4 mt-2 text-sm">
-                        <span className="text-muted-foreground">
-                          Profissionais:{" "}
-                          <strong>{snapshot.resumo.totalProfissionais}</strong>
-                        </span>
-                        <span className="text-muted-foreground">
-                          Custo:{" "}
-                          <strong>
-                            R${" "}
-                            {(snapshot.resumo.custoTotal / 100)
-                              .toFixed(0)
-                              .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-                          </strong>
-                        </span>
-                        <span className="text-muted-foreground">
-                          Unidades:{" "}
-                          <strong>
-                            {snapshot.resumo.totalUnidadesInternacao +
-                              snapshot.resumo.totalUnidadesAssistencia}
-                          </strong>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <Button
-                    variant={
-                      selectedSnapshotId === snapshot.id ? "default" : "outline"
-                    }
-                    size="sm"
-                    onClick={() => handleSelecionarBaseline(snapshot.id)}
+              {snapshots.map((snapshot) => {
+                const variacaoCusto = calcularVariacaoCusto(snapshot);
+                
+                return (
+                  <div
+                    key={snapshot.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    {selectedSnapshotId === snapshot.id
-                      ? "Selecionado"
-                      : "Selecionar Baseline"}
-                  </Button>
-                </div>
-              ))}
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-lg">
+                        {snapshot.observacao || "Sem descrição"}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Criado em:{" "}
+                        {new Date(snapshot.dataHora).toLocaleString("pt-BR", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })}
+                      </p>
+                      {snapshot.resumo && (
+                        <div className="flex gap-4 mt-2 text-sm">
+                          <span className="text-muted-foreground">
+                            Profissionais:{" "}
+                            <strong>{snapshot.resumo.totalProfissionais}</strong>
+                          </span>
+                          <span className="text-muted-foreground">
+                            Custo Atual:{" "}
+                            <strong>
+                              R${" "}
+                              {(snapshot.resumo.custoTotal / 100).toLocaleString('pt-BR', { 
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2 
+                              })}
+                            </strong>
+                          </span>
+                          {variacaoCusto && (
+                            <>
+                              <span className="text-muted-foreground">
+                                Custo Projetado:{" "}
+                                <strong>
+                                  R$ {variacaoCusto.custoProjetado.toLocaleString('pt-BR', { 
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2 
+                                  })}
+                                </strong>
+                              </span>
+                              <span className="text-muted-foreground">
+                                Variação:{" "}
+                                <strong>
+                                  {variacaoCusto.variacao > 0 ? '+' : ''}
+                                  R$ {Math.abs(variacaoCusto.variacao).toLocaleString('pt-BR', { 
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2 
+                                  })}
+                                  {' '}({variacaoCusto.variacao > 0 ? '+' : ''}{variacaoCusto.percentualVariacao.toFixed(2)}%)
+                                </strong>
+                              </span>
+                            </>
+                          )}
+                          <span className="text-muted-foreground">
+                            Unidades:{" "}
+                            <strong>
+                              {snapshot.resumo.totalUnidadesInternacao +
+                                snapshot.resumo.totalUnidadesAssistencia}
+                            </strong>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      variant={
+                        selectedSnapshotId === snapshot.id ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => handleSelecionarBaseline(snapshot.id)}
+                    >
+                      {selectedSnapshotId === snapshot.id
+                        ? "Selecionado"
+                        : "Selecionar Baseline"}
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>

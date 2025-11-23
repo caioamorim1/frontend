@@ -41,6 +41,7 @@ import {
 import { useAlert } from "@/contexts/AlertContext";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import AvaliacaoScpModal from "../components/AvaliacaoScpModal";
 
 // --- Tipos para os Modais ---
 type ModalAction = "EVALUATE" | "INACTIVATE";
@@ -48,6 +49,12 @@ interface ActionModalState {
   isOpen: boolean;
   leito: Leito | null;
   action: ModalAction | null;
+}
+
+interface AvaliacaoModalState {
+  isOpen: boolean;
+  leitoId: string;
+  prontuario: string;
 }
 
 // --- Componente do Modal de Ação (Admitir/Inativar) ---
@@ -305,7 +312,7 @@ const LeitoCard: FC<{
 
 // --- Componente Principal da Página ---
 export default function VisaoLeitosPage() {
-  const { unidadeId } = useParams<{ unidadeId: string }>();
+  const { unidadeId, hospitalId } = useParams<{ unidadeId: string; hospitalId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { showAlert } = useAlert();
@@ -320,6 +327,11 @@ export default function VisaoLeitosPage() {
   });
   const [detailsModalSessao, setDetailsModalSessao] =
     useState<SessaoAtiva | null>(null);
+  const [avaliacaoModalState, setAvaliacaoModalState] = useState<AvaliacaoModalState>({
+    isOpen: false,
+    leitoId: "",
+    prontuario: "",
+  });
 
   const fetchData = async () => {
     if (!unidadeId) return;
@@ -379,14 +391,12 @@ export default function VisaoLeitosPage() {
       showAlert(
         "success",
         "Sucesso",
-        "Paciente admitido. Redirecionando para avaliação."
+        "Paciente admitido. Abrindo avaliação."
       );
-      navigate(`/unidade/${unidadeId}/sessao/avaliar`, {
-        state: {
-          lid: leitoId,
-          pront: prontuario,
-          mscp: unidade.scpMetodoKey,
-        },
+      setAvaliacaoModalState({
+        isOpen: true,
+        leitoId,
+        prontuario,
       });
     } catch (error) {
       showAlert("destructive", "Erro", "Não foi possível iniciar a avaliação.");
@@ -469,6 +479,24 @@ export default function VisaoLeitosPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de Avaliação SCP */}
+      {unidadeId && hospitalId && (
+        <AvaliacaoScpModal
+          isOpen={avaliacaoModalState.isOpen}
+          onClose={() =>
+            setAvaliacaoModalState({ isOpen: false, leitoId: "", prontuario: "" })
+          }
+          unidadeId={unidadeId}
+          leitoId={avaliacaoModalState.leitoId}
+          prontuario={avaliacaoModalState.prontuario}
+          hospitalId={hospitalId}
+          onSuccess={() => {
+            fetchData();
+            setAvaliacaoModalState({ isOpen: false, leitoId: "", prontuario: "" });
+          }}
+        />
+      )}
     </div>
   );
 }

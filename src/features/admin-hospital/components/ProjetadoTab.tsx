@@ -139,6 +139,11 @@ export default function ProjetadoTab({
     null
   );
 
+  // Verificar se algum cargo tem status de conclusão
+  const temStatusConclusao = Object.values(metadata).some(
+    (meta) => meta.status === "concluido_parcial" || meta.status === "concluido_final"
+  );
+
   useEffect(() => {
     setDataInicial(dateRange?.inicio ?? "");
     setDataFinal(dateRange?.fim ?? "");
@@ -228,49 +233,28 @@ export default function ProjetadoTab({
           setAnaliseBase(analiseData.tabela);
         }
 
-        // Tenta obter projetado final já salvo no backend e convertê-lo para mapa de ajustes (delta)
+        // Tenta obter projetado final já salvo no backend
         try {
           const saved = await getProjetadoFinalInternacao(unidade.id);
+          
+          console.log('=== PROJETADO TAB - CARREGANDO DADOS SALVOS ===');
+          console.log('Projetado final salvo:', saved);
+          console.log('===============================================');
+          
           if (saved && saved.cargos) {
-            const baseByCargo = new Map<string, number>();
-            const unique: Record<string, LinhaAnaliseFinanceira> = {};
-            (analiseData?.tabela || []).forEach((l: LinhaAnaliseFinanceira) => {
-              if (!unique[l.cargoId]) unique[l.cargoId] = l;
-            });
-
-            const isCargoSCP = (nome: string): boolean => {
-              const s = (nome || "").toLowerCase();
-              const tecnicoPatterns = [
-                "técnico em enfermagem",
-                "tecnico em enfermagem",
-                "técnico enfermagem",
-                "tec enfermagem",
-                "tec. enfermagem",
-                "tec. em enfermagem",
-                "técnico de enfermagem",
-              ];
-              const isTecnico = tecnicoPatterns.some((pat) => s.includes(pat));
-              const isEnfermeiro = s.includes("enfermeiro");
-              return isEnfermeiro || isTecnico;
-            };
-
-            Object.values(unique).forEach((l) => {
-              const isScp = isCargoSCP(l.cargoNome);
-              const quantidadeAtualUnidade = unidade.cargos_unidade?.find(
-                (cu) => cu.cargo.id === l.cargoId
-              )?.quantidade_funcionarios;
-              const base = isScp
-                ? l.quantidadeProjetada
-                : quantidadeAtualUnidade ?? 0;
-              baseByCargo.set(l.cargoId, base);
-            });
-
             const novoMapa: AjustesPayload = {};
             const novoMetadata: Record<string, CargoMetadata> = {};
+            
             saved.cargos.forEach((c: any) => {
-              const base = baseByCargo.get(c.cargoId) ?? 0;
-              const delta = Math.max(0, c.projetadoFinal ?? 0) - base;
-              if (delta !== 0) novoMapa[c.cargoId] = delta;
+              const quantidadeAtual = unidade.cargos_unidade?.find(
+                (cu) => cu.cargo.id === c.cargoId
+              )?.quantidade_funcionarios || 0;
+              
+              const projetadoFinalSalvo = Math.max(0, c.projetadoFinal ?? 0);
+              
+              // Calcula o ajuste como: ProjetadoFinal - Atual
+              const delta = projetadoFinalSalvo - quantidadeAtual;
+              novoMapa[c.cargoId] = delta;
 
               // Carregar metadata (observação e status)
               novoMetadata[c.cargoId] = {
@@ -278,6 +262,12 @@ export default function ProjetadoTab({
                 status: c.status || "nao_iniciado",
               };
             });
+            
+            console.log('=== PROJETADO TAB - AJUSTES CALCULADOS ===');
+            console.log('Ajustes (ProjetadoFinal - Atual):', novoMapa);
+            console.log('Metadata:', novoMetadata);
+            console.log('==========================================');
+            
             setAjustes(novoMapa);
             setMetadata(novoMetadata);
           } else {
@@ -326,36 +316,19 @@ export default function ProjetadoTab({
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Calcular projetado final por cargo e enviar para o backend
+      // Criar payload com os valores exatos da coluna "Projetado Final"
       const cargosMap = new Map<string, LinhaAnaliseFinanceira>();
       analiseBase.forEach((l) => {
         if (!cargosMap.has(l.cargoId)) cargosMap.set(l.cargoId, l);
       });
 
-      const isCargoSCP = (nome: string): boolean => {
-        const s = (nome || "").toLowerCase();
-        const tecnicoPatterns = [
-          "técnico em enfermagem",
-          "tecnico em enfermagem",
-          "técnico enfermagem",
-          "tec enfermagem",
-          "tec. enfermagem",
-          "tec. em enfermagem",
-          "técnico de enfermagem",
-        ];
-        const isTecnico = tecnicoPatterns.some((pat) => s.includes(pat));
-        const isEnfermeiro = s.includes("enfermeiro");
-        return isEnfermeiro || isTecnico;
-      };
-
       const cargos = Array.from(cargosMap.values()).map((l) => {
-        const isScp = isCargoSCP(l.cargoNome);
         const quantidadeAtual =
           unidade.cargos_unidade?.find((cu) => cu.cargo.id === l.cargoId)
             ?.quantidade_funcionarios || 0;
-        const base = isScp ? l.quantidadeProjetada : quantidadeAtual;
         const ajuste = ajustes[l.cargoId] || 0;
-        const projetadoFinal = Math.max(0, Math.floor(base + ajuste));
+        // Projetado Final = Atual + Ajuste (exatamente o que está na tela)
+        const projetadoFinal = Math.max(0, quantidadeAtual + ajuste);
         return { cargoId: l.cargoId, projetadoFinal };
       });
 
@@ -371,6 +344,14 @@ export default function ProjetadoTab({
           status: metadata[c.cargoId]?.status || "nao_iniciado",
         })),
       };
+
+      console.log('=== PROJETADO TAB - SALVANDO AJUSTES ===');
+      console.log('Dados da análise base:', analiseBase);
+      console.log('Ajustes aplicados:', ajustes);
+      console.log('Metadata (observações/status):', metadata);
+      console.log('Cargos calculados:', cargos);
+      console.log('Payload enviado ao backend:', payload);
+      console.log('========================================');
 
       await saveProjetadoFinalInternacao(unidade.id, payload);
 
@@ -543,7 +524,7 @@ export default function ProjetadoTab({
               <CardTitle>Cálculo por Data Específica</CardTitle>
             </CardHeader>
             <CardContent>
-              {!hideCalculoFields && (
+              {!temStatusConclusao && (
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
                     <div className="flex flex-col">
@@ -580,7 +561,7 @@ export default function ProjetadoTab({
               )}
 
               {analise && (
-                <div className={`${!hideCalculoFields ? 'mt-6' : ''} border rounded-lg p-4 bg-white flex flex-col`}>
+                <div className={`${!temStatusConclusao ? 'mt-6' : ''} border rounded-lg p-4 bg-white flex flex-col`}>
                   <div className="flex flex-row border rounded-lg justify-around min-w-[200px]">
                     <TooltipProvider>
                       <Tooltip delayDuration={200}>

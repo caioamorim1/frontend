@@ -52,7 +52,7 @@ export default function MinhasUnidadesPage() {
           {unidades.length > 0 ? (
             unidades.map((unidade) => (
               <Link
-                to={`/unidade/${unidade.id}/leitos`}
+                to={`/hospital/${hospitalId}/unidade/${unidade.id}/leitos`}
                 key={unidade.id}
                 className="block p-6 bg-white border rounded-lg shadow-sm hover:shadow-lg hover:border-secondary transition-all"
               >

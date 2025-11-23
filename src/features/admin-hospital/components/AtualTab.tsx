@@ -604,7 +604,7 @@ export default function AtualTab({
     if (!exists) {
       setCargosSitioState((prev) => [
         ...prev,
-        { sitioId, cargoSitioId: "", cargoId, quantidade_funcionarios: 1 },
+        { sitioId, cargoSitioId: "", cargoId, quantidade_funcionarios: 0 },
       ]);
     }
     setRemovedPairs((old) => {
@@ -681,7 +681,7 @@ export default function AtualTab({
             </CardTitle>
             <div className="mb-3">
               <Button variant="secondary" onClick={openAddCargoModal}>
-                + Adicionar Cargo
+                + Criar Cargo
               </Button>
             </div>
           </CardHeader>
@@ -1097,7 +1097,7 @@ export default function AtualTab({
           </CardTitle>
           <div className="mb-3">
             <Button variant="secondary" onClick={openAddCargoModal}>
-              + Adicionar Cargo
+               + Criar Cargo
             </Button>
           </div>
         </CardHeader>

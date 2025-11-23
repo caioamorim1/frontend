@@ -32,6 +32,7 @@ export default function UsuariosPage() {
 
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [formData, setFormData] = useState<Partial<Usuario>>(initialFormState);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchUsuarios = async () => {
     if (!hospitalId) return;
@@ -159,6 +160,16 @@ export default function UsuariosPage() {
     });
   };
 
+  // Filtrar usuários baseado na busca
+  const filteredUsuarios = usuarios.filter((usuario) => {
+    const search = searchTerm.toLowerCase();
+    return (
+      usuario.nome.toLowerCase().includes(search) ||
+      usuario.email.toLowerCase().includes(search) ||
+      usuario.cpf.includes(searchTerm)
+    );
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -171,6 +182,17 @@ export default function UsuariosPage() {
         >
           {isFormVisible ? "Cancelar" : "+ Novo Usuário"}
         </button>
+      </div>
+
+      {/* Barra de Busca */}
+      <div className="bg-white p-4 rounded-lg border">
+        <input
+          type="text"
+          placeholder="Buscar por nome, email ou CPF..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full p-3 border rounded-md focus:ring-2 focus:ring-secondary focus:border-secondary"
+        />
       </div>
 
       {isFormVisible && (
@@ -252,8 +274,8 @@ export default function UsuariosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {usuarios.length > 0 ? (
-                  usuarios.map((usuario) => (
+                {filteredUsuarios.length > 0 ? (
+                  filteredUsuarios.map((usuario) => (
                     <tr key={usuario.id} className="hover:bg-slate-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
                         {usuario.nome}
@@ -286,7 +308,9 @@ export default function UsuariosPage() {
                       colSpan={4}
                       className="px-6 py-4 text-center text-sm text-gray-500"
                     >
-                      Nenhum utilizador registado.
+                      {searchTerm
+                        ? "Nenhum usuário encontrado com esse filtro."
+                        : "Nenhum utilizador registado."}
                     </td>
                   </tr>
                 )}

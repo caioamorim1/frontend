@@ -94,51 +94,13 @@ export const DashboardComparativoScreen: React.FC<{
       try {
         setLoading(true);
 
-        console.log("🔄 [Dashboard Comparativo - NOVA API] Chamando API:", {
-          url: `GET /hospital-sectors-aggregate/hospitals/${hospitalId}/comparative`,
-          hospitalId,
-          estrutura: {
-            quadroAtualReal: "Quadro atual do banco de dados (tempo real)",
-            quadroAtualSnapshot:
-              "Quadro atual congelado no snapshot - BARRA 'BASELINE' do gráfico",
-            quadroProjetadoSnapshot:
-              "Quadro projetado no snapshot - BARRA 'PROJETADO' do gráfico",
-            custosAtualSnapshot:
-              "Custos UNITÁRIOS por cargo (multiplica pela quantidade)",
-            diferencas: "Diferença entre projetado e baseline",
-          },
-        });
 
         const resp = await getHospitalComparative(hospitalId);
 
-        console.log("📦 [Dashboard Comparativo - RESPOSTA DA API]", {
-          respostaCompleta: resp,
-          estrutura: {
-            temHospitalId: !!resp?.hospitalId,
-            temSnapshotId: !!resp?.snapshotId,
-            temSnapshotData: !!resp?.snapshotData,
-            temSectors: !!resp?.sectors,
-            temInternation: !!resp?.sectors?.internation,
-            temAssistance: !!resp?.sectors?.assistance,
-          },
-          quantidades: {
-            internation: resp?.sectors?.internation?.length || 0,
-            assistance: resp?.sectors?.assistance?.length || 0,
-          },
-          primeiroSetorInternacao: resp?.sectors?.internation?.[0],
-          primeiroSetorAssistencia: resp?.sectors?.assistance?.[0],
-        });
 
         if (!mounted) return;
 
-        console.log("✅ [Dashboard Comparativo - NOVA API] Dados recebidos:", {
-          snapshotId: resp.snapshotId,
-          snapshotData: resp.snapshotData,
-          totalInternacao: resp.sectors?.internation?.length || 0,
-          totalAssistencia: resp.sectors?.assistance?.length || 0,
-          exemploSetor:
-            resp.sectors?.internation?.[0] || resp.sectors?.assistance?.[0],
-        });
+        
 
         setComparativeData(resp);
       } catch (err) {
