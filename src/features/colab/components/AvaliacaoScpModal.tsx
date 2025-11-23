@@ -205,16 +205,27 @@ export default function AvaliacaoScpModal({
 
                 {/* Navegação */}
                 <div className="flex justify-between items-center pt-8 border-t">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={handlePrevious}
-                    disabled={isFirstQuestion}
-                    className="flex items-center gap-2 text-base py-6 px-6"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                    Anterior
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handlePrevious}
+                      disabled={isFirstQuestion}
+                      className="flex items-center gap-2 text-base py-6 px-6"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                      Anterior
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={onClose}
+                      className="flex items-center gap-2 text-base py-6 px-6 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
 
                   {!isLastQuestion ? (
                     <Button
