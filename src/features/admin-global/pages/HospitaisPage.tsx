@@ -77,12 +77,7 @@ export default function HospitaisPage() {
       setGrupos(gruposData);
       setRegioes(regioesData);
 
-      console.log("📊 [HospitaisPage] Dados carregados:", {
-        hospitais: hospitaisData,
-        redes: redesData,
-        grupos: gruposData,
-        regioes: regioesData,
-      });
+      
     } catch (err) {
       setError("Falha ao carregar os dados.");
       showAlert("destructive", "Erro", "Falha ao carregar os dados.");
@@ -96,18 +91,13 @@ export default function HospitaisPage() {
   }, []);
 
   const handleEdit = (hospital: any) => {
-    console.log(
-      "🔍 [HospitaisPage] Hospital selecionado para edição:",
-      hospital
-    );
+   
 
     const regiaoId = hospital.regiao?.id;
     const grupoId = hospital.grupo?.id;
     const redeId = hospital.rede?.id;
 
-    console.log("Regiao ID:", regiaoId);
-    console.log("Grupo ID:", grupoId);
-    console.log("Rede ID:", redeId);
+ 
 
     setFormData({ ...hospital, regiaoId, grupoId, redeId });
     setSelectedRedeId(redeId || "");
@@ -116,15 +106,12 @@ export default function HospitaisPage() {
     // Filtrar grupos e regiões baseado na hierarquia
     if (redeId) {
       const gruposDaRede = grupos.filter((g) => g.rede.id === redeId);
-      console.log("🔍 [HospitaisPage] Grupos filtrados da rede:", gruposDaRede);
+
       setFilteredGrupos(gruposDaRede);
     }
     if (grupoId) {
       const regioesDoGrupo = regioes.filter((r) => r.grupo.id === grupoId);
-      console.log(
-        "🔍 [HospitaisPage] Regiões filtradas do grupo:",
-        regioesDoGrupo
-      );
+  
       setFilteredRegioes(regioesDoGrupo);
     }
 
@@ -247,30 +234,18 @@ export default function HospitaisPage() {
         : undefined,
     };
 
-    console.log("📤 [HospitaisPage] Dados sendo enviados ao backend:", {
-      isUpdate: !!formData.id,
-      hospitalId: formData.id,
-      dataToSubmit,
-      selectedRedeId,
-      selectedGrupoId,
-    });
+ 
 
     try {
       if (formData.id) {
         const resultado = await updateHospital(formData.id, dataToSubmit);
-        console.log(
-          "✅ [HospitaisPage] Resposta do backend (update):",
-          resultado
-        );
+        
         showAlert("success", "Sucesso", "Hospital atualizado com sucesso.");
       } else {
         const resultado = await createHospital(
           dataToSubmit as CreateHospitalDTO
         );
-        console.log(
-          "✅ [HospitaisPage] Resposta do backend (create):",
-          resultado
-        );
+      
         showAlert("success", "Sucesso", "Hospital criado com sucesso.");
       }
       handleCancel();
@@ -333,190 +308,274 @@ export default function HospitaisPage() {
               {formData.id ? "Editar Hospital" : "Adicionar Novo Hospital"}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                name="nome"
-                value={formData.nome || ""}
-                onChange={handleChange}
-                placeholder="Nome do Hospital"
-                required
-                className="p-2 border rounded-md"
-              />
-              <input
-                name="cnpj"
-                value={formData.cnpj || ""}
-                onChange={handleChange}
-                placeholder="CNPJ"
-                required
-                className="p-2 border rounded-md"
-              />
-              <input
-                name="endereco"
-                value={formData.endereco || ""}
-                onChange={handleChange}
-                placeholder="Endereço"
-                className="p-2 border rounded-md"
-              />
-              <input
-                name="telefone"
-                value={formData.telefone || ""}
-                onChange={handleChange}
-                placeholder="Telefone"
-                className="p-2 border rounded-md"
-              />
-              <select
-                name="redeId"
-                value={selectedRedeId}
-                onChange={handleChange}
-                className="p-2 border rounded-md"
-              >
-                <option value="">Selecione uma Rede (Opcional)</option>
-                {redes.map((rede) => (
-                  <option key={rede.id} value={rede.id}>
-                    {rede.nome}
+              <div>
+                <label htmlFor="nome" className="block text-sm font-medium text-gray-700 mb-1">
+                  Nome do Hospital *
+                </label>
+                <input
+                  id="nome"
+                  name="nome"
+                  value={formData.nome || ""}
+                  onChange={handleChange}
+                  placeholder="Nome do Hospital"
+                  required
+                  className="p-2 border rounded-md w-full"
+                />
+              </div>
+              <div>
+                <label htmlFor="cnpj" className="block text-sm font-medium text-gray-700 mb-1">
+                  CNPJ *
+                </label>
+                <input
+                  id="cnpj"
+                  name="cnpj"
+                  value={formData.cnpj || ""}
+                  onChange={handleChange}
+                  placeholder="CNPJ"
+                  required
+                  className="p-2 border rounded-md w-full"
+                />
+              </div>
+              <div>
+                <label htmlFor="endereco" className="block text-sm font-medium text-gray-700 mb-1">
+                  Endereço
+                </label>
+                <input
+                  id="endereco"
+                  name="endereco"
+                  value={formData.endereco || ""}
+                  onChange={handleChange}
+                  placeholder="Endereço"
+                  className="p-2 border rounded-md w-full"
+                />
+              </div>
+              <div>
+                <label htmlFor="telefone" className="block text-sm font-medium text-gray-700 mb-1">
+                  Telefone
+                </label>
+                <input
+                  id="telefone"
+                  name="telefone"
+                  value={formData.telefone || ""}
+                  onChange={handleChange}
+                  placeholder="Telefone"
+                  className="p-2 border rounded-md w-full"
+                />
+              </div>
+              <div>
+                <label htmlFor="redeId" className="block text-sm font-medium text-gray-700 mb-1">
+                  Rede (Opcional)
+                </label>
+                <select
+                  id="redeId"
+                  name="redeId"
+                  value={selectedRedeId}
+                  onChange={handleChange}
+                  className="p-2 border rounded-md w-full"
+                >
+                  <option value="">Selecione uma Rede (Opcional)</option>
+                  {redes.map((rede) => (
+                    <option key={rede.id} value={rede.id}>
+                      {rede.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="grupoId" className="block text-sm font-medium text-gray-700 mb-1">
+                  Grupo {selectedRedeId ? "" : "(Selecione uma Rede primeiro)"}
+                </label>
+                <select
+                  id="grupoId"
+                  name="grupoId"
+                  value={selectedGrupoId}
+                  onChange={handleChange}
+                  disabled={!selectedRedeId}
+                  className="p-2 border rounded-md w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">
+                    {selectedRedeId
+                      ? "Selecione um Grupo"
+                      : "Selecione uma Rede primeiro"}
                   </option>
-                ))}
-              </select>
-              <select
-                name="grupoId"
-                value={selectedGrupoId}
-                onChange={handleChange}
-                disabled={!selectedRedeId}
-                className="p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
-              >
-                <option value="">
-                  {selectedRedeId
-                    ? "Selecione um Grupo"
-                    : "Selecione uma Rede primeiro"}
-                </option>
-                {filteredGrupos.map((grupo) => (
-                  <option key={grupo.id} value={grupo.id}>
-                    {grupo.nome}
+                  {filteredGrupos.map((grupo) => (
+                    <option key={grupo.id} value={grupo.id}>
+                      {grupo.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label htmlFor="regiaoId" className="block text-sm font-medium text-gray-700 mb-1">
+                  Região {selectedGrupoId ? "" : "(Selecione um Grupo primeiro)"}
+                </label>
+                <select
+                  id="regiaoId"
+                  name="regiaoId"
+                  value={formData.regiaoId || ""}
+                  onChange={handleChange}
+                  disabled={!selectedGrupoId}
+                  className="p-2 border rounded-md w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">
+                    {selectedGrupoId
+                      ? "Selecione uma Região"
+                      : "Selecione um Grupo primeiro"}
                   </option>
-                ))}
-              </select>
-              <select
-                name="regiaoId"
-                value={formData.regiaoId || ""}
-                onChange={handleChange}
-                disabled={!selectedGrupoId}
-                className="p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed md:col-span-2"
-              >
-                <option value="">
-                  {selectedGrupoId
-                    ? "Selecione uma Região"
-                    : "Selecione um Grupo primeiro"}
-                </option>
-                {filteredRegioes.map((regiao) => (
-                  <option key={regiao.id} value={regiao.id}>
-                    {regiao.nome}
-                  </option>
-                ))}
-              </select>
+                  {filteredRegioes.map((regiao) => (
+                    <option key={regiao.id} value={regiao.id}>
+                      {regiao.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               {/* Novos campos */}
-              <select
-                name="tipo"
-                value={formData.tipo || ""}
-                onChange={handleChange}
-                className="p-2 border rounded-md"
-              >
-                <option value="">Selecione o Tipo</option>
-                <option value={TipoHospital.PUBLICO}>Público</option>
-                <option value={TipoHospital.PRIVADO}>Privado</option>
-                <option value={TipoHospital.FILANTROPICO}>Filantrópico</option>
-                <option value={TipoHospital.OUTROS}>Outros</option>
-              </select>
+              <div>
+                <label htmlFor="tipo" className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo
+                </label>
+                <select
+                  id="tipo"
+                  name="tipo"
+                  value={formData.tipo || ""}
+                  onChange={handleChange}
+                  className="p-2 border rounded-md w-full"
+                >
+                  <option value="">Selecione o Tipo</option>
+                  <option value={TipoHospital.PUBLICO}>Público</option>
+                  <option value={TipoHospital.PRIVADO}>Privado</option>
+                  <option value={TipoHospital.FILANTROPICO}>Filantrópico</option>
+                  <option value={TipoHospital.OUTROS}>Outros</option>
+                </select>
+              </div>
 
-              <select
-                name="gestao"
-                value={formData.gestao || ""}
-                onChange={handleChange}
-                className="p-2 border rounded-md"
-              >
-                <option value="">Selecione a Gestão</option>
-                <option value={GestaoHospital.GESTAO_DIRETA}>
-                  Gestão Direta
-                </option>
-                <option value={GestaoHospital.ORGANIZACAO_SOCIAL}>
-                  Organização Social
-                </option>
-                <option value={GestaoHospital.GESTAO_TERCEIRIZADA}>
-                  Gestão Terceirizada
-                </option>
-              </select>
+              <div>
+                <label htmlFor="gestao" className="block text-sm font-medium text-gray-700 mb-1">
+                  Gestão
+                </label>
+                <select
+                  id="gestao"
+                  name="gestao"
+                  value={formData.gestao || ""}
+                  onChange={handleChange}
+                  className="p-2 border rounded-md w-full"
+                >
+                  <option value="">Selecione a Gestão</option>
+                  <option value={GestaoHospital.GESTAO_DIRETA}>
+                    Gestão Direta
+                  </option>
+                  <option value={GestaoHospital.ORGANIZACAO_SOCIAL}>
+                    Organização Social
+                  </option>
+                  <option value={GestaoHospital.GESTAO_TERCEIRIZADA}>
+                    Gestão Terceirizada
+                  </option>
+                </select>
+              </div>
 
-              <select
-                name="perfil"
-                value={formData.perfil || ""}
-                onChange={handleChange}
-                className="p-2 border rounded-md"
-              >
-                <option value="">Selecione o Perfil</option>
-                <option value={PerfilHospital.GERAL}>Geral</option>
-                <option value={PerfilHospital.ESPECIALIZADO}>
-                  Especializado
-                </option>
-                <option value={PerfilHospital.ENSINO_UNIVERSITARIO}>
-                  Ensino Universitário
-                </option>
-                <option value={PerfilHospital.REFERENCIA_ALTA_COMPLEXIDADE}>
-                  Referência Alta Complexidade
-                </option>
-                <option value={PerfilHospital.REFERENCIA_CURTA_PERMANENCIA}>
-                  Referência Curta Permanência
-                </option>
-                <option value={PerfilHospital.REFERENCIA_LONGA_PERMANENCIA}>
-                  Referência Longa Permanência
-                </option>
-              </select>
+              <div>
+                <label htmlFor="perfil" className="block text-sm font-medium text-gray-700 mb-1">
+                  Perfil
+                </label>
+                <select
+                  id="perfil"
+                  name="perfil"
+                  value={formData.perfil || ""}
+                  onChange={handleChange}
+                  className="p-2 border rounded-md w-full"
+                >
+                  <option value="">Selecione o Perfil</option>
+                  <option value={PerfilHospital.GERAL}>Geral</option>
+                  <option value={PerfilHospital.ESPECIALIZADO}>
+                    Especializado
+                  </option>
+                  <option value={PerfilHospital.ENSINO_UNIVERSITARIO}>
+                    Ensino Universitário
+                  </option>
+                  <option value={PerfilHospital.REFERENCIA_ALTA_COMPLEXIDADE}>
+                    Referência Alta Complexidade
+                  </option>
+                  <option value={PerfilHospital.REFERENCIA_CURTA_PERMANENCIA}>
+                    Referência Curta Permanência
+                  </option>
+                  <option value={PerfilHospital.REFERENCIA_LONGA_PERMANENCIA}>
+                    Referência Longa Permanência
+                  </option>
+                </select>
+              </div>
 
-              <select
-                name="complexidade"
-                value={formData.complexidade || ""}
-                onChange={handleChange}
-                className="p-2 border rounded-md"
-              >
-                <option value="">Selecione a Complexidade</option>
-                <option value={ComplexidadeHospital.BAIXA}>Baixa</option>
-                <option value={ComplexidadeHospital.MEDIA}>Média</option>
-                <option value={ComplexidadeHospital.ALTA}>Alta</option>
-                <option value={ComplexidadeHospital.MEDIA_ALTA}>
-                  Média-Alta
-                </option>
-                <option value={ComplexidadeHospital.BAIXA_MEDIA}>
-                  Baixa-Média
-                </option>
-              </select>
+              <div>
+                <label htmlFor="complexidade" className="block text-sm font-medium text-gray-700 mb-1">
+                  Complexidade
+                </label>
+                <select
+                  id="complexidade"
+                  name="complexidade"
+                  value={formData.complexidade || ""}
+                  onChange={handleChange}
+                  className="p-2 border rounded-md w-full"
+                >
+                  <option value="">Selecione a Complexidade</option>
+                  <option value={ComplexidadeHospital.BAIXA}>Baixa</option>
+                  <option value={ComplexidadeHospital.MEDIA}>Média</option>
+                  <option value={ComplexidadeHospital.ALTA}>Alta</option>
+                  <option value={ComplexidadeHospital.MEDIA_ALTA}>
+                    Média-Alta
+                  </option>
+                  <option value={ComplexidadeHospital.BAIXA_MEDIA}>
+                    Baixa-Média
+                  </option>
+                </select>
+              </div>
 
-              <input
-                name="numeroTotalLeitos"
-                type="number"
-                min="0"
-                value={formData.numeroTotalLeitos || ""}
-                onChange={handleChange}
-                placeholder="Número Total de Leitos"
-                className="p-2 border rounded-md"
-              />
+              <div>
+                <label htmlFor="numeroTotalLeitos" className="block text-sm font-medium text-gray-700 mb-1">
+                  Número Total de Leitos
+                </label>
+                <input
+                  id="numeroTotalLeitos"
+                  name="numeroTotalLeitos"
+                  type="number"
+                  min="0"
+                  value={formData.numeroTotalLeitos || ""}
+                  onChange={handleChange}
+                  placeholder="Número Total de Leitos"
+                  className="p-2 border rounded-md w-full"
+                />
+              </div>
 
-              <input
-                name="numeroLeitosUTI"
-                type="number"
-                min="0"
-                value={formData.numeroLeitosUTI || ""}
-                onChange={handleChange}
-                placeholder="Número Total de Leitos de UTI"
-                className="p-2 border rounded-md"
-              />
+              <div>
+                <label htmlFor="numeroLeitosUTI" className="block text-sm font-medium text-gray-700 mb-1">
+                  Número Total de Leitos de UTI
+                </label>
+                <input
+                  id="numeroLeitosUTI"
+                  name="numeroLeitosUTI"
+                  type="number"
+                  min="0"
+                  value={formData.numeroLeitosUTI || ""}
+                  onChange={handleChange}
+                  placeholder="Número Total de Leitos de UTI"
+                  className="p-2 border rounded-md w-full"
+                />
+              </div>
 
-              <input
-                name="numeroSalasCirurgicas"
-                type="number"
-                min="0"
-                value={formData.numeroSalasCirurgicas || ""}
-                onChange={handleChange}
-                placeholder="Número de Salas Cirúrgicas"
-                className="p-2 border rounded-md"
-              />
+              <div>
+                <label htmlFor="numeroSalasCirurgicas" className="block text-sm font-medium text-gray-700 mb-1">
+                  Número de Salas Cirúrgicas
+                </label>
+                <input
+                  id="numeroSalasCirurgicas"
+                  name="numeroSalasCirurgicas"
+                  type="number"
+                  min="0"
+                  value={formData.numeroSalasCirurgicas || ""}
+                  onChange={handleChange}
+                  placeholder="Número de Salas Cirúrgicas"
+                  className="p-2 border rounded-md w-full"
+                />
+              </div>
             </div>
             <div className="flex justify-end mt-4">
               <button

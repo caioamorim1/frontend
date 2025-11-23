@@ -1,19 +1,21 @@
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Hospital } from "lucide-react";
+import { Building2, Hospital, Bed, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
   getUnidadesInternacao,
   getUnidadesNaoInternacao,
   Unidade,
+  UnidadeInternacao,
+  UnidadeNaoInternacao,
+  getSitiosFuncionaisByUnidadeId,
 } from "@/lib/api";
 
 export default function SetoresCardPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
-  const [setoresInternacao, setSetoresInternacao] = useState<Unidade[]>([]);
-  const [setoresNaoInternacao, setSetoresNaoInternacao] = useState<Unidade[]>(
-    []
-  );
+  const [setoresInternacao, setSetoresInternacao] = useState<UnidadeInternacao[]>([]);
+  const [setoresNaoInternacao, setSetoresNaoInternacao] = useState<UnidadeNaoInternacao[]>([]);
+  const [sitiosCounts, setSitiosCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,6 +29,24 @@ export default function SetoresCardPage() {
         ]);
         setSetoresInternacao(internacao);
         setSetoresNaoInternacao(naoInternacao);
+
+        // Buscar quantidade de sítios para cada setor de não-internação
+        const sitiosPromises = naoInternacao.map(async (setor) => {
+          try {
+            const sitios = await getSitiosFuncionaisByUnidadeId(setor.id);
+            return { id: setor.id, count: sitios.length };
+          } catch {
+            return { id: setor.id, count: 0 };
+          }
+        });
+
+        const sitiosResults = await Promise.all(sitiosPromises);
+        const sitiosMap = sitiosResults.reduce((acc, { id, count }) => {
+          acc[id] = count;
+          return acc;
+        }, {} as Record<string, number>);
+        
+        setSitiosCounts(sitiosMap);
       } catch (error) {
         console.error("Erro ao carregar setores:", error);
       } finally {
@@ -68,14 +88,20 @@ export default function SetoresCardPage() {
             {setoresInternacao.map((setor) => (
               <Link
                 key={setor.id}
-                to={`/hospital/${hospitalId}/gerir-setores/${setor.id}`}
+                to={`/hospital/${hospitalId}/setores/${setor.id}`}
               >
                 <Card className="cursor-pointer transition-all hover:shadow-lg hover:border-secondary h-full">
-                  <CardContent className="flex items-center justify-between p-6">
-                    <CardTitle className="text-lg font-bold">
-                      {setor.nome}
-                    </CardTitle>
-                    <Hospital className="h-6 w-6 text-secondary flex-shrink-0 ml-4" />
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-3">
+                      <CardTitle className="text-lg font-bold">
+                        {setor.nome}
+                      </CardTitle>
+                      <Hospital className="h-6 w-6 text-secondary flex-shrink-0 ml-4" />
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Bed className="h-4 w-4" />
+                      <span>{setor.leitos?.length || 0} leitos</span>
+                    </div>
                   </CardContent>
                 </Card>
               </Link>
@@ -99,14 +125,20 @@ export default function SetoresCardPage() {
             {setoresNaoInternacao.map((setor) => (
               <Link
                 key={setor.id}
-                to={`/hospital/${hospitalId}/gerir-setores/${setor.id}`}
+                to={`/hospital/${hospitalId}/setores/${setor.id}`}
               >
                 <Card className="cursor-pointer transition-all hover:shadow-lg hover:border-secondary h-full">
-                  <CardContent className="flex items-center justify-between p-6">
-                    <CardTitle className="text-lg font-bold">
-                      {setor.nome}
-                    </CardTitle>
-                    <Building2 className="h-6 w-6 text-secondary flex-shrink-0 ml-4" />
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-3">
+                      <CardTitle className="text-lg font-bold">
+                        {setor.nome}
+                      </CardTitle>
+                      <Building2 className="h-6 w-6 text-secondary flex-shrink-0 ml-4" />
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4" />
+                      <span>{sitiosCounts[setor.id] || 0} sítios funcionais</span>
+                    </div>
                   </CardContent>
                 </Card>
               </Link>

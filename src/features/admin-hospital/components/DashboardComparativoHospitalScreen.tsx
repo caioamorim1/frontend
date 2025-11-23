@@ -57,22 +57,12 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       try {
         setLoading(true);
 
-        console.log(
-          "🔄 [Dashboard Comparativo Hospital - NOVA API] Chamando API:",
-          {
-            url: `GET /hospital-sectors-aggregate/hospitals/${hospitalId}/comparative`,
-            hospitalId,
-          }
-        );
+        
 
         const resp = await getHospitalComparative(hospitalId, {
           includeProjected: true,
         });
 
-        console.log(
-          "📦 [Dashboard Comparativo Hospital - RESPOSTA DA API]",
-          resp
-        );
 
         if (!mounted) return;
 
@@ -214,89 +204,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       { name: "Projetado", value: pessoalProjetadoSnapshot },
     ];
 
-    // Log detalhado de onde vêm os dados
-    console.log("📊 [Dashboard Comparativo Hospital - Dados Processados]", {
-      tab: activeTab,
-      setoresFiltrados: filteredSectors.length,
-      valoresCalculados: {
-        pessoalAtualReal: `${pessoalAtualReal} (tempo real do banco)`,
-        custoAtualReal: `R$ ${custoAtualReal.toFixed(2)} (tempo real)`,
-        pessoalBaseline: pessoalAtualSnapshot,
-        custoBaseline: `R$ ${custoAtualSnapshot.toFixed(2)}`,
-        pessoalProjetado: pessoalProjetadoSnapshot,
-        custoProjetado: `R$ ${custoProjetadoSnapshot.toFixed(2)}`,
-        variacaoPessoal: `${variacaoPessoal > 0 ? "+" : ""}${variacaoPessoal}`,
-        variacaoCusto: `R$ ${
-          variacaoCusto > 0 ? "+" : ""
-        }${variacaoCusto.toFixed(2)}`,
-        variacaoPercentual: `${
-          variacaoPercentual > 0 ? "+" : ""
-        }${variacaoPercentual.toFixed(2)}%`,
-      },
-      exemploSetor: filteredSectors[0]
-        ? {
-            nome: filteredSectors[0].name,
-            quadroAtualReal: filteredSectors[0].quadroAtualReal,
-            custosAtualReal: filteredSectors[0].custosAtualReal,
-            quadroAtualSnapshot: filteredSectors[0].quadroAtualSnapshot,
-            custosAtualSnapshot: filteredSectors[0].custosAtualSnapshot,
-            quadroProjetadoSnapshot: filteredSectors[0].quadroProjetadoSnapshot,
-            diferencas: filteredSectors[0].diferencas,
-            calculoExemplo: (() => {
-              const setor = filteredSectors[0];
-              const custoAtualReal = calcularCustoSetor(
-                setor.custosAtualReal || setor.custosAtualSnapshot,
-                setor.quadroAtualReal
-              );
-              const custoBaseline = calcularCustoSetor(
-                setor.custosAtualSnapshot,
-                setor.quadroAtualSnapshot
-              );
-              const custoProjetado = calcularCustoSetor(
-                setor.custosAtualSnapshot,
-                setor.quadroProjetadoSnapshot
-              );
-              return {
-                custoAtualReal: `R$ ${custoAtualReal.toFixed(2)} (tempo real)`,
-                custoBaseline: `R$ ${custoBaseline.toFixed(2)}`,
-                custoProjetado: `R$ ${custoProjetado.toFixed(2)}`,
-                detalhamentoAtualReal: Object.keys(
-                  setor.custosAtualReal || setor.custosAtualSnapshot
-                ).map((cargo) => ({
-                  cargo,
-                  custoUnitario: (setor.custosAtualReal ||
-                    setor.custosAtualSnapshot)[cargo],
-                  quantidade: setor.quadroAtualReal[cargo] || 0,
-                  custoTotal:
-                    ((setor.custosAtualReal || setor.custosAtualSnapshot)[
-                      cargo
-                    ] || 0) * (setor.quadroAtualReal[cargo] || 0),
-                })),
-                detalhamentoBaseline: Object.keys(
-                  setor.custosAtualSnapshot
-                ).map((cargo) => ({
-                  cargo,
-                  custoUnitario: setor.custosAtualSnapshot[cargo],
-                  quantidade: setor.quadroAtualSnapshot[cargo] || 0,
-                  custoTotal:
-                    (setor.custosAtualSnapshot[cargo] || 0) *
-                    (setor.quadroAtualSnapshot[cargo] || 0),
-                })),
-                detalhamentoProjetado: Object.keys(
-                  setor.custosAtualSnapshot
-                ).map((cargo) => ({
-                  cargo,
-                  custoUnitario: setor.custosAtualSnapshot[cargo],
-                  quantidade: setor.quadroProjetadoSnapshot[cargo] || 0,
-                  custoTotal:
-                    (setor.custosAtualSnapshot[cargo] || 0) *
-                    (setor.quadroProjetadoSnapshot[cargo] || 0),
-                })),
-              };
-            })(),
-          }
-        : null,
-    });
+   
 
     // Processar dados por função (cargo) para os gráficos GroupedBarByRole
     const dadosPorFuncao = (() => {

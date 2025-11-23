@@ -58,6 +58,7 @@ function App() {
           <Route path="dashboard" element={<HospitalDashboardPage />} />
           <Route path="unidades-leitos" element={<MinhasUnidadesPage />} />
           <Route path="setores" element={<SetoresCardPage />} />
+          <Route path="setores/:setorId" element={<SetorDetailPage />} />
           <Route path="gerir-setores" element={<SetoresPage />} />
           <Route path="gerir-setores/:setorId" element={<SetorDetailPage />} />
           <Route
@@ -73,6 +74,15 @@ function App() {
           <Route path="pareto" element={<ParetoPage />} />
           <Route path="baseline" element={<BaselinePage />} />
           <Route path="coletas" element={<HistoricoColetasPage />} />
+          {/* Rotas de leitos e avaliações dentro do contexto do hospital */}
+          <Route
+            path="unidade/:unidadeId/leitos"
+            element={<VisaoLeitosPage />}
+          />
+          <Route
+            path="unidade/:unidadeId/sessao/avaliar"
+            element={<AvaliacaoScpPage />}
+          />
         </Route>
 
         {/* Rotas de Colaborador / Gestor (AGORA DENTRO DO LAYOUT PADRÃO) */}

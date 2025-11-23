@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useModal } from "@/contexts/ModalContext";
+import { useAlert } from "@/contexts/AlertContext";
 
 // Interface para controlar o formulário de alocação de cargos
 interface CargoParaAlocar {
@@ -43,6 +45,8 @@ export default function SitiosFuncionaisAdminPage() {
     setorId: string;
     hospitalId: string;
   }>();
+  const { showModal } = useModal();
+  const { showAlert } = useAlert();
   const [unidade, setUnidade] = useState<UnidadeNaoInternacao | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -206,10 +210,8 @@ export default function SitiosFuncionaisAdminPage() {
     if (!unidadeId || !formData.nome?.trim()) return;
 
     try {
-      let savedSitio: SitioFuncional | null = null as any;
-
       if (editingSitio) {
-        // Atualiza apenas nome/descrição. Alocações serão geridas na tela de Gerenciar Cargos
+        // Atualiza apenas nome/descrição
         await updateSitioFuncional(editingSitio.id, {
           nome: formData.nome,
           descricao: formData.descricao,
@@ -222,40 +224,13 @@ export default function SitiosFuncionaisAdminPage() {
           descricao: formData.descricao,
           cargos: [],
         };
-        // Tenta obter o sítio criado retornado pela API
-        try {
-          // Alguns backends retornam o objeto criado
-          // @ts-ignore
-          const created = await createSitioFuncional(unidadeId, data);
-          if (created && created.id) {
-            savedSitio = created as SitioFuncional;
-          }
-        } catch (errCreate) {
-          // Se a chamada falhar ou não retornar o objeto, continuamos para o fallback
-          console.warn(
-            "createSitioFuncional não retornou objeto criado:",
-            errCreate
-          );
-        }
+        await createSitioFuncional(unidadeId, data);
       }
 
-      // Recarrega os dados e abre o gerenciador de cargos para o sítio salvo/atualizado
+      // Recarrega os dados
       await fetchData();
-
-      // Se ainda não temos o sítio (por exemplo no caso de update ou create sem retorno), procura pelo nome
-      if (!savedSitio) {
-        const match = (unidade as any)?.sitiosFuncionais?.find(
-          (s: any) => s.nome === formData.nome
-        );
-        if (match) savedSitio = match;
-      }
-
-      // Se encontramos, abre o CargoSitioManager para permitir alocar cargos
-      if (savedSitio) {
-        setManagingSitio(savedSitio as SitioFuncional);
-      }
-
-      // Finalmente fecha o formulário local
+      
+      // Fecha o formulário
       resetForm();
     } catch (err) {
       setError(
@@ -264,19 +239,23 @@ export default function SitiosFuncionaisAdminPage() {
     }
   };
 
-  const handleDelete = async (sitioId: string) => {
-    if (
-      window.confirm(
-        "Tem certeza que deseja excluir este sítio funcional? Todas as alocações de cargos serão perdidas."
-      )
-    ) {
-      try {
-        await deleteSitioFuncional(sitioId);
-        fetchData();
-      } catch (err) {
-        setError("Falha ao excluir o sítio funcional.");
-      }
-    }
+  const handleDelete = async (sitioId: string, sitioNome: string) => {
+    showModal({
+      type: "confirm",
+      title: "Excluir Sítio Funcional",
+      message: `Tem certeza que deseja excluir o sítio "${sitioNome}"? Todas as alocações de cargos serão perdidas.`,
+      confirmText: "Excluir",
+      cancelText: "Cancelar",
+      onConfirm: async () => {
+        try {
+          await deleteSitioFuncional(sitioId);
+          showAlert("success", "Sucesso", "Sítio funcional excluído com sucesso.");
+          fetchData();
+        } catch (err) {
+          showAlert("destructive", "Erro", "Falha ao excluir o sítio funcional.");
+        }
+      },
+    });
   };
 
   return (
@@ -403,7 +382,7 @@ export default function SitiosFuncionaisAdminPage() {
                       <Edit size={18} />
                     </button>
                     <button
-                      onClick={() => handleDelete(sitio.id)}
+                      onClick={() => handleDelete(sitio.id, sitio.nome)}
                       className="text-red-600 hover:opacity-70"
                       title="Excluir Sítio"
                     >

@@ -43,6 +43,12 @@ export default function DimensionamentoTab({
         // Tentar carregar projetado final salvo e sobrepor na coluna "Projetado"
         try {
           const saved = await getProjetadoFinalInternacao(unidade.id);
+          
+          console.log('=== DIMENSIONAMENTO TAB - DADOS DA TABELA ===');
+          console.log('Dados originais da análise:', data?.tabela);
+          console.log('Projetado final retornado da API:', saved);
+          console.log('=============================================');
+          
           if (saved?.cargos?.length) {
             const savedMap = new Map<string, number>();
             saved.cargos.forEach((c: any) => {
@@ -54,11 +60,24 @@ export default function DimensionamentoTab({
               quantidadeProjetada:
                 savedMap.get(l.cargoId) ?? l.quantidadeProjetada,
             }));
+            
+            console.log('=== DIMENSIONAMENTO TAB - APLICANDO PROJETADO SALVO ===');
+            console.log('Mapa de projetados salvos:', Object.fromEntries(savedMap));
+            console.log('Dados ajustados para exibição:', ajustada);
+            console.log('========================================================');
+            
             setTabelaData(ajustada);
           } else {
+            console.log('=== DIMENSIONAMENTO TAB - SEM PROJETADO SALVO ===');
+            console.log('Usando dados originais da análise');
+            console.log('==================================================');
             setTabelaData(data?.tabela ?? []);
           }
         } catch (e) {
+          console.log('=== DIMENSIONAMENTO TAB - ERRO AO CARREGAR PROJETADO ===');
+          console.log('Erro:', e);
+          console.log('Usando dados originais da análise');
+          console.log('=========================================================');
           // Se não houver salvo (ex.: 404), usa dados originais
           setTabelaData(data?.tabela ?? []);
         }

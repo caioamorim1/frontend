@@ -34,7 +34,6 @@ import {
   CircleDollarSign,
 } from "lucide-react";
 import RadarChartComponent from "./graphicsComponents/RadarChart";
-import { calcularPerformanceParaGrafico } from "@/mocks/filterMocksRadar";
 
 import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import { HorizontalBarChartComp } from "./graphicsComponents/HorizontalBarChartComp";
@@ -53,6 +52,7 @@ import {
 import { HospitalSector } from "@/mocks/functionSectores";
 import { SectorInternation } from "@/mocks/internationDatabase";
 import { SectorAssistance } from "@/mocks/noInternationDatabase";
+import { getCompletedEvaluationsWithCategories } from "@/lib/api";
 
 import { getAllSnapshotHospitalSectors } from "@/mocks/snapshotSectores";
 // --- ESTRUTURA DE DADOS APROFUNDADA ---
@@ -420,14 +420,7 @@ const TabContentInternacao: React.FC<{
     { name: "Não Avaliados", value: totalUnevaluatedBeds, color: COLORS[3] },
   ];
 
-  console.log("📊 [Gráfico Rosca - Estados dos Leitos]", {
-    totalBedsDia,
-    totalOccupiedBeds,
-    totalVacantBeds,
-    totalInactiveBeds,
-    totalUnevaluatedBeds,
-    chartData: chartDataBedStates,
-  });
+  
 
   const chartDataAtual: ChartData[] = detailedData
     ? detailedData
@@ -721,6 +714,43 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
 
     try {
       setLoading(true);
+      
+      // Buscar avaliações do hospital com categorias
+      if (hospitalId) {
+        try {
+          const avaliacoesData = await getCompletedEvaluationsWithCategories(hospitalId);
+          
+          console.log('=== DASHBOARD BASELINE - AVALIAÇÕES COM CATEGORIAS ===');
+          console.log('Hospital ID:', hospitalId);
+          console.log('Avaliações retornadas:', avaliacoesData);
+          console.log('Quantidade de avaliações:', avaliacoesData?.length || 0);
+          
+          // Transformar dados para o radar chart
+          // Cada categoria aparece uma vez com o total_score da avaliação e a meta da categoria
+          const radarChartData: ChartDataItem[] = [];
+          
+          avaliacoesData?.forEach(evaluation => {
+            const totalScore = parseFloat(evaluation.total_score);
+            
+            evaluation.categories?.forEach((cat: any) => {
+              radarChartData.push({
+                subject: cat.category_name,
+                atual: totalScore,
+                projetado: cat.category_meta
+              });
+            });
+          });
+          
+          console.log('Dados transformados para radar chart:', radarChartData);
+          console.log('=======================================================');
+          
+          setRadarData(radarChartData);
+        } catch (error) {
+          console.error('Erro ao buscar avaliações:', error);
+          setRadarData([]);
+        }
+      }
+      
       let dashboardData: any;
       if (props.isGlobalView && props.externalData) {
         // Normalize: externalData may be aggregated (items array) or single object with internation/assistance
@@ -759,22 +789,14 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
           dashboardData = { internation: [], assistance: [] };
         }
       } else {
-        console.log(
-          "📊 [Dashboard Baseline - loadData] Buscando snapshot para hospitalId: " +
-            hospitalId
-        );
+       
         const snapshotData = await getAllSnapshotHospitalSectors(hospitalId); // Usa hospitalId da URL
-        console.log("📊 [Dashboard Baseline - Dados carregados]", snapshotData);
+     
         dashboardData = snapshotData;
       }
-      const tipo = activeTab === "internacao" ? "Internacao" : "NaoInternacao";
-      const chartData =
-        activeTab === "global"
-          ? calcularPerformanceParaGrafico()
-          : calcularPerformanceParaGrafico({ tipo: tipo });
 
       setChartDataAtual(dashboardData);
-      setRadarData(chartData);
+      // Não sobrescrever radarData aqui, já foi setado com os dados reais das avaliações
     } catch (error) {
       console.error("❌ Erro ao carregar dados do dashboard:", error);
     } finally {

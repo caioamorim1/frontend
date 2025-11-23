@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { DollarSign, Users, Building, CircleDollarSign } from "lucide-react";
 import RadarChartComponent from "./graphicsComponents/RadarChart";
-import { calcularPerformanceParaGrafico } from "@/mocks/filterMocksRadar";
+import { getCompletedEvaluationsWithCategories } from "@/lib/api";
 import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import { HorizontalBarChartComp } from "./graphicsComponents/HorizontalBarChartComp";
 import BargraphicChart from "./graphicsComponents/BarChartComp";
@@ -265,7 +265,7 @@ const GlobalTabContent: React.FC<{
   aggregationType?: "hospital" | "grupo" | "regiao" | "rede"; // 🆕
   entityId?: string; // 🆕
 }> = ({ sourceData, radarData, hospitalId, aggregationType, entityId }) => {
-  console.log("📊 [TAB GLOBAL] URL usada: GET /hospital-sectors/" + hospitalId);
+
   const { internation, assistance } = sourceData;
 
   const occupationData = useMemo(() => {
@@ -472,9 +472,7 @@ const TabContentInternacao: React.FC<{
   entityId?: string; // 🆕
   hospitalId?: string; // 🆕 usar rota oficial na aba de Internação
 }> = ({ sourceData, radarData, aggregationType, entityId, hospitalId }) => {
-  console.log(
-    "🏥 [TAB INTERNAÇÃO] URL usada: GET /hospital-sectors/" + hospitalId
-  );
+ 
   const [selectedSector, setSelectedSector] = useState<string>("all");
 
   // Dados de fallback (não usados quando hospitalId é fornecido, pois o gráfico usa a rota oficial)
@@ -497,7 +495,7 @@ const TabContentInternacao: React.FC<{
   const detailedData = safeSourceData.filter(
     (sector) => selectedSector === "all" || sector.id === selectedSector
   );
-  console.log("detailedData", detailedData);
+
   const totalMinimumCare = detailedData.reduce((acc, sector) => {
     // Suportar tanto CareLevel quanto careLevel
     const careLevel = sector.CareLevel || (sector as any).careLevel;
@@ -755,9 +753,7 @@ const TabContentNoInternacao: React.FC<{
   sourceData: SectorAssistance[];
   radarData: ChartDataItem[];
 }> = ({ sourceData, radarData }) => {
-  console.log(
-    "🏥 [TAB NÃO INTERNAÇÃO] URL usada: GET /hospital-sectors/:hospitalId (mesma rota, filtra dados de 'assistance')"
-  );
+ 
   const [selectedSector, setSelectedSector] = useState<string>("all");
 
   // Verificações de segurança para evitar erros com null/undefined
@@ -939,6 +935,40 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
   const loadData = async () => {
     let dashboardData: HospitalSector | null = null;
 
+    // Buscar avaliações do hospital com categorias
+    if (hospitalId) {
+      try {
+        const avaliacoesData = await getCompletedEvaluationsWithCategories(hospitalId);
+        
+        console.log('=== DASHBOARD ATUAL - AVALIAÇÕES COM CATEGORIAS ===');
+        console.log('Hospital ID:', hospitalId);
+        console.log('Avaliações retornadas:', avaliacoesData);
+        
+        // Transformar dados para o radar chart
+        const radarChartData: ChartDataItem[] = [];
+        
+        avaliacoesData?.forEach(evaluation => {
+          const totalScore = parseFloat(evaluation.total_score);
+          
+          evaluation.categories?.forEach((cat: any) => {
+            radarChartData.push({
+              subject: cat.category_name,
+              atual: totalScore,
+              projetado: cat.category_meta
+            });
+          });
+        });
+        
+        console.log('Dados transformados para radar chart:', radarChartData);
+        console.log('======================================================');
+        
+        setRadarData(radarChartData);
+      } catch (error) {
+        console.error('Erro ao buscar avaliações:', error);
+        setRadarData([]);
+      }
+    }
+
     // Se tem dados externos (visão global), usa eles
     if (props.isGlobalView && props.externalData) {
       const ext = props.externalData;
@@ -982,17 +1012,10 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
       // Senão, busca dados normalmente por hospitalId
 
       dashboardData = await getAllHospitalSectors(hospitalId);
-      console.log("📊 [Dashboard Atual - Dados carregados]", dashboardData);
     }
 
-    const tipo = activeTab === "internacao" ? "Internacao" : "NaoInternacao";
-    const chartData =
-      activeTab === "global"
-        ? calcularPerformanceParaGrafico()
-        : calcularPerformanceParaGrafico({ tipo: tipo });
-
     setChartDataAtual(dashboardData);
-    setRadarData(chartData);
+    // Não sobrescrever radarData aqui, já foi setado com os dados reais das avaliações
   };
 
   useEffect(() => {

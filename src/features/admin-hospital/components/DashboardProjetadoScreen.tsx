@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { DollarSign, Users, Building, CircleDollarSign } from "lucide-react";
 import RadarChartComponent from "./graphicsComponents/RadarChart";
-import { calcularPerformanceParaGrafico } from "@/mocks/filterMocksRadar";
+import { getCompletedEvaluationsWithCategories } from "@/lib/api";
 import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import { HorizontalBarChartComp } from "./graphicsComponents/HorizontalBarChartComp";
 import BargraphicChart from "./graphicsComponents/BarChartComp";
@@ -551,14 +551,39 @@ export const DashboardProjetadoScreen: React.FC<
         setChartData(transformed);
       }
 
-      // ✅ Carregar dados do radar
-      const tipo = activeTab === "internacao" ? "Internacao" : "NaoInternacao";
-      const performanceData =
-        activeTab === "global"
-          ? calcularPerformanceParaGrafico()
-          : calcularPerformanceParaGrafico({ tipo: tipo });
-
-      setRadarData(performanceData);
+      // Buscar avaliações do hospital com categorias
+      if (hospitalId) {
+        try {
+          const avaliacoesData = await getCompletedEvaluationsWithCategories(hospitalId);
+          
+          console.log('=== DASHBOARD PROJETADO - AVALIAÇÕES COM CATEGORIAS ===');
+          console.log('Hospital ID:', hospitalId);
+          console.log('Avaliações retornadas:', avaliacoesData);
+          
+          // Transformar dados para o radar chart
+          const radarChartData: ChartDataItem[] = [];
+          
+          avaliacoesData?.forEach(evaluation => {
+            const totalScore = parseFloat(evaluation.total_score);
+            
+            evaluation.categories?.forEach((cat: any) => {
+              radarChartData.push({
+                subject: cat.category_name,
+                atual: totalScore,
+                projetado: cat.category_meta
+              });
+            });
+          });
+          
+          console.log('Dados transformados para radar chart:', radarChartData);
+          console.log('======================================================');
+          
+          setRadarData(radarChartData);
+        } catch (error) {
+          console.error('Erro ao buscar avaliações:', error);
+          setRadarData([]);
+        }
+      }
     } catch (error) {
       console.error("❌ Erro ao carregar dados:", error);
       console.error("Stack trace:", error);

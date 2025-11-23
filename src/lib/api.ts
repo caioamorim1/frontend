@@ -141,7 +141,7 @@ export interface CreateQuestionarioDTO {
 // Em desenvolvimento: usa variável de ambiente ou fallback para localhost
 // Em produção (Docker): usa a variável VITE_API_URL injetada no build
 export const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3000";
+  import.meta.env.VITE_API_URL || "http://localhost:3110";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -159,6 +159,25 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor de resposta para detectar token expirado
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Se receber 401 (não autorizado) ou 403 (token expirado)
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      // Limpar token do localStorage
+      localStorage.removeItem("authToken");
+      
+      // Redirecionar para login
+      window.location.href = "/login";
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -1600,6 +1619,11 @@ export const updateAvaliacao = async (
 
 export const deleteAvaliacao = async (id: number): Promise<void> => {
   await api.delete(`/qualitative/evaluations/${id}`);
+};
+
+export const getCompletedEvaluationsWithCategories = async (hospitalId: string): Promise<any[]> => {
+  const response = await api.get(`/qualitative/completed-with-categories?hospitalId=${hospitalId}`);
+  return response.data;
 };
 
 export const createColeta = async (data: FormData): Promise<any> => {

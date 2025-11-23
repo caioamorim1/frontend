@@ -1,39 +1,9 @@
 import { useMemo, useEffect, useState } from "react";
 import { Briefcase, Users } from "lucide-react";
 import {
-  getSnapshotHospitalSectors,
-  getBaselinesByHospitalId,
-  type Baseline,
+  getHospitalSnapshots,
+  type Snapshot,
 } from "@/lib/api";
-import { SectorInternation } from "@/mocks/internationDatabase";
-import { SectorAssistance } from "@/mocks/noInternationDatabase";
-import { ReusableWaterfall } from "./graphicsComponents/ReusableWaterfall";
-import { HorizontalBarChartComp } from "./graphicsComponents/HorizontalBarChartComp";
-import { parseCost as parseCostUtil } from "@/lib/dataUtils";
-import { generateBlueMonochromaticScale } from "@/lib/generateMultiColorScale";
-
-// As interfaces foram mantidas para compatibilidade com a estrutura de dados
-interface Cargo {
-  id: string;
-  nome: string;
-}
-export type HospitalSector = {
-  id: string;
-  internation: SectorInternation[];
-  assistance: SectorAssistance[];
-  snapshot?: [];
-};
-
-type Dados = {
-  id: string;
-  internation: SectorInternation[];
-  assistance: SectorAssistance[];
-};
-
-export interface CargoUnidade {
-  cargo: Cargo;
-  quantidade_funcionarios: number;
-}
 
 interface QuadroFuncionariosProps {
   hospitalId: string;
@@ -44,10 +14,9 @@ export default function QuadroFuncionariosResumo({
   hospitalId,
   setorId,
 }: QuadroFuncionariosProps) {
-  const [snapshotData, setSnapshotData] = useState<HospitalSector | null>(null);
+  const [snapshotSelecionado, setSnapshotSelecionado] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [baseline, setBaseline] = useState<Baseline | null>(null);
 
   useEffect(() => {
     const fetchSnapshot = async () => {
@@ -57,73 +26,68 @@ export default function QuadroFuncionariosResumo({
       setError(null);
 
       try {
-        const data = (await getSnapshotHospitalSectors(hospitalId)) as any;
-        const dados = data.snapshot.dados as Dados;
-        setSnapshotData(dados);
+        // Buscar snapshots do hospital
+        const snapshotsData = await getHospitalSnapshots(hospitalId, 10);
+        
+        // Encontrar o snapshot selecionado
+        const snapshotSelecionado = snapshotsData.snapshots?.find(
+          (s) => s.selecionado === true
+        );
 
-        // Fetch baseline (API) for cost and total quantity
-        const baseData = await getBaselinesByHospitalId(hospitalId);
-        const baselineObj = Array.isArray(baseData) ? baseData[0] : baseData;
-        // Parse setores if they come as JSON strings
-        const parsedBaseline = baselineObj
-          ? {
-              ...baselineObj,
-              setores: Array.isArray(baselineObj.setores)
-                ? baselineObj.setores.map((s: any) => {
-                    if (typeof s === "string") {
-                      try {
-                        return JSON.parse(s);
-                      } catch {
-                        return s;
-                      }
-                    }
-                    return s;
-                  })
-                : baselineObj.setores ?? [],
-            }
-          : null;
-        setBaseline(parsedBaseline);
+        console.log('=== BASELINE TAB - SETOR DETAIL ===');
+        console.log('Hospital ID:', hospitalId);
+        console.log('Setor ID:', setorId);
+        console.log('Todos os snapshots:', snapshotsData.snapshots);
+        console.log('Snapshot selecionado:', snapshotSelecionado);
+        console.log('Dados do snapshot:', snapshotSelecionado?.dados);
+        console.log('===================================');
+
+        if (!snapshotSelecionado) {
+          setError(
+            "Nenhum baseline selecionado para este hospital. Selecione um baseline na página de Baseline."
+          );
+          setSnapshotSelecionado(null);
+        } else {
+          setSnapshotSelecionado(snapshotSelecionado);
+        }
       } catch (err: any) {
         console.error("❌ Erro ao buscar snapshot:", err);
         if (err.response?.status === 404) {
           setError(
-            "Nenhum snapshot (baseline) encontrado para este hospital. Crie um snapshot primeiro na página de Setores."
+            "Nenhum snapshot (baseline) encontrado para este hospital. Crie um snapshot primeiro na página de Baseline."
           );
         } else {
           setError("Erro ao carregar dados do baseline.");
         }
-        setSnapshotData(null); // Garante que snapshotData fica null em caso de erro
-        setBaseline(null);
+        setSnapshotSelecionado(null);
       } finally {
         setLoading(false);
       }
     };
 
     fetchSnapshot();
-  }, [hospitalId]);
+  }, [hospitalId, setorId]);
 
   // Extrai os cargos da unidade específica do snapshot
   const cargos = useMemo(() => {
-    if (!snapshotData || !setorId) {
+    if (!snapshotSelecionado?.dados || !setorId) {
       return [];
     }
 
+    const dados = snapshotSelecionado.dados;
+
     // Procura primeiro nos setores de internação
-    const internationSector = snapshotData.internation?.find(
-      (sector) => sector.id === setorId
+    const internationSector = dados.internation?.find(
+      (sector: any) => sector.id === setorId
     );
 
     if (internationSector) {
-      // @ts-ignore - sitiosFuncionais ainda não está na interface
-      const sitiosFuncionaisIntern = internationSector.sitiosFuncionais;
+      console.log('=== BASELINE TAB - SETOR DE INTERNAÇÃO ===');
+      console.log('Setor encontrado:', internationSector);
+      console.log('Staff do setor:', internationSector.staff);
+      console.log('==========================================');
 
-      // Remove duplicatas baseado no nome do cargo
-      const staffSemDuplicatas = internationSector.staff.filter(
-        (staff, index, self) =>
-          index === self.findIndex((s) => s.role === staff.role)
-      );
-
-      return staffSemDuplicatas.map((staffMember) => ({
+      return (internationSector.staff || []).map((staffMember: any) => ({
         cargo: {
           id: staffMember.id,
           nome: staffMember.role,
@@ -132,28 +96,28 @@ export default function QuadroFuncionariosResumo({
       }));
     }
 
-    // Se não encontrou, procura nos setores de assistência
-    const assistanceSector = snapshotData.assistance?.find(
-      (sector) => sector.id === setorId
+    // Se não encontrou, procura nos setores de assistência (não-internação)
+    const assistanceSector = dados.assistance?.find(
+      (sector: any) => sector.id === setorId
     );
 
     if (assistanceSector) {
-      // @ts-ignore - sitiosFuncionais ainda não está na interface (aguardando backend)
-      const sitiosFuncionais = assistanceSector.sitiosFuncionais;
+      console.log('=== BASELINE TAB - SETOR DE NÃO-INTERNAÇÃO ===');
+      console.log('Setor encontrado:', assistanceSector);
+      console.log('Sítios funcionais:', assistanceSector.functionalSites);
+      console.log('===============================================');
 
-      if (
-        sitiosFuncionais &&
-        Array.isArray(sitiosFuncionais) &&
-        sitiosFuncionais.length > 0
-      ) {
-        // ✨ NOVA LÓGICA: Se tem sitiosFuncionais, calcular deles
+      const functionalSites = assistanceSector.functionalSites;
+
+      if (functionalSites && Array.isArray(functionalSites) && functionalSites.length > 0) {
+        // Calcular cargos dos sítios funcionais
         const cargosMap = new Map();
 
-        sitiosFuncionais.forEach((sitio: any) => {
-          sitio.cargosSitio?.forEach((cargoSitio: any) => {
-            const cargoId = cargoSitio.cargoUnidade.cargo.id;
-            const cargoNome = cargoSitio.cargoUnidade.cargo.nome;
-            const quantidade = cargoSitio.quantidade_funcionarios || 0;
+        functionalSites.forEach((sitio: any) => {
+          sitio.staff?.forEach((staffMember: any) => {
+            const cargoId = staffMember.id;
+            const cargoNome = staffMember.role;
+            const quantidade = staffMember.quantity || 0;
 
             if (cargosMap.has(cargoId)) {
               const existing = cargosMap.get(cargoId);
@@ -171,19 +135,16 @@ export default function QuadroFuncionariosResumo({
         });
 
         const cargosArray = Array.from(cargosMap.values());
+        
+        console.log('=== BASELINE TAB - CARGOS CALCULADOS ===');
+        console.log('Cargos agregados dos sítios:', cargosArray);
+        console.log('========================================');
 
         return cargosArray;
       }
 
-      // Se não tem sitiosFuncionais, usa staff (estrutura antiga)
-
-      // Remove duplicatas baseado no nome do cargo
-      const staffSemDuplicatas = assistanceSector.staff.filter(
-        (staff, index, self) =>
-          index === self.findIndex((s) => s.role === staff.role)
-      );
-
-      return staffSemDuplicatas.map((staffMember) => ({
+      // Se não tem sítios, usa staff direto (estrutura antiga)
+      return (assistanceSector.staff || []).map((staffMember: any) => ({
         cargo: {
           id: staffMember.id,
           nome: staffMember.role,
@@ -192,8 +153,12 @@ export default function QuadroFuncionariosResumo({
       }));
     }
 
+    console.log('=== BASELINE TAB - SETOR NÃO ENCONTRADO ===');
+    console.log('Setor ID procurado:', setorId);
+    console.log('===========================================');
+
     return [];
-  }, [snapshotData, setorId]);
+  }, [snapshotSelecionado, setorId]);
 
   // Calcula o total de funcionários
   const totalFuncionarios = useMemo(() => {
@@ -207,49 +172,19 @@ export default function QuadroFuncionariosResumo({
     return cargos.length;
   }, [cargos]);
 
-  // Localiza o setor pelo ID no snapshot para pegar o nome e custo
+  // Localiza o setor pelo ID no snapshot para pegar o nome
   const setorSnapshot = useMemo(() => {
-    if (!snapshotData || !setorId) return null as any;
-    const inIntern = snapshotData.internation?.find((s) => s.id === setorId);
+    if (!snapshotSelecionado?.dados || !setorId) return null as any;
+    const dados = snapshotSelecionado.dados;
+    const inIntern = dados.internation?.find((s: any) => s.id === setorId);
     if (inIntern) return inIntern as any;
-    const inAssist = snapshotData.assistance?.find((s) => s.id === setorId);
+    const inAssist = dados.assistance?.find((s: any) => s.id === setorId);
     return inAssist as any;
-  }, [snapshotData, setorId]);
+  }, [snapshotSelecionado, setorId]);
 
   const setorNome = setorSnapshot?.name?.toString() ?? "";
 
-  // Custo baseline do setor pela API (casando por nome, respeitando ativo)
-  const setorCustoBaseline = useMemo(() => {
-    if (!baseline || !Array.isArray(baseline.setores) || !setorNome) return 0;
-    const nomeLower = setorNome.trim().toLowerCase();
-    const match = (baseline.setores as any[]).find((s) => {
-      const ativo = s?.ativo !== false;
-      const nome = (s?.nome || "").trim().toLowerCase();
-      return ativo && nome === nomeLower;
-    });
-    const v = match?.custo ?? 0;
-    return parseCostUtil(v);
-  }, [baseline, setorNome]);
-
-  // Distribuição por função (quantidade e custo distribuído proporcionalmente)
-  const roleQuantidades = useMemo(() => {
-    if (!cargos || cargos.length === 0)
-      return [] as { name: string; value: number }[];
-    return cargos.map((c) => ({
-      name: c.cargo.nome,
-      value: c.quantidade_funcionarios,
-    }));
-  }, [cargos]);
-
-  const roleCustosDistribuidos = useMemo(() => {
-    const totalQtd = roleQuantidades.reduce((s, r) => s + (r.value || 0), 0);
-    if (totalQtd === 0 || setorCustoBaseline <= 0)
-      return [] as { name: string; value: number }[];
-    return roleQuantidades.map((r) => ({
-      name: r.name,
-      value: (r.value / totalQtd) * setorCustoBaseline,
-    }));
-  }, [roleQuantidades, setorCustoBaseline]);
+  // Removidos cálculos de custo (não serão mais exibidos)
 
   // Estado de "carregando" - verificar ANTES dos useMemo que dependem de dados
   if (loading) {

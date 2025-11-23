@@ -32,6 +32,7 @@ export default function CargosPage() {
 
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [formData, setFormData] = useState<Partial<Cargo>>(initialFormState);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchCargos = async () => {
     if (!hospitalId) return;
@@ -161,6 +162,15 @@ export default function CargosPage() {
     });
   };
 
+  // Filtrar cargos baseado na busca
+  const filteredCargos = cargos.filter((cargo) => {
+    const search = searchTerm.toLowerCase();
+    return (
+      cargo.nome.toLowerCase().includes(search) ||
+      (cargo.descricao && cargo.descricao.toLowerCase().includes(search))
+    );
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -173,6 +183,17 @@ export default function CargosPage() {
         >
           {isFormVisible ? "Cancelar" : "+ Novo Cargo"}
         </button>
+      </div>
+
+      {/* Barra de Busca */}
+      <div className="bg-white p-4 rounded-lg border">
+        <input
+          type="text"
+          placeholder="Buscar por nome ou descrição..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full p-3 border rounded-md focus:ring-2 focus:ring-secondary focus:border-secondary"
+        />
       </div>
 
       {isFormVisible && (
@@ -313,8 +334,8 @@ export default function CargosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {cargos.length > 0 ? (
-                  cargos.map((cargo) => (
+                {filteredCargos.length > 0 ? (
+                  filteredCargos.map((cargo) => (
                     <tr key={cargo.id} className="hover:bg-slate-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
                         {cargo.nome}
@@ -347,7 +368,9 @@ export default function CargosPage() {
                       colSpan={4}
                       className="px-6 py-4 text-center text-sm text-gray-500"
                     >
-                      Nenhum cargo registado.
+                      {searchTerm
+                        ? "Nenhum cargo encontrado com esse filtro."
+                        : "Nenhum cargo registado."}
                     </td>
                   </tr>
                 )}

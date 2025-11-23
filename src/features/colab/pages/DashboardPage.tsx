@@ -10,7 +10,7 @@ import { DashboardComparativoHospitalScreen } from "@/features/admin-hospital/co
 import { useEffect, useState } from "react";
 import { clearSectorsCache } from "@/mocks/functionSectores";
 import { useParams } from "react-router-dom";
-import { getAllSnapshotHospitalSectors } from "@/lib/api";
+import { getSnapshotHospitalSectors } from "@/lib/api";
 
 export default function HospitalDashboardPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
@@ -29,13 +29,22 @@ export default function HospitalDashboardPage() {
       }
 
       try {
-        const snapshotData = await getAllSnapshotHospitalSectors(hospitalId);
+        // Tenta buscar o snapshot selecionado
+        const snapshotData = await getSnapshotHospitalSectors(hospitalId);
+        console.log("📸 Snapshot recebido:", snapshotData);
+        
+        // A API retorna {snapshot: {...}} onde os dados estão em snapshot.dados
+        const snapshot = (snapshotData as any).snapshot || snapshotData;
+        const dados = snapshot.dados || snapshot;
         const hasData =
-          snapshotData &&
-          ((snapshotData.internation && snapshotData.internation.length > 0) ||
-            (snapshotData.assistance && snapshotData.assistance.length > 0));
+          dados &&
+          ((dados.internation && dados.internation.length > 0) ||
+            (dados.assistance && dados.assistance.length > 0));
+        console.log("✅ hasBaseline:", !!hasData);
         setHasBaseline(!!hasData);
-      } catch (error) {
+      } catch (error: any) {
+        // Se o erro for 404, significa que não há snapshot selecionado
+        // Qualquer outro erro também resulta em não mostrar a aba baseline
         console.error("Erro ao verificar baseline:", error);
         setHasBaseline(false);
       } finally {

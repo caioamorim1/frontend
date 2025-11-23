@@ -2,10 +2,12 @@ import { useState, FormEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { changePassword } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
+import { useAlert } from '@/contexts/AlertContext';
 
 export default function ChangePasswordPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { showAlert } = useAlert();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,11 @@ export default function ChangePasswordPage() {
     setLoading(true);
     try {
       await changePassword(user.id, newPassword);
-      alert('Palavra-passe alterada com sucesso! Por favor, faça login com a sua nova palavra-passe.');
+      showAlert({
+        title: 'Sucesso',
+        message: 'Palavra-passe alterada com sucesso! Por favor, faça login com a sua nova palavra-passe.',
+        type: 'success',
+      });
       logout(); // Faz logout para forçar o login com a nova palavra-passe
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ocorreu um erro inesperado.');
