@@ -146,25 +146,12 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
   aggregationType, // 🆕 Tipo de agregação (hospital, grupo, região, rede)
   entityId, // 🆕 ID da entidade (opcional)
 }) => {
-  console.log("📊 [OccupationRateChart] Props recebidas:", {
-    data,
-    summary,
-    title,
-    hospitalId,
-    showViewSelector,
-    aggregationType,
-    entityId,
-  });
+  
 
   const [view, setView] = useState<"setorial" | "global">("setorial");
   const { data: analysis, loading: analysisLoading } =
     useOccupationAnalysis(hospitalId);
 
-  console.log("📊 [OccupationRateChart] Análise da API:", {
-    analysis,
-    analysisLoading,
-    hasAnalysis: !!analysis,
-  });
 
   // Mapeia a análise oficial para o shape usado pelo gráfico
   const mappedSetorial: OccupationData[] | null = analysis
@@ -201,14 +188,7 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
     ? data
     : [summary];
 
-  console.log("📊 [OccupationRateChart] Dados do gráfico:", {
-    view,
-    chartData,
-    usandoAnaliseAPI: !!analysis,
-    mappedSetorial: mappedSetorial?.length || 0,
-    mappedSummary,
-  });
-
+  
   const tableSummary: OccupationData | null = analysis
     ? mappedSummary
     : summary;

@@ -247,7 +247,7 @@ export default function CargosPage() {
                   htmlFor="carga_horaria"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Carga Horária (horas/mês)
+                  Carga Horária (Semanal)
                 </label>
                 <input
                   type="number"

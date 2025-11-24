@@ -34,13 +34,6 @@ export default function QuadroFuncionariosResumo({
           (s) => s.selecionado === true
         );
 
-        console.log('=== BASELINE TAB - SETOR DETAIL ===');
-        console.log('Hospital ID:', hospitalId);
-        console.log('Setor ID:', setorId);
-        console.log('Todos os snapshots:', snapshotsData.snapshots);
-        console.log('Snapshot selecionado:', snapshotSelecionado);
-        console.log('Dados do snapshot:', snapshotSelecionado?.dados);
-        console.log('===================================');
 
         if (!snapshotSelecionado) {
           setError(
@@ -82,10 +75,7 @@ export default function QuadroFuncionariosResumo({
     );
 
     if (internationSector) {
-      console.log('=== BASELINE TAB - SETOR DE INTERNAÇÃO ===');
-      console.log('Setor encontrado:', internationSector);
-      console.log('Staff do setor:', internationSector.staff);
-      console.log('==========================================');
+
 
       return (internationSector.staff || []).map((staffMember: any) => ({
         cargo: {
@@ -102,10 +92,7 @@ export default function QuadroFuncionariosResumo({
     );
 
     if (assistanceSector) {
-      console.log('=== BASELINE TAB - SETOR DE NÃO-INTERNAÇÃO ===');
-      console.log('Setor encontrado:', assistanceSector);
-      console.log('Sítios funcionais:', assistanceSector.functionalSites);
-      console.log('===============================================');
+
 
       const functionalSites = assistanceSector.functionalSites;
 
@@ -135,10 +122,7 @@ export default function QuadroFuncionariosResumo({
         });
 
         const cargosArray = Array.from(cargosMap.values());
-        
-        console.log('=== BASELINE TAB - CARGOS CALCULADOS ===');
-        console.log('Cargos agregados dos sítios:', cargosArray);
-        console.log('========================================');
+ 
 
         return cargosArray;
       }
@@ -153,9 +137,7 @@ export default function QuadroFuncionariosResumo({
       }));
     }
 
-    console.log('=== BASELINE TAB - SETOR NÃO ENCONTRADO ===');
-    console.log('Setor ID procurado:', setorId);
-    console.log('===========================================');
+
 
     return [];
   }, [snapshotSelecionado, setorId]);

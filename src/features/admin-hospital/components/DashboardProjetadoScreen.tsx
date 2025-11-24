@@ -556,10 +556,7 @@ export const DashboardProjetadoScreen: React.FC<
         try {
           const avaliacoesData = await getCompletedEvaluationsWithCategories(hospitalId);
           
-          console.log('=== DASHBOARD PROJETADO - AVALIAÇÕES COM CATEGORIAS ===');
-          console.log('Hospital ID:', hospitalId);
-          console.log('Avaliações retornadas:', avaliacoesData);
-          
+       
           // Transformar dados para o radar chart
           const radarChartData: ChartDataItem[] = [];
           
@@ -575,8 +572,7 @@ export const DashboardProjetadoScreen: React.FC<
             });
           });
           
-          console.log('Dados transformados para radar chart:', radarChartData);
-          console.log('======================================================');
+
           
           setRadarData(radarChartData);
         } catch (error) {

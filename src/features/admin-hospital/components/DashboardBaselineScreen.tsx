@@ -234,7 +234,8 @@ const ReusableWaterfall: React.FC<{
 const GlobalTabContent: React.FC<{
   sourceData: HospitalSector;
   radarData: ChartDataItem[];
-}> = ({ sourceData, radarData }) => {
+  isGlobalView?: boolean;
+}> = ({ sourceData, radarData, isGlobalView }) => {
   const internation = sourceData?.internation || [];
   const assistance = sourceData?.assistance || [];
 
@@ -308,11 +309,13 @@ const GlobalTabContent: React.FC<{
         data={chartDataAtual}
         title="Análise de Custo por Setor"
       />
-      <RadarChartComponent
-        data={radarData}
-        title="Análise Qualitativa"
-        description=""
-      />
+      {!isGlobalView && (
+        <RadarChartComponent
+          data={radarData}
+          title="Análise Qualitativa"
+          description=""
+        />
+      )}
     </div>
   );
 };
@@ -320,7 +323,8 @@ const GlobalTabContent: React.FC<{
 const TabContentInternacao: React.FC<{
   sourceData: SectorInternation[];
   radarData: ChartDataItem[];
-}> = ({ sourceData, radarData }) => {
+  isGlobalView?: boolean;
+}> = ({ sourceData, radarData, isGlobalView }) => {
   const [selectedSector, setSelectedSector] = useState<string>("all");
 
   const detailedData = sourceData.filter(
@@ -547,18 +551,21 @@ const TabContentInternacao: React.FC<{
           title="Análise de Custo por Setor"
         />
       )}
-      <RadarChartComponent
-        data={radarData}
-        title="Análise Qualitativa"
-        description=""
-      />
+      {!isGlobalView && (
+        <RadarChartComponent
+          data={radarData}
+          title="Análise Qualitativa"
+          description=""
+        />
+      )}
     </div>
   );
 };
 const TabContentNoInternacao: React.FC<{
   sourceData: SectorAssistance[];
   radarData: ChartDataItem[];
-}> = ({ sourceData, radarData }) => {
+  isGlobalView?: boolean;
+}> = ({ sourceData, radarData, isGlobalView }) => {
   const [selectedSector, setSelectedSector] = useState<string>("all");
 
   const detailedData = sourceData.filter(
@@ -681,11 +688,13 @@ const TabContentNoInternacao: React.FC<{
           title="Análise de Custo por Setor"
         />
       )}
-      <RadarChartComponent
-        data={radarData}
-        title="Análise Qualitativa"
-        description=""
-      />
+      {!isGlobalView && (
+        <RadarChartComponent
+          data={radarData}
+          title="Análise Qualitativa"
+          description=""
+        />
+      )}
     </div>
   );
 };
@@ -719,11 +728,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
       if (hospitalId) {
         try {
           const avaliacoesData = await getCompletedEvaluationsWithCategories(hospitalId);
-          
-          console.log('=== DASHBOARD BASELINE - AVALIAÇÕES COM CATEGORIAS ===');
-          console.log('Hospital ID:', hospitalId);
-          console.log('Avaliações retornadas:', avaliacoesData);
-          console.log('Quantidade de avaliações:', avaliacoesData?.length || 0);
+
           
           // Transformar dados para o radar chart
           // Cada categoria aparece uma vez com o total_score da avaliação e a meta da categoria
@@ -740,9 +745,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
               });
             });
           });
-          
-          console.log('Dados transformados para radar chart:', radarChartData);
-          console.log('=======================================================');
+
           
           setRadarData(radarChartData);
         } catch (error) {
@@ -808,11 +811,6 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     loadData();
   }, [hospitalId]);
 
-  useEffect(() => {
-    if (hospitalId) {
-      loadData();
-    }
-  }, [activeTab]);
   if (loading) {
     return (
       <Card>
@@ -873,18 +871,21 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
                 <GlobalTabContent
                   sourceData={chartDataAtual}
                   radarData={radarData}
+                  isGlobalView={props.isGlobalView}
                 />
               </TabsContent>
               <TabsContent value="internacao" className="mt-4">
                 <TabContentInternacao
                   sourceData={chartDataAtual?.internation}
                   radarData={radarData}
+                  isGlobalView={props.isGlobalView}
                 />
               </TabsContent>
               <TabsContent value="nao-internacao" className="mt-4">
                 <TabContentNoInternacao
                   sourceData={chartDataAtual?.assistance}
                   radarData={radarData}
+                  isGlobalView={props.isGlobalView}
                 />
               </TabsContent>
             </Tabs>

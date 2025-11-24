@@ -95,7 +95,7 @@ const ExpandableSubItem = ({
       >
         <div className="flex items-center">
           {icon}
-          <span className="ml-3 text-xs font-semibold uppercase tracking-wider">
+          <span className="ml-3 tracking-wider">
             {label}
           </span>
         </div>
@@ -126,7 +126,7 @@ export default function HospitalAdminSidebar() {
     {
       to: `/hospital/${hospitalId}/setores`,
       icon: <Building size={18} />,
-      label: "Setores",
+      label: "Gerir Setores",
     },
     {
       to: `/hospital/${hospitalId}/unidades-leitos`,
@@ -154,7 +154,7 @@ export default function HospitalAdminSidebar() {
     {
       to: `/hospital/${hospitalId}/gerir-setores`,
       icon: <Building size={18} />,
-      label: "Gerir Setores",
+      label: "Setores",
     },
   ];
 

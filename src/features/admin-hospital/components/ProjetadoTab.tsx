@@ -237,9 +237,7 @@ export default function ProjetadoTab({
         try {
           const saved = await getProjetadoFinalInternacao(unidade.id);
           
-          console.log('=== PROJETADO TAB - CARREGANDO DADOS SALVOS ===');
-          console.log('Projetado final salvo:', saved);
-          console.log('===============================================');
+         
           
           if (saved && saved.cargos) {
             const novoMapa: AjustesPayload = {};
@@ -263,10 +261,7 @@ export default function ProjetadoTab({
               };
             });
             
-            console.log('=== PROJETADO TAB - AJUSTES CALCULADOS ===');
-            console.log('Ajustes (ProjetadoFinal - Atual):', novoMapa);
-            console.log('Metadata:', novoMetadata);
-            console.log('==========================================');
+
             
             setAjustes(novoMapa);
             setMetadata(novoMetadata);
@@ -345,13 +340,6 @@ export default function ProjetadoTab({
         })),
       };
 
-      console.log('=== PROJETADO TAB - SALVANDO AJUSTES ===');
-      console.log('Dados da análise base:', analiseBase);
-      console.log('Ajustes aplicados:', ajustes);
-      console.log('Metadata (observações/status):', metadata);
-      console.log('Cargos calculados:', cargos);
-      console.log('Payload enviado ao backend:', payload);
-      console.log('========================================');
 
       await saveProjetadoFinalInternacao(unidade.id, payload);
 
@@ -465,39 +453,10 @@ export default function ProjetadoTab({
       linhasUnicas.forEach((l) => {
         const lower = (l.cargoNome || "").toLowerCase();
         const isScp = isCargoSCPView(l.cargoNome);
-        console.log({
-          cargoId: l.cargoId,
-          cargoNome: l.cargoNome,
-          lower,
-          includes_enfermeiro: lower.includes("enfermeiro"),
-          tecnico_patterns_match: [
-            "técnico em enfermagem",
-            "tecnico em enfermagem",
-            "técnico enfermagem",
-            "tec enfermagem",
-            "tec. enfermagem",
-            "tec. em enfermagem",
-            "técnico de enfermagem",
-          ].some((p) => lower.includes(p)),
-          isClassificadoComoSCP: isScp,
-          quantidadeProjetada: l.quantidadeProjetada,
-        });
+        
       });
-      console.log(
-        "[ProjetadoTab] cargosComProjetado:",
-        cargosComProjetado.map((l) => ({
-          cargoId: l.cargoId,
-          cargoNome: l.cargoNome,
-          quantidadeProjetada: l.quantidadeProjetada,
-        }))
-      );
-      console.log(
-        "[ProjetadoTab] cargosAtuais:",
-        cargosAtuais.map((l) => ({
-          cargoId: l.cargoId,
-          cargoNome: l.cargoNome,
-        }))
-      );
+      
+      
       console.groupEnd();
     }
   } catch {}

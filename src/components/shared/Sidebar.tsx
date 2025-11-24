@@ -18,7 +18,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getHospitais, Hospital } from "@/lib/api";
+import { getHospitais, getRedes, Hospital, Rede } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 const NavItem = ({
@@ -73,6 +73,79 @@ const ExpandableSubItem = ({
         {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
       </button>
       {isOpen && <ul className="pl-3">{children}</ul>}
+    </li>
+  );
+};
+
+const RedeSubMenu = ({ 
+  rede, 
+  hospitais 
+}: { 
+  rede: Rede; 
+  hospitais: Hospital[];
+}) => {
+  const { hospitalId: activeHospitalId } = useParams();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Verifica se algum hospital desta rede está ativo
+  useEffect(() => {
+    const hasActiveHospital = hospitais.some(h => h.id === activeHospitalId);
+    if (hasActiveHospital) {
+      setIsExpanded(true);
+    }
+  }, [activeHospitalId, hospitais]);
+
+  return (
+    <li>
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between px-3 py-2 my-1 rounded-md text-sm text-gray-200 hover:bg-white/10 text-left"
+      >
+        <div className="flex items-center truncate">
+          <Waypoints size={18} className="flex-shrink-0" />
+          <span className="ml-3 font-medium truncate">{rede.nome}</span>
+        </div>
+        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+      </button>
+      {isExpanded && (
+        <ul className="pl-5 border-l-2 border-white/20 ml-3">
+          {/* Dashboard da Rede */}
+          <li>
+            <NavLink
+              to={`/admin/redes/${rede.id}/dashboard`}
+              className={({ isActive }) =>
+                `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${
+                  isActive
+                    ? "bg-secondary/10 text-secondary font-semibold"
+                    : "text-gray-200 hover:bg-white/10"
+                }`
+              }
+            >
+              <LayoutDashboard size={16} className="flex-shrink-0" />
+              <span className="ml-3 truncate">Dashboard Rede</span>
+            </NavLink>
+          </li>
+          
+          {/* Hospitais da Rede */}
+          {hospitais.map((hospital) => (
+            <li key={hospital.id}>
+              <NavLink
+                to={`/hospital/${hospital.id}/dashboard`}
+                className={({ isActive }) =>
+                  `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${
+                    isActive
+                      ? "bg-secondary/10 text-secondary font-semibold"
+                      : "text-gray-200 hover:bg-white/10"
+                  }`
+                }
+              >
+                <HospitalIcon size={16} className="flex-shrink-0" />
+                <span className="ml-3 truncate">{hospital.nome}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      )}
     </li>
   );
 };
@@ -166,14 +239,10 @@ const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
 export default function Sidebar() {
   const { user } = useAuth();
   const [hospitais, setHospitais] = useState<Hospital[]>([]);
+  const [redes, setRedes] = useState<Rede[]>([]);
   const [loading, setLoading] = useState(true);
 
   const adminGlobalItems = [
-    {
-      to: `/admin/dashboard`,
-      icon: <LayoutDashboard size={18} />,
-      label: "Dashboard Global",
-    },
     {
       to: `/admin/hospitais`,
       icon: <HospitalIcon size={18} />,
@@ -202,16 +271,28 @@ export default function Sidebar() {
   useEffect(() => {
     if (user?.appRole === "ADMIN") {
       setLoading(true);
-      getHospitais()
-        .then(setHospitais)
+      Promise.all([getHospitais(), getRedes()])
+        .then(([hospitaisData, redesData]) => {
+          setHospitais(hospitaisData);
+          setRedes(redesData);
+        })
         .catch((err) =>
-          console.error("Falha ao carregar hospitais para o menu:", err)
+          console.error("Falha ao carregar dados para o menu:", err)
         )
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
   }, [user]);
+
+  // Agrupar hospitais por rede
+  const hospitaisPorRede = redes.map(rede => ({
+    rede,
+    hospitais: hospitais.filter(h => (h as any).rede?.id === rede.id)
+  })).filter(item => item.hospitais.length > 0);
+
+  // Hospitais sem rede
+  const hospitaisSemRede = hospitais.filter(h => !(h as any).rede?.id);
 
   return (
     <aside className="w-72 bg-primary text-primary-foreground flex flex-col flex-shrink-0">
@@ -242,10 +323,41 @@ export default function Sidebar() {
               {loading && (
                 <li className="px-3 text-sm text-gray-400">A carregar...</li>
               )}
-              {!loading &&
-                hospitais.map((hospital) => (
-                  <HospitalSubMenu key={hospital.id} hospital={hospital} />
-                ))}
+              {!loading && (
+                <>
+                  {hospitaisPorRede.map(({ rede, hospitais: hospitaisDaRede }) => (
+                    <RedeSubMenu 
+                      key={rede.id} 
+                      rede={rede} 
+                      hospitais={hospitaisDaRede} 
+                    />
+                  ))}
+                  {hospitaisSemRede.length > 0 && (
+                    <>
+                      <li className="px-3 py-2 text-xs text-gray-400 uppercase tracking-wider">
+                        Sem Rede
+                      </li>
+                      {hospitaisSemRede.map((hospital) => (
+                        <li key={hospital.id}>
+                          <NavLink
+                            to={`/hospital/${hospital.id}/dashboard`}
+                            className={({ isActive }) =>
+                              `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${
+                                isActive
+                                  ? "bg-secondary/10 text-secondary font-semibold"
+                                  : "text-gray-200 hover:bg-white/10"
+                              }`
+                            }
+                          >
+                            <HospitalIcon size={16} className="flex-shrink-0" />
+                            <span className="ml-3 truncate">{hospital.nome}</span>
+                          </NavLink>
+                        </li>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
             </ul>
           </>
         )}
@@ -275,7 +387,7 @@ export default function Sidebar() {
                   <NavItem
                     to="/meu-hospital/setores"
                     icon={<Building size={16} />}
-                    label="Setores"
+                    label="Gerir Setores"
                   />
                   <NavItem
                     to="/meu-hospital/unidades-leitos"

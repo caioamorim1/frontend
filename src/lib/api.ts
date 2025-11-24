@@ -817,18 +817,53 @@ export const getHospitalSectors = async (
   }
 };
 
+// --- NOVA ROTA CONSOLIDADA PARA DASHBOARD GLOBAL ---
+export interface GlobalDashboardData {
+  atual: any; // Dados atuais agregados
+  projetado: any; // Dados projetados agregados
+  baseline: any; // Dados baseline (snapshot) agregados
+}
+
+/**
+ * Nova rota consolidada que retorna dados atuais, projetados e baseline
+ * em uma única chamada para Dashboard Global (Rede/Grupo/Região)
+ */
+export const getGlobalDashboardData = async (
+  entityType: 'rede' | 'grupo' | 'regiao',
+  entityId: string
+): Promise<GlobalDashboardData> => {
+  const response = await api.get(
+    `/hospital-sectors-aggregate/${entityType}/${entityId}/dashboard`
+  );
+  return response.data;
+};
+
+/**
+ * @deprecated Use getGlobalDashboardData() para Dashboard Global consolidado
+ * Mantido apenas para compatibilidade com código legado
+ */
 export const getRedesAggregated = async (redeId: string): Promise<any> => {
   const response = await api.get(
     `/hospital-sectors-aggregate/network/${redeId}`
   );
   return response.data;
 };
+
+/**
+ * @deprecated Use getGlobalDashboardData() para Dashboard Global consolidado
+ * Mantido apenas para compatibilidade com código legado
+ */
 export const getGruposAggregated = async (grupoId: string): Promise<any> => {
   const response = await api.get(
     `/hospital-sectors-aggregate/group/${grupoId}`
   );
   return response.data;
 };
+
+/**
+ * @deprecated Use getGlobalDashboardData() para Dashboard Global consolidado
+ * Mantido apenas para compatibilidade com código legado
+ */
 export const getRegioesAggregated = async (regiaoId: string): Promise<any> => {
   const response = await api.get(
     `/hospital-sectors-aggregate/region/${regiaoId}`
@@ -1730,8 +1765,10 @@ export const getAllHospitalsAggregated =
     );
     return response.data;
   };
-// Adicionar estas funções no seu arquivo api.ts
-
+/**
+ * @deprecated Use getGlobalDashboardData() para Dashboard Global consolidado
+ * Mantido apenas para compatibilidade com código legado
+ */
 export async function getRedesProjectedAggregated() {
   const response = await api.get(
     "/hospital-sectors-aggregate/networks/all-projected-aggregated"
@@ -1739,6 +1776,10 @@ export async function getRedesProjectedAggregated() {
   return response.data;
 }
 
+/**
+ * @deprecated Use getGlobalDashboardData() para Dashboard Global consolidado
+ * Mantido apenas para compatibilidade com código legado
+ */
 export async function getGruposProjectedAggregated() {
   const response = await api.get(
     "/hospital-sectors-aggregate/groups/all-projected-aggregated"
@@ -1746,6 +1787,10 @@ export async function getGruposProjectedAggregated() {
   return response.data;
 }
 
+/**
+ * @deprecated Use getGlobalDashboardData() para Dashboard Global consolidado
+ * Mantido apenas para compatibilidade com código legado
+ */
 export async function getRegioesProjectedAggregated() {
   const response = await api.get(
     "/hospital-sectors-aggregate/regions/all-projected-aggregated"
@@ -1753,6 +1798,10 @@ export async function getRegioesProjectedAggregated() {
   return response.data;
 }
 
+/**
+ * @deprecated Use getGlobalDashboardData() para Dashboard Global consolidado
+ * Mantido apenas para compatibilidade com código legado
+ */
 export async function getHospitaisProjectedAggregated() {
   const response = await api.get(
     "/hospital-sectors-aggregate/hospitals/all-projected-aggregated"
@@ -1876,6 +1925,77 @@ export async function getTaxaOcupacaoAgregada(
       aggregationType,
       entityId,
     },
+  });
+  return response.data;
+}
+
+// ===== SNAPSHOT SELECIONADO POR GRUPO =====
+
+export interface SnapshotSelecionadoItem {
+  id: string;
+  escopo: string;
+  tipoUnidade: string | null;
+  hospitalId: string;
+  unidadeInternacaoId: string | null;
+  unidadeNaoInternacaoId: string | null;
+  cargoId: string | null;
+  dataHora: string;
+  acao: string;
+  usuarioId: string | null;
+  observacao: string;
+  dados: {
+    id: string;
+    assistance: any[];
+    internation: any[];
+    projetadoFinal?: {
+      internacao: any[];
+      naoInternacao: any[];
+    };
+  };
+  resumo: {
+    custoTotal: number;
+    totalProfissionais: number;
+    totalUnidadesInternacao: number;
+    totalUnidadesAssistencia: number;
+  };
+  hashDados: string;
+  selecionado: boolean;
+  hospital: {
+    id: string;
+    nome: string;
+    cnpj: string;
+    endereco: string;
+    telefone: string;
+    tipo: string | null;
+    gestao: string | null;
+    perfil: string | null;
+    complexidade: string | null;
+    numeroTotalLeitos: number | null;
+    numeroLeitosUTI: number | null;
+    numeroSalasCirurgicas: number | null;
+    created_at: string;
+    updated_at: string;
+    rede?: {
+      id: string;
+      nome: string;
+      created_at: string;
+      updated_at: string;
+    };
+  };
+}
+
+/**
+ * Buscar snapshots selecionados por grupo (rede, grupo ou região)
+ * @param tipo Tipo de agregação: 'rede', 'grupo' ou 'regiao'
+ * @param id UUID da entidade (rede, grupo ou região)
+ * @returns Lista de snapshots selecionados de todos os hospitais do grupo
+ */
+export async function getSnapshotSelectedByGroup(
+  tipo: "rede" | "grupo" | "regiao",
+  id: string
+): Promise<SnapshotSelecionadoItem[]> {
+  const response = await api.get("/snapshot/selected-by-group", {
+    params: { tipo, id },
   });
   return response.data;
 }

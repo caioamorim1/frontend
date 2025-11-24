@@ -25,12 +25,9 @@ export async function getAllHospitalSectors(
   }
 
   try {
-    console.log(
-      "🌐 [Dashboard - Carregando dados] URL: GET /hospital-sectors/" +
-        hospitalId
-    );
+    
     const apiData: HospitalSectorsData = await getHospitalSectors(hospitalId);
-    console.log("✅ [Dashboard - Dados recebidos]", apiData);
+   
 
     const { id, internation, assistance } = apiData;
 
@@ -145,7 +142,7 @@ export async function getAllHospitalSectors(
       assistance: assistanceTransformed,
     };
 
-    console.log("🔄 [Dashboard - Dados transformados]", transformedData);
+
 
     // Atualiza cache
     cachedData = transformedData;

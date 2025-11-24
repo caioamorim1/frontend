@@ -81,11 +81,12 @@ export default function UsuariosPage() {
     if (!hospitalId) return;
 
     const cpfDigits = (formData.cpf || "").replace(/\D/g, "");
-    if (cpfDigits.length !== 11) {
+    // Validar CPF apenas se foi preenchido
+    if (cpfDigits.length > 0 && cpfDigits.length !== 11) {
       showAlert(
         "destructive",
         "Erro",
-        "CPF incompleto. Preencha os 11 dígitos antes de salvar."
+        "CPF incompleto. Preencha os 11 dígitos ou deixe em branco."
       );
       return;
     }
@@ -96,19 +97,20 @@ export default function UsuariosPage() {
         const updateData: UpdateUsuarioDTO = {
           nome: formData.nome,
           email: formData.email,
-          cpf: cpfDigits,
+          cpf: cpfDigits || undefined,
           permissao: formData.permissao,
         };
         await updateUsuario(formData.id, updateData);
       } else {
-        // Enviamos o CPF como a palavra-passe inicial
+        // Se CPF foi informado, usa como senha inicial; caso contrário, usa uma senha padrão
+        const senhaInicial = cpfDigits || "123456";
         const createData: CreateUsuarioDTO = {
           hospitalId,
           nome: formData.nome || "",
           email: formData.email || "",
-          cpf: cpfDigits,
+          cpf: cpfDigits || undefined,
           permissao: formData.permissao || "COMUM",
-          senha: cpfDigits, // Define o CPF (apenas números) como a palavra-passe
+          senha: senhaInicial,
         };
         await createUsuario(createData);
       }
@@ -166,7 +168,7 @@ export default function UsuariosPage() {
     return (
       usuario.nome.toLowerCase().includes(search) ||
       usuario.email.toLowerCase().includes(search) ||
-      usuario.cpf.includes(searchTerm)
+      (usuario.cpf || "").includes(searchTerm)
     );
   });
 
@@ -226,8 +228,7 @@ export default function UsuariosPage() {
                 onChange={(val) =>
                   setFormData((prev) => ({ ...prev, cpf: val }))
                 }
-                placeholder="CPF"
-                required
+                placeholder="CPF (opcional)"
                 className="focus:ring-1 focus:ring-secondary focus:border-secondary"
               />
               <select

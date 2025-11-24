@@ -1278,7 +1278,7 @@ export default function AtualTab({
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
-                      Carga Horária (horas/mês)
+                      Carga Horária (Semanal)
                     </label>
                     <input
                       type="number"
