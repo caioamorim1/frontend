@@ -152,12 +152,7 @@ export default function BaselinePage() {
       const snapshotSelecionado = snapshotsData.snapshots?.find(
         (s) => s.selecionado === true
       );
-      
-      // Console log para observação
-      console.log('=== BASELINE PAGE - SNAPSHOT CARREGADO ===');
-      console.log('Snapshot selecionado:', snapshotSelecionado);
-      console.log('Todos os snapshots:', snapshotsData.snapshots);
-      console.log('==========================================');
+  
       
       if (snapshotSelecionado) {
         setSelectedSnapshotId(snapshotSelecionado.id);

@@ -42,23 +42,18 @@ export default function ParetoPage() {
   const [paretoCollapsed, setParetoCollapsed] = useState(false);
 
   const fetchBaseline = async () => {
-    console.log(
-      "[ParetoPage] fetchBaseline iniciado para hospitalId:",
-      hospitalId
-    );
+    
     if (!hospitalId) {
-      console.log("[ParetoPage] Sem hospitalId, abortando fetch");
+   
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      console.log("[ParetoPage] Buscando dados do hospital:", hospitalId);
-      const hospitalData = await getHospitalById(hospitalId);
-      console.log("[ParetoPage] Hospital recebido:", hospitalData);
-      const baselineData = await getBaselinesByHospitalId(hospitalId);
-      console.log("[ParetoPage] Baseline recebido:", baselineData);
 
+      const hospitalData = await getHospitalById(hospitalId);
+      
+      const baselineData = await getBaselinesByHospitalId(hospitalId);
       const baselineObj = Array.isArray(baselineData)
         ? baselineData[0]
         : baselineData;
@@ -88,16 +83,11 @@ export default function ParetoPage() {
       );
 
       if (parsedBaseline) {
-        console.log(
-          "[ParetoPage] Baseline encontrado, setando:",
-          parsedBaseline
-        );
+        
         setBaseline(parsedBaseline);
         setFormData(parsedBaseline);
       } else {
-        console.log(
-          "[ParetoPage] Nenhum baseline encontrado, mostrando formulário"
-        );
+        
         setBaseline(null);
         setFormData(initialFormState);
         setIsFormVisible(true);
@@ -111,9 +101,7 @@ export default function ParetoPage() {
   };
 
   useEffect(() => {
-    console.log("[ParetoPage] useEffect hospitalId mudou:", hospitalId);
-    console.log("[ParetoPage] Resetando todos os estados...");
-    // Reset completo do estado ao mudar de hospital
+
     setBaseline(null);
     setHospital(null);
     setFormData(initialFormState);
@@ -121,7 +109,7 @@ export default function ParetoPage() {
     setParetoCollapsed(false);
     setLoading(true);
     setError(null);
-    console.log("[ParetoPage] Estados resetados, iniciando fetchBaseline");
+
 
     fetchBaseline();
   }, [hospitalId]);

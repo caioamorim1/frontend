@@ -20,7 +20,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label"; // Importando o Label
-import CurrencyInput from "@/components/shared/CurrencyInput";
 import {
   Select,
   SelectContent,
@@ -60,8 +59,6 @@ export default function SetoresPage() {
   const [numeroLeitos, setNumeroLeitos] = useState(0);
   const [scpMetodoId, setScpMetodoId] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [horas_extra_reais, setHorasExtraReais] = useState("");
-  const [horas_extra_projetadas, setHorasExtraProjetadas] = useState("");
 
   const handleGenerateBaselineConfirm = async () => {
     if (!hospitalId) return;
@@ -142,8 +139,6 @@ export default function SetoresPage() {
     setNumeroLeitos(0);
     setScpMetodoId("");
     setDescricao("");
-    setHorasExtraReais("");
-    setHorasExtraProjetadas("");
     setTipoUnidade(null);
     setIsFormVisible(false);
     setEditingUnidade(null);
@@ -159,16 +154,6 @@ export default function SetoresPage() {
     setEditingUnidade(unidade);
     setTipoUnidade(unidade.tipo);
     setNome(unidade.nome);
-    // Sanitiza valores vindos da API
-    const reaisRaw = (unidade.horas_extra_reais || "").toString();
-    const reais = reaisRaw.includes(",")
-      ? reaisRaw.replace(/\./g, "").replace(/,/g, ".")
-      : reaisRaw;
-    setHorasExtraReais(reais);
-    const proj = (unidade.horas_extra_projetadas || "")
-      .toString()
-      .replace(/\D/g, "");
-    setHorasExtraProjetadas(proj);
 
     if (unidade.tipo === "internacao") {
       setNumeroLeitos(unidade.leitos?.length || 0);
@@ -187,15 +172,6 @@ export default function SetoresPage() {
     if (!hospitalId || !tipoUnidade) return;
 
     try {
-      // Normaliza os valores antes de enviar
-      const normalizedHorasExtraReais =
-        horas_extra_reais && horas_extra_reais.trim() !== ""
-          ? horas_extra_reais
-          : "0.00";
-      const onlyDigitsProj = (horas_extra_projetadas || "").replace(/\D/g, "");
-      const normalizedHorasExtraProjetadas =
-        onlyDigitsProj === "" ? "0" : String(parseInt(onlyDigitsProj, 10));
-
       if (editingUnidade) {
         if (tipoUnidade === "internacao") {
           // Must have an SCP method selected for internacao
@@ -210,15 +186,15 @@ export default function SetoresPage() {
           await updateUnidadeInternacao(editingUnidade.id, {
             nome,
             scpMetodoId,
-            horas_extra_reais: normalizedHorasExtraReais,
-            horas_extra_projetadas: normalizedHorasExtraProjetadas,
+            horas_extra_reais: "0.00",
+            horas_extra_projetadas: "0",
           });
         } else {
           await updateUnidadeNaoInternacao(editingUnidade.id, {
             nome,
             descricao,
-            horas_extra_reais: normalizedHorasExtraReais,
-            horas_extra_projetadas: normalizedHorasExtraProjetadas,
+            horas_extra_reais: "0.00",
+            horas_extra_projetadas: "0",
           });
         }
       } else {
@@ -236,8 +212,8 @@ export default function SetoresPage() {
             nome,
             numeroLeitos,
             scpMetodoId,
-            horas_extra_reais: normalizedHorasExtraReais,
-            horas_extra_projetadas: normalizedHorasExtraProjetadas,
+            horas_extra_reais: "0.00",
+            horas_extra_projetadas: "0",
             cargos_unidade: [], // Inicia sem cargos
           });
         } else {
@@ -245,8 +221,8 @@ export default function SetoresPage() {
             hospitalId,
             nome,
             descricao,
-            horas_extra_reais: normalizedHorasExtraReais,
-            horas_extra_projetadas: normalizedHorasExtraProjetadas,
+            horas_extra_reais: "0.00",
+            horas_extra_projetadas: "0",
             cargos_unidade: [], // Inicia sem cargos..
           });
         }
@@ -370,38 +346,6 @@ export default function SetoresPage() {
                     required
                     className="mt-1"
                   />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="horas_extra_reais">Horas Extra (R$)</Label>
-                    <CurrencyInput
-                      id="horas_extra_reais"
-                      name="horas_extra_reais"
-                      value={horas_extra_reais}
-                      onChange={(val) => setHorasExtraReais(val)}
-                      placeholder="R$ 0,00"
-                      className="mt-1 w-full"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="horas_extra_projetadas">
-                      Horas Extra Projetadas (horas)
-                    </Label>
-                    <Input
-                      id="horas_extra_projetadas"
-                      name="horas_extra_projetadas"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={horas_extra_projetadas}
-                      onChange={(e) => {
-                        const onlyDigits = e.target.value.replace(/\D/g, "");
-                        setHorasExtraProjetadas(onlyDigits);
-                      }}
-                      placeholder="Ex: 100"
-                      className="mt-1"
-                    />
-                  </div>
                 </div>
 
                 {tipoUnidade === "internacao" && (

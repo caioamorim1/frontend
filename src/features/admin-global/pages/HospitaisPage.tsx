@@ -211,6 +211,15 @@ export default function HospitaisPage() {
       return;
     }
 
+    if (!formData.redeId) {
+      showAlert(
+        "destructive",
+        "Erro",
+        "A Rede é obrigatória. Por favor, selecione uma Rede."
+      );
+      return;
+    }
+
     const dataToSubmit = {
       nome: formData.nome || "",
       cnpj: formData.cnpj || "",
@@ -364,16 +373,17 @@ export default function HospitaisPage() {
               </div>
               <div>
                 <label htmlFor="redeId" className="block text-sm font-medium text-gray-700 mb-1">
-                  Rede (Opcional)
+                  Rede *
                 </label>
                 <select
                   id="redeId"
                   name="redeId"
                   value={selectedRedeId}
                   onChange={handleChange}
+                  required
                   className="p-2 border rounded-md w-full"
                 >
-                  <option value="">Selecione uma Rede (Opcional)</option>
+                  <option value="">Selecione uma Rede</option>
                   {redes.map((rede) => (
                     <option key={rede.id} value={rede.id}>
                       {rede.nome}
@@ -383,7 +393,7 @@ export default function HospitaisPage() {
               </div>
               <div>
                 <label htmlFor="grupoId" className="block text-sm font-medium text-gray-700 mb-1">
-                  Grupo {selectedRedeId ? "" : "(Selecione uma Rede primeiro)"}
+                  Grupo {selectedRedeId ? "(Opcional)" : "(Selecione uma Rede primeiro)"}
                 </label>
                 <select
                   id="grupoId"
@@ -395,7 +405,7 @@ export default function HospitaisPage() {
                 >
                   <option value="">
                     {selectedRedeId
-                      ? "Selecione um Grupo"
+                      ? "Selecione um Grupo (Opcional)"
                       : "Selecione uma Rede primeiro"}
                   </option>
                   {filteredGrupos.map((grupo) => (
@@ -407,7 +417,7 @@ export default function HospitaisPage() {
               </div>
               <div className="md:col-span-2">
                 <label htmlFor="regiaoId" className="block text-sm font-medium text-gray-700 mb-1">
-                  Região {selectedGrupoId ? "" : "(Selecione um Grupo primeiro)"}
+                  Região {selectedGrupoId ? "(Opcional)" : "(Selecione um Grupo primeiro)"}
                 </label>
                 <select
                   id="regiaoId"
@@ -419,7 +429,7 @@ export default function HospitaisPage() {
                 >
                   <option value="">
                     {selectedGrupoId
-                      ? "Selecione uma Região"
+                      ? "Selecione uma Região (Opcional)"
                       : "Selecione um Grupo primeiro"}
                   </option>
                   {filteredRegioes.map((regiao) => (

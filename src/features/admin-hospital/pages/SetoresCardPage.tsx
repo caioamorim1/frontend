@@ -1,5 +1,4 @@
-import { useParams, Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useParams } from "react-router-dom";
 import { Building2, Hospital, Bed, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
@@ -10,6 +9,7 @@ import {
   UnidadeNaoInternacao,
   getSitiosFuncionaisByUnidadeId,
 } from "@/lib/api";
+import UnidadeCard from "@/components/shared/UnidadeCard";
 
 export default function SetoresCardPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
@@ -66,85 +66,57 @@ export default function SetoresCardPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
-          <Building2 /> Setores
-        </h2>
-      </div>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold text-primary">Setores</h1>
 
       {/* Setores de Internação */}
       <div className="space-y-4">
-        <h3 className="text-xl font-semibold text-primary flex items-center gap-2">
+        <h2 className="text-2xl font-semibold text-primary flex items-center gap-2">
           <Hospital className="h-6 w-6" />
           Setores de Internação
-        </h3>
-        {setoresInternacao.length === 0 ? (
-          <p className="text-muted-foreground">
-            Nenhum setor de internação cadastrado.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {setoresInternacao.map((setor) => (
-              <Link
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {setoresInternacao.length > 0 ? (
+            setoresInternacao.map((setor) => (
+              <UnidadeCard
                 key={setor.id}
                 to={`/hospital/${hospitalId}/setores/${setor.id}`}
-              >
-                <Card className="cursor-pointer transition-all hover:shadow-lg hover:border-secondary h-full">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-3">
-                      <CardTitle className="text-lg font-bold">
-                        {setor.nome}
-                      </CardTitle>
-                      <Hospital className="h-6 w-6 text-secondary flex-shrink-0 ml-4" />
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Bed className="h-4 w-4" />
-                      <span>{setor.leitos?.length || 0} leitos</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )}
+                icon={Hospital}
+                title={setor.nome}
+                subtitle={`${setor.leitos?.length || 0} leitos`}
+              />
+            ))
+          ) : (
+            <p className="col-span-full text-center text-gray-500">
+              Nenhum setor de internação cadastrado.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Setores de Não Internação */}
       <div className="space-y-4">
-        <h3 className="text-xl font-semibold text-primary flex items-center gap-2">
+        <h2 className="text-2xl font-semibold text-primary flex items-center gap-2">
           <Building2 className="h-6 w-6" />
           Setores de Não Internação
-        </h3>
-        {setoresNaoInternacao.length === 0 ? (
-          <p className="text-muted-foreground">
-            Nenhum setor de não internação cadastrado.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {setoresNaoInternacao.map((setor) => (
-              <Link
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {setoresNaoInternacao.length > 0 ? (
+            setoresNaoInternacao.map((setor) => (
+              <UnidadeCard
                 key={setor.id}
                 to={`/hospital/${hospitalId}/setores/${setor.id}`}
-              >
-                <Card className="cursor-pointer transition-all hover:shadow-lg hover:border-secondary h-full">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-3">
-                      <CardTitle className="text-lg font-bold">
-                        {setor.nome}
-                      </CardTitle>
-                      <Building2 className="h-6 w-6 text-secondary flex-shrink-0 ml-4" />
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4" />
-                      <span>{sitiosCounts[setor.id] || 0} sítios funcionais</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )}
+                icon={Building2}
+                title={setor.nome}
+                subtitle={`${sitiosCounts[setor.id] || 0} sítios funcionais`}
+              />
+            ))
+          ) : (
+            <p className="col-span-full text-center text-gray-500">
+              Nenhum setor de não internação cadastrado.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

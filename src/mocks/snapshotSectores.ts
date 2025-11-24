@@ -34,13 +34,9 @@ export async function getAllSnapshotHospitalSectors(
   }
 
   try {
-    console.log(
-      "📸 [Dashboard Baseline] URL usada: GET /snapshot/hospital/" +
-        hospitalId +
-        "/ultimo"
-    );
+    
     const apiData: any = await getSnapshotHospitalSectors(hospitalId);
-    console.log("✅ [Dashboard Baseline - Dados recebidos]", apiData);
+    
 
     // Estrutura de fallback caso os dados da API venham vazios ou nulos
     const fallbackData: HospitalSector = {
@@ -81,27 +77,13 @@ export async function getAllSnapshotHospitalSectors(
     // ✅ CORREÇÃO: projetadoFinal está dentro de snapshot.dados, não diretamente em snapshot
     const projetadoInternacao =
       apiData.snapshot?.dados?.projetadoFinal?.internacao || [];
-    console.log(
-      "📊 [Projetado Final - Internação] Dados completos:",
-      projetadoInternacao
-    );
-    console.log(
-      "📊 [Projetado Final - Internação] Quantidade de unidades:",
-      projetadoInternacao.length
-    );
+ 
 
-    console.log(
-      "📊 [Snapshot - Internação] Quantidade de setores em snapshot.dados.internation:",
-      apiData.snapshot.dados.internation?.length || 0
-    );
+    
 
     const internationSectors = Array.isArray(apiData.snapshot.dados.internation)
       ? apiData.snapshot.dados.internation.map((sector, index) => {
-          console.log(
-            `\n🔍 [Processando Setor ${index + 1}/${
-              apiData.snapshot.dados.internation.length
-            }] ID: ${sector.id}, Nome: ${sector.name}`
-          );
+          
 
           const costAmount = normalizeCurrencyAmount(sector.costAmount);
           const staff = Array.isArray(sector.staff) ? sector.staff : [];
@@ -111,20 +93,12 @@ export async function getAllSnapshotHospitalSectors(
             (p: any) => p.unidadeId === sector.id
           );
 
-          console.log(
-            `   ➡️ [Projetado encontrado?]`,
-            projetadoData ? "SIM" : "NÃO"
-          );
-          if (projetadoData) {
-            console.log(
-              `   📋 [Dados do Projetado]:`,
-              JSON.stringify(projetadoData, null, 2)
-            );
-          }
+         
+          
 
           const dimensionamento = projetadoData?.dimensionamento || null;
 
-          console.log(`   🛏️ [Dimensionamento]:`, dimensionamento);
+      
 
           // Se tiver dimensionamento, usar esses dados de leitos
           const bedCount = dimensionamento?.totalLeitos || sector.bedCount || 0;
@@ -137,7 +111,6 @@ export async function getAllSnapshotHospitalSectors(
 
           // Mapear distribuição de classificação para CareLevel
           const distribuicao = dimensionamento?.distribuicaoClassificacao || {};
-          console.log(`   📊 [Distribuição Classificação]:`, distribuicao);
 
           const careLevel = {
             minimumCare:
@@ -160,10 +133,7 @@ export async function getAllSnapshotHospitalSectors(
               distribuicao.INTENSIVOS || sector.careLevel?.intensive || 0,
           };
 
-          console.log(`   ✅ [CareLevel mapeado]:`, careLevel);
-          console.log(
-            `   🛏️ [Leitos] Total: ${bedCount}, Ocupados: ${evaluatedBeds}, Vagos: ${vacantBeds}, Inativos: ${inactiveBeds}`
-          );
+         
 
           return {
             id: sector.id || `internation-${Math.random()}`,
@@ -225,12 +195,7 @@ export async function getAllSnapshotHospitalSectors(
       assistance: assistanceSectors,
     };
 
-    console.log("✅ [Dados Transformados - Final]", {
-      totalInternation: internationSectors.length,
-      totalAssistance: assistanceSectors.length,
-      internationNames: internationSectors.map((s) => s.name),
-      assistanceNames: assistanceSectors.map((s) => s.name),
-    });
+ 
 
     cachedData = transformedData;
     cachedHospitalId = hospitalId;

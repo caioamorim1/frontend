@@ -31,8 +31,7 @@ export default function HospitalDashboardPage() {
       try {
         // Tenta buscar o snapshot selecionado
         const snapshotData = await getSnapshotHospitalSectors(hospitalId);
-        console.log("📸 Snapshot recebido:", snapshotData);
-        
+
         // A API retorna {snapshot: {...}} onde os dados estão em snapshot.dados
         const snapshot = (snapshotData as any).snapshot || snapshotData;
         const dados = snapshot.dados || snapshot;
@@ -40,7 +39,7 @@ export default function HospitalDashboardPage() {
           dados &&
           ((dados.internation && dados.internation.length > 0) ||
             (dados.assistance && dados.assistance.length > 0));
-        console.log("✅ hasBaseline:", !!hasData);
+
         setHasBaseline(!!hasData);
       } catch (error: any) {
         // Se o erro for 404, significa que não há snapshot selecionado

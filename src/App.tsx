@@ -43,7 +43,7 @@ function App() {
 
         {/* Rotas do Admin Global */}
         <Route path="/admin" element={<UnifiedLayout />}>
-          <Route path="dashboard" element={<GlobalDashboardPage />} />
+          <Route path="redes/:redeId/dashboard" element={<GlobalDashboardPage />} />
           <Route path="hospitais" element={<HospitaisPage />} />
           <Route path="redes" element={<RedesPage />} />
           <Route path="grupos" element={<GruposPage />} />

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getUnidadesInternacao, UnidadeInternacao } from "@/lib/api";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Building } from "lucide-react";
+import UnidadeCard from "@/components/shared/UnidadeCard";
 
 export default function MinhasUnidadesPage() {
   const { user } = useAuth();
@@ -51,25 +52,13 @@ export default function MinhasUnidadesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {unidades.length > 0 ? (
             unidades.map((unidade) => (
-              <Link
-                to={`/hospital/${hospitalId}/unidade/${unidade.id}/leitos`}
+              <UnidadeCard
                 key={unidade.id}
-                className="block p-6 bg-white border rounded-lg shadow-sm hover:shadow-lg hover:border-secondary transition-all"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="bg-secondary/10 p-3 rounded-full">
-                    <Building className="h-6 w-6 text-secondary" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold text-primary">
-                      {unidade.nome}
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-600">
-                      {unidade.leitos?.length || 0} leitos
-                    </p>
-                  </div>
-                </div>
-              </Link>
+                to={`/hospital/${hospitalId}/unidade/${unidade.id}/leitos`}
+                icon={Building}
+                title={unidade.nome}
+                subtitle={`${unidade.leitos?.length || 0} leitos`}
+              />
             ))
           ) : (
             <p className="col-span-full text-center text-gray-500">

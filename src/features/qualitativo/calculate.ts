@@ -13,10 +13,6 @@ export function calculateQuestionScoreByCategory(
         return { categories: [], totalRate: 0 };
     }
 
-    console.log('=== CÁLCULO DE AVALIAÇÃO QUALITATIVA ===');
-    console.log('Total de perguntas:', questions.length);
-    console.log('Total de respostas:', answers.length);
-
     // Mapa de categorias: categoryId -> { score acumulado, máximo possível }
     const categoryMap: Record<number, { score: number; possible: number }> = {};
 
@@ -33,14 +29,6 @@ export function calculateQuestionScoreByCategory(
             (o) => o.label.toLowerCase() === String(ans.value).toLowerCase()
         );
 
-        console.log(`Pergunta ${question.id} (Categoria ${categoryId}):`, {
-            tipo: question.type,
-            peso: question.weight,
-            resposta: ans.value,
-            opcoes: question.options,
-            opcaoSelecionada: selectedOption,
-            pesoOpcao: selectedOption?.weight
-        });
 
         let optionWeight = selectedOption?.weight ?? 0;
 
@@ -72,7 +60,7 @@ export function calculateQuestionScoreByCategory(
     // transforma em array e calcula % por categoria
     const categories = Object.entries(categoryMap).map(([categoryId, { score, possible }]) => {
         const percent = possible > 0 ? Math.min(100, (score / possible) * 100) : 0;
-        console.log(`Categoria ${categoryId}: ${score}/${possible} = ${percent.toFixed(2)}%`);
+        
         return {
             categoryId: Number(categoryId),
             score: parseFloat(percent.toFixed(2))
@@ -87,12 +75,7 @@ export function calculateQuestionScoreByCategory(
             ? Math.min(100, (totalWeightedScore / totalWeightedPossible) * 100)
             : 0;
 
-    console.log('=== RESULTADO FINAL ===');
-    console.log('Total Score:', totalWeightedScore);
-    console.log('Total Possível:', totalWeightedPossible);
-    console.log('Taxa Total:', totalRate.toFixed(2) + '%');
-    console.log('Categorias:', categories);
-    console.log('===========================');
+
 
     return {
         categories,
