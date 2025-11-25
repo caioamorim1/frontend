@@ -372,6 +372,7 @@ export default function GlobalDashboardPage() {
                 <DashboardComparativoHospitalScreen
                   title={`Análise Comparativa - Rede ${rede?.nome || ""}`}
                   externalData={comparativoData}
+                  atualData={atualData}
                   isGlobalView={true}
                 />
               </div>

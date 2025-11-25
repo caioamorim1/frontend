@@ -10,13 +10,13 @@ import { ModalProvider } from "./contexts/ModalContext";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   // <React.StrictMode>
   <HashRouter>
-    <AuthProvider>
-      <AlertProvider>
+    <AlertProvider>
+      <AuthProvider>
         <ModalProvider>
           <App />
         </ModalProvider>
-      </AlertProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </AlertProvider>
   </HashRouter>
   // </React.StrictMode>
 );

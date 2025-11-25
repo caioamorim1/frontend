@@ -32,8 +32,9 @@ type SectorType = "global" | "internacao" | "nao-internacao";
 export const DashboardComparativoHospitalScreen: React.FC<{
   title: string;
   externalData?: any;
+  atualData?: any;
   isGlobalView?: boolean;
-}> = ({ title, externalData, isGlobalView = false }) => {
+}> = ({ title, externalData, atualData, isGlobalView = false }) => {
   const { hospitalId } = useParams<{ hospitalId: string }>();
 
   const [comparativeData, setComparativeData] =
@@ -204,25 +205,133 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         const custoUnitario = custos[cargo] || 0;
         const quantidade = quantidades[cargo] || 0;
         total += custoUnitario * quantidade;
+        console.log(
+          `    🧮 Cargo: ${cargo}, CustoUnit: R$${custoUnitario.toFixed(
+            2
+          )}, Qtd: ${quantidade}, Total: R$${(
+            custoUnitario * quantidade
+          ).toFixed(2)}`
+        );
       });
+      console.log(`  💰 Total do setor: R$${total.toFixed(2)}`);
       return total;
     };
 
     // BARRA 0: Atual Real (quadroAtualReal - dados tempo real do banco)
-    const pessoalAtualReal = filteredSectors.reduce(
-      (sum, sector) => sum + somarValores(sector.quadroAtualReal),
-      0
+    console.log("👥 [Comparativo] Calculando Pessoal Atual Real:");
+
+    let pessoalAtualReal = 0;
+
+    if (atualData && isGlobalView) {
+      console.log("  ✅ Usando dados da aba Atual (atualData) para pessoal");
+
+      // Determinar quais setores usar baseado na aba ativa
+      let sectorsFromAtual: any[] = [];
+      if (activeTab === "global") {
+        sectorsFromAtual = [
+          ...(atualData.internation || []),
+          ...(atualData.assistance || []),
+        ];
+      } else if (activeTab === "internacao") {
+        sectorsFromAtual = atualData.internation || [];
+      } else {
+        sectorsFromAtual = atualData.assistance || [];
+      }
+
+      // Filtrar por setor selecionado
+      const filteredFromAtual =
+        selectedSector === "all"
+          ? sectorsFromAtual
+          : sectorsFromAtual.filter(
+              (s) =>
+                s.name?.trim().toLowerCase() === selectedSector.toLowerCase()
+            );
+
+      // Somar quantidade de staff
+      pessoalAtualReal = filteredFromAtual.reduce((sum, sector) => {
+        const staffCount = Array.isArray(sector.staff)
+          ? sector.staff.reduce(
+              (s: number, item: any) => s + (item.quantity || 0),
+              0
+            )
+          : 0;
+        console.log(`  👥 Setor ${sector.name}: ${staffCount} pessoas`);
+        return sum + staffCount;
+      }, 0);
+    } else {
+      // Fallback: usar cálculo antigo (para modo hospital)
+      pessoalAtualReal = filteredSectors.reduce(
+        (sum, sector) => sum + somarValores(sector.quadroAtualReal),
+        0
+      );
+    }
+
+    console.log(
+      `✅ [Comparativo] Pessoal Atual Real Total: ${pessoalAtualReal}`
     );
 
-    // Custo Atual Real: custoUnitário REAL × quantidade real para cada cargo
-    const custoAtualReal = filteredSectors.reduce(
-      (sum, sector) =>
-        sum +
-        calcularCustoSetor(
-          sector.custosAtualReal || sector.custosAtualSnapshot,
-          sector.quadroAtualReal
-        ),
-      0
+    console.log("💰 [Comparativo] Calculando Custo Atual Real:");
+
+    // 🚀 SOLUÇÃO: Usar dados da aba "Atual" (atualData) que já vem com costAmount calculado corretamente
+    let custoAtualReal = 0;
+
+    if (atualData && isGlobalView) {
+      console.log("  ✅ Usando dados da aba Atual (atualData):", atualData);
+
+      // Determinar quais setores usar baseado na aba ativa
+      let sectorsFromAtual: any[] = [];
+      if (activeTab === "global") {
+        sectorsFromAtual = [
+          ...(atualData.internation || []),
+          ...(atualData.assistance || []),
+        ];
+      } else if (activeTab === "internacao") {
+        sectorsFromAtual = atualData.internation || [];
+      } else {
+        sectorsFromAtual = atualData.assistance || [];
+      }
+
+      // Filtrar por setor selecionado
+      const filteredFromAtual =
+        selectedSector === "all"
+          ? sectorsFromAtual
+          : sectorsFromAtual.filter(
+              (s) =>
+                s.name?.trim().toLowerCase() === selectedSector.toLowerCase()
+            );
+
+      // Somar costAmount diretamente
+      custoAtualReal = filteredFromAtual.reduce((sum, sector) => {
+        const cost = parseFloat(sector.costAmount || "0");
+        console.log(`  💰 Setor ${sector.name}: R$${cost.toFixed(2)}`);
+        return sum + cost;
+      }, 0);
+    } else {
+      // Fallback: usar cálculo antigo (para modo hospital)
+      custoAtualReal = filteredSectors.reduce((sum, sector, index) => {
+        console.log(
+          `  🔵 Setor [${index}] ${sector.name} - Tipo: ${sector.tipo}`
+        );
+        console.log(
+          `    custosAtualReal:`,
+          sector.custosAtualReal || "undefined"
+        );
+        console.log(
+          `    custosAtualSnapshot:`,
+          sector.custosAtualSnapshot || "undefined"
+        );
+        console.log(`    quadroAtualReal:`, sector.quadroAtualReal);
+
+        const custosUsados =
+          sector.custosAtualReal || sector.custosAtualSnapshot;
+        const resultado =
+          sum + calcularCustoSetor(custosUsados, sector.quadroAtualReal);
+        return resultado;
+      }, 0);
+    }
+
+    console.log(
+      `✅ [Comparativo] Custo Atual Real Total: R$${custoAtualReal.toFixed(2)}`
     );
 
     // BARRA 1: Baseline (quadroAtualSnapshot - primeira barra do waterfall)
@@ -231,15 +340,27 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       0
     );
 
+    console.log("💰 [Comparativo] Calculando Custo Baseline:");
     // Custo Baseline: custoUnitário × quantidade para cada cargo, somado por setor
-    const custoAtualSnapshot = filteredSectors.reduce(
-      (sum, sector) =>
+    const custoAtualSnapshot = filteredSectors.reduce((sum, sector, index) => {
+      console.log(
+        `  🟡 Setor [${index}] ${sector.name} - Tipo: ${sector.tipo}`
+      );
+      console.log(`    custosAtualSnapshot:`, sector.custosAtualSnapshot);
+      console.log(`    quadroAtualSnapshot:`, sector.quadroAtualSnapshot);
+
+      const resultado =
         sum +
         calcularCustoSetor(
           sector.custosAtualSnapshot,
           sector.quadroAtualSnapshot
-        ),
-      0
+        );
+      return resultado;
+    }, 0);
+    console.log(
+      `✅ [Comparativo] Custo Baseline Total: R$${custoAtualSnapshot.toFixed(
+        2
+      )}`
     );
 
     // BARRA 2: Projetado (quadroProjetadoSnapshot - barra final do waterfall)
@@ -248,15 +369,33 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       0
     );
 
+    console.log("💰 [Comparativo] Calculando Custo Projetado:");
     // Custo Projetado: custoUnitário × quantidade projetada para cada cargo
     const custoProjetadoSnapshot = filteredSectors.reduce(
-      (sum, sector) =>
-        sum +
-        calcularCustoSetor(
-          sector.custosAtualSnapshot,
+      (sum, sector, index) => {
+        console.log(
+          `  🟢 Setor [${index}] ${sector.name} - Tipo: ${sector.tipo}`
+        );
+        console.log(`    custosAtualSnapshot:`, sector.custosAtualSnapshot);
+        console.log(
+          `    quadroProjetadoSnapshot:`,
           sector.quadroProjetadoSnapshot
-        ),
+        );
+
+        const resultado =
+          sum +
+          calcularCustoSetor(
+            sector.custosAtualSnapshot,
+            sector.quadroProjetadoSnapshot
+          );
+        return resultado;
+      },
       0
+    );
+    console.log(
+      `✅ [Comparativo] Custo Projetado Total: R$${custoProjetadoSnapshot.toFixed(
+        2
+      )}`
     );
 
     // Variação (diferencas - já vem calculado da API!)
@@ -269,6 +408,18 @@ export const DashboardComparativoHospitalScreen: React.FC<{
 
     const variacaoPercentual =
       custoAtualSnapshot > 0 ? (variacaoCusto / custoAtualSnapshot) * 100 : 0;
+
+    console.log("📊 [Comparativo] Resumo Final:", {
+      custoAtualReal,
+      custoAtualSnapshot,
+      custoProjetadoSnapshot,
+      variacaoCusto,
+      variacaoPercentual: `${variacaoPercentual.toFixed(1)}%`,
+      pessoalAtualReal,
+      pessoalAtualSnapshot,
+      pessoalProjetadoSnapshot,
+      variacaoPessoal,
+    });
 
     // Montar dados do gráfico waterfall com 4 barras
     const financialWaterfall = [
