@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 // Layouts e Páginas
@@ -36,6 +38,8 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Todas as rotas daqui para baixo exigem que o utilizador esteja logado */}
       <Route element={<ProtectedRoute />}>
@@ -43,7 +47,10 @@ function App() {
 
         {/* Rotas do Admin Global */}
         <Route path="/admin" element={<UnifiedLayout />}>
-          <Route path="redes/:redeId/dashboard" element={<GlobalDashboardPage />} />
+          <Route
+            path="redes/:redeId/dashboard"
+            element={<GlobalDashboardPage />}
+          />
           <Route path="hospitais" element={<HospitaisPage />} />
           <Route path="redes" element={<RedesPage />} />
           <Route path="grupos" element={<GruposPage />} />

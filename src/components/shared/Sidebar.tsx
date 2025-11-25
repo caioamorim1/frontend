@@ -25,14 +25,17 @@ const NavItem = ({
   to,
   icon,
   label,
+  end,
 }: {
   to: string;
   icon: React.ReactNode;
   label: string;
+  end?: boolean;
 }) => (
   <li>
     <NavLink
       to={to}
+      end={end}
       className={({ isActive }) =>
         `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${
           isActive
@@ -77,11 +80,11 @@ const ExpandableSubItem = ({
   );
 };
 
-const RedeSubMenu = ({ 
-  rede, 
-  hospitais 
-}: { 
-  rede: Rede; 
+const RedeSubMenu = ({
+  rede,
+  hospitais,
+}: {
+  rede: Rede;
   hospitais: Hospital[];
 }) => {
   const { hospitalId: activeHospitalId } = useParams();
@@ -89,7 +92,7 @@ const RedeSubMenu = ({
 
   // Verifica se algum hospital desta rede está ativo
   useEffect(() => {
-    const hasActiveHospital = hospitais.some(h => h.id === activeHospitalId);
+    const hasActiveHospital = hospitais.some((h) => h.id === activeHospitalId);
     if (hasActiveHospital) {
       setIsExpanded(true);
     }
@@ -125,7 +128,7 @@ const RedeSubMenu = ({
               <span className="ml-3 truncate">Dashboard Rede</span>
             </NavLink>
           </li>
-          
+
           {/* Hospitais da Rede */}
           {hospitais.map((hospital) => (
             <li key={hospital.id}>
@@ -247,24 +250,43 @@ export default function Sidebar() {
       to: `/admin/hospitais`,
       icon: <HospitalIcon size={18} />,
       label: "Gerir Hospitais",
+      end: true,
     },
-    { to: `/admin/redes`, icon: <Waypoints size={18} />, label: "Redes" },
-    { to: `/admin/grupos`, icon: <Group size={18} />, label: "Grupos" },
-    { to: `/admin/regioes`, icon: <Globe size={18} />, label: "Regiões" },
+    {
+      to: `/admin/redes`,
+      icon: <Waypoints size={18} />,
+      label: "Redes",
+      end: true,
+    },
+    {
+      to: `/admin/grupos`,
+      icon: <Group size={18} />,
+      label: "Grupos",
+      end: true,
+    },
+    {
+      to: `/admin/regioes`,
+      icon: <Globe size={18} />,
+      label: "Regiões",
+      end: true,
+    },
     {
       to: `/admin/scp-metodos`,
       icon: <FileText size={18} />,
       label: "Métodos SCP",
+      end: true,
     },
     {
       to: `/admin/questionarios`,
       icon: <ListChecks size={18} />,
       label: "Qualitativo",
+      end: true,
     },
     {
       to: `/admin/admins`,
       icon: <Shield size={18} />,
       label: "Administradores",
+      end: true,
     },
   ];
 
@@ -286,13 +308,15 @@ export default function Sidebar() {
   }, [user]);
 
   // Agrupar hospitais por rede
-  const hospitaisPorRede = redes.map(rede => ({
-    rede,
-    hospitais: hospitais.filter(h => (h as any).rede?.id === rede.id)
-  })).filter(item => item.hospitais.length > 0);
+  const hospitaisPorRede = redes
+    .map((rede) => ({
+      rede,
+      hospitais: hospitais.filter((h) => (h as any).rede?.id === rede.id),
+    }))
+    .filter((item) => item.hospitais.length > 0);
 
   // Hospitais sem rede
-  const hospitaisSemRede = hospitais.filter(h => !(h as any).rede?.id);
+  const hospitaisSemRede = hospitais.filter((h) => !(h as any).rede?.id);
 
   return (
     <aside className="w-72 bg-primary text-primary-foreground flex flex-col flex-shrink-0">
@@ -325,13 +349,15 @@ export default function Sidebar() {
               )}
               {!loading && (
                 <>
-                  {hospitaisPorRede.map(({ rede, hospitais: hospitaisDaRede }) => (
-                    <RedeSubMenu 
-                      key={rede.id} 
-                      rede={rede} 
-                      hospitais={hospitaisDaRede} 
-                    />
-                  ))}
+                  {hospitaisPorRede.map(
+                    ({ rede, hospitais: hospitaisDaRede }) => (
+                      <RedeSubMenu
+                        key={rede.id}
+                        rede={rede}
+                        hospitais={hospitaisDaRede}
+                      />
+                    )
+                  )}
                   {hospitaisSemRede.length > 0 && (
                     <>
                       <li className="px-3 py-2 text-xs text-gray-400 uppercase tracking-wider">
@@ -350,7 +376,9 @@ export default function Sidebar() {
                             }
                           >
                             <HospitalIcon size={16} className="flex-shrink-0" />
-                            <span className="ml-3 truncate">{hospital.nome}</span>
+                            <span className="ml-3 truncate">
+                              {hospital.nome}
+                            </span>
                           </NavLink>
                         </li>
                       ))}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   getHospitalOccupationAnalysis,
+  getNetworkOccupationAnalysis,
   type OccupationAnalysisResponse,
 } from "@/lib/api";
 
@@ -11,20 +12,27 @@ interface UseOccupationAnalysisResult {
   refetch: () => Promise<void>;
 }
 
+interface UseOccupationAnalysisParams {
+  hospitalId?: string;
+  redeId?: string;
+}
+
 /**
- * Hook para buscar análise de taxa de ocupação do hospital
- * @param hospitalId ID do hospital
+ * Hook para buscar análise de taxa de ocupação do hospital ou rede
+ * @param params.hospitalId ID do hospital (para análise individual)
+ * @param params.redeId ID da rede (para análise agregada)
  * @returns Dados da análise, loading state e função de refetch
  */
 export function useOccupationAnalysis(
-  hospitalId: string | undefined
+  params: UseOccupationAnalysisParams
 ): UseOccupationAnalysisResult {
+  const { hospitalId, redeId } = params;
   const [data, setData] = useState<OccupationAnalysisResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
-    if (!hospitalId) {
+    if (!hospitalId && !redeId) {
       setLoading(false);
       return;
     }
@@ -33,7 +41,15 @@ export function useOccupationAnalysis(
       setLoading(true);
       setError(null);
 
-      const response = await getHospitalOccupationAnalysis(hospitalId);
+      let response: OccupationAnalysisResponse;
+
+      if (redeId) {
+        response = await getNetworkOccupationAnalysis(redeId);
+      } else if (hospitalId) {
+        response = await getHospitalOccupationAnalysis(hospitalId);
+      } else {
+        throw new Error("hospitalId ou redeId é necessário");
+      }
 
       setData(response);
     } catch (err: any) {
@@ -50,7 +66,7 @@ export function useOccupationAnalysis(
 
   useEffect(() => {
     fetchData();
-  }, [hospitalId]);
+  }, [hospitalId, redeId]);
 
   return {
     data,

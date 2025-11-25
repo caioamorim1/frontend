@@ -101,6 +101,7 @@ interface DashboardAtualScreenProps {
   isGlobalView?: boolean; // Flag para indicar se é visão global
   aggregationType?: "hospital" | "grupo" | "regiao" | "rede"; // 🆕 Tipo de agregação
   entityId?: string; // 🆕 ID da entidade (opcional)
+  redeId?: string; // 🆕 ID da rede para análise de ocupação
 }
 
 interface ChartDataItem {
@@ -262,6 +263,7 @@ const GlobalTabContent: React.FC<{
   sourceData: HospitalSector;
   radarData: ChartDataItem[];
   hospitalId?: string;
+  redeId?: string; // 🆕 Para análise de ocupação da rede
   aggregationType?: "hospital" | "grupo" | "regiao" | "rede"; // 🆕
   entityId?: string; // 🆕
   isGlobalView?: boolean; // 🆕 Flag para indicar se é visão global
@@ -269,6 +271,7 @@ const GlobalTabContent: React.FC<{
   sourceData,
   radarData,
   hospitalId,
+  redeId,
   aggregationType,
   entityId,
   isGlobalView,
@@ -456,15 +459,14 @@ const GlobalTabContent: React.FC<{
         data={chartDataAtual}
         title="Análise de Custo por Setor"
       />
-      {!isGlobalView && (
-        <OccupationRateChart
-          data={occupationData.data}
-          summary={occupationData.summary}
-          hospitalId={aggregationType ? undefined : hospitalId}
-          aggregationType={aggregationType}
-          entityId={entityId}
-        />
-      )}
+      <OccupationRateChart
+        data={occupationData.data}
+        summary={occupationData.summary}
+        hospitalId={aggregationType || isGlobalView ? undefined : hospitalId}
+        redeId={isGlobalView ? redeId : undefined}
+        aggregationType={aggregationType}
+        entityId={entityId}
+      />
       {!isGlobalView && (
         <RadarChartComponent
           data={radarData}
@@ -945,9 +947,14 @@ const TabContentNoInternacao: React.FC<{
   );
 };
 
-export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
-  props
-) => {
+export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = ({
+  title,
+  externalData,
+  isGlobalView = false,
+  aggregationType,
+  entityId,
+  redeId,
+}) => {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const [chartDataAtual, setChartDataAtual] = useState<HospitalSector | null>(
     null
@@ -988,8 +995,8 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
     }
 
     // Se tem dados externos (visão global), usa eles
-    if (props.isGlobalView && props.externalData) {
-      const ext = props.externalData;
+    if (isGlobalView && externalData) {
+      const ext = externalData;
       if (Array.isArray(ext)) {
         // It's an array of entities: concat their sectors
         const allIntern: any[] = [];
@@ -1026,10 +1033,26 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
         // fallback: try to use as-is, but ensure keys exist
         dashboardData = { internation: [], assistance: [] } as HospitalSector;
       }
+
+      console.log("📊 [DashboardAtual] Dados externos (Global View):", {
+        isGlobalView,
+        externalData: ext,
+        dashboardDataProcessado: dashboardData,
+        exemploInternacao: dashboardData.internation?.[0],
+        exemploAssistencia: dashboardData.assistance?.[0],
+      });
     } else {
       // Senão, busca dados normalmente por hospitalId
 
       dashboardData = await getAllHospitalSectors(hospitalId);
+
+      console.log("📊 [DashboardAtual] Dados do hospital:", {
+        isGlobalView,
+        hospitalId,
+        dashboardData,
+        exemploInternacao: dashboardData.internation?.[0],
+        exemploAssistencia: dashboardData.assistance?.[0],
+      });
     }
 
     setChartDataAtual(dashboardData);
@@ -1038,7 +1061,7 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [externalData]);
 
   useEffect(() => {
     loadData();
@@ -1051,7 +1074,7 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
           {/* Card Principal do Dashboard */}
           <Card className="transition-shadow hover:shadow-lg">
             <CardHeader>
-              <CardTitle>{props.title}</CardTitle>
+              <CardTitle>{title}</CardTitle>
               <CardDescription>Análise de desempenho</CardDescription>
             </CardHeader>
             <CardContent>
@@ -1077,19 +1100,20 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
                     sourceData={chartDataAtual}
                     radarData={radarData}
                     hospitalId={hospitalId}
-                    aggregationType={props.aggregationType}
-                    entityId={props.entityId}
-                    isGlobalView={props.isGlobalView}
+                    redeId={redeId}
+                    aggregationType={aggregationType}
+                    entityId={entityId}
+                    isGlobalView={isGlobalView}
                   />
                 </TabsContent>
                 <TabsContent value="internacao" className="mt-4">
                   <TabContentInternacao
                     sourceData={chartDataAtual?.internation}
                     radarData={radarData}
-                    aggregationType={props.aggregationType}
-                    entityId={props.entityId}
+                    aggregationType={aggregationType}
+                    entityId={entityId}
                     hospitalId={hospitalId}
-                    isGlobalView={props.isGlobalView}
+                    isGlobalView={isGlobalView}
                   />
                 </TabsContent>
                 <TabsContent value="nao-internacao" className="mt-4">

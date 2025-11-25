@@ -8,6 +8,7 @@ import {
   UpdateCategoryDTO,
 } from "@/features/qualitativo/types";
 import axios from "axios";
+
 // Re-exportar tipos do qualitativo para facilitar importação
 export type {
   Questionnaire as Questionario,
@@ -16,7 +17,8 @@ export type {
   Question as Pergunta,
   QuestionOption,
 };
-
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3110";
 // --- New: comparative endpoint for hospital (frontend helper) ---
 export interface NewSectorData {
   id: string;
@@ -181,6 +183,64 @@ export async function getHospitalOccupationAnalysis(
   return res.data as OccupationAnalysisResponse;
 }
 
+export async function getNetworkOccupationAnalysis(
+  redeId: string
+): Promise<OccupationAnalysisResponse> {
+  const res = await api.get(
+    `/hospital-sectors/rede/${redeId}/occupation-analysis`
+  );
+  return res.data as OccupationAnalysisResponse;
+}
+
+// --- Password Reset APIs ---
+export interface PasswordResetRequestResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface PasswordResetVerifyResponse {
+  valid: boolean;
+  email?: string;
+}
+
+export interface PasswordResetResponse {
+  success: boolean;
+  message: string;
+}
+
+// Criar instância do axios sem autenticação para rotas públicas
+const publicApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+export async function requestPasswordReset(
+  email: string
+): Promise<PasswordResetRequestResponse> {
+  const res = await publicApi.post("/password-reset/request", { email });
+  return res.data;
+}
+
+export async function verifyResetToken(
+  token: string
+): Promise<PasswordResetVerifyResponse> {
+  const res = await publicApi.get(`/password-reset/verify/${token}`);
+  return res.data;
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string
+): Promise<PasswordResetResponse> {
+  const res = await publicApi.post("/password-reset/reset", {
+    token,
+    newPassword,
+  });
+  return res.data;
+}
+
 // DTO para criar questionário
 export interface CreateQuestionarioDTO {
   name: string;
@@ -190,8 +250,6 @@ export interface CreateQuestionarioDTO {
 // Configuração da URL base da API
 // Em desenvolvimento: usa variável de ambiente ou fallback para localhost
 // Em produção (Docker): usa a variável VITE_API_URL injetada no build
-export const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3110";
 
 const api = axios.create({
   baseURL: API_BASE_URL,

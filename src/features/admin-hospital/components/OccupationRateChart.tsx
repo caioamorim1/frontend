@@ -45,6 +45,7 @@ interface OccupationRateChartProps {
   summary: OccupationData;
   title?: string;
   hospitalId?: string; // Se fornecido, usa a rota oficial de análise para montar os dados
+  redeId?: string; // 🆕 Para análise de rede
   showViewSelector?: boolean; // Se true, mostra botões Setorial/Global
   aggregationType?: "hospital" | "grupo" | "regiao" | "rede"; // Mantido para compat, mas ignorado quando hospitalId é usado
   entityId?: string; // Mantido para compat
@@ -142,16 +143,16 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
   summary,
   title = "Análise da Taxa de Ocupação",
   hospitalId,
+  redeId,
   showViewSelector = true, // Por padrão, mostra os botões
   aggregationType, // 🆕 Tipo de agregação (hospital, grupo, região, rede)
   entityId, // 🆕 ID da entidade (opcional)
 }) => {
-  
-
   const [view, setView] = useState<"setorial" | "global">("setorial");
-  const { data: analysis, loading: analysisLoading } =
-    useOccupationAnalysis(hospitalId);
-
+  const { data: analysis, loading: analysisLoading } = useOccupationAnalysis({
+    hospitalId,
+    redeId,
+  });
 
   // Mapeia a análise oficial para o shape usado pelo gráfico
   const mappedSetorial: OccupationData[] | null = analysis
@@ -188,7 +189,6 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
     ? data
     : [summary];
 
-  
   const tableSummary: OccupationData | null = analysis
     ? mappedSummary
     : summary;
@@ -240,7 +240,6 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
                   <p className="text-4xl font-bold text-primary">
                     {mappedSummary["Taxa de Ocupação Diária"]?.toFixed(2)}%
                   </p>
-                  
                 </div>
               </div>
             ) : summary["Taxa de Ocupação Diária"] !== undefined ? (

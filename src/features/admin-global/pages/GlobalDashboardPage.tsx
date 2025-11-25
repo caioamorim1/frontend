@@ -23,7 +23,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function GlobalDashboardPage() {
   const { redeId } = useParams<{ redeId: string }>();
-  const [loading, setLoading] = useState(false);
   const [rede, setRede] = useState<Rede | null>(null);
 
   // ✅ Estado para dados da baseline (snapshots agregados da rede)
@@ -71,7 +70,6 @@ export default function GlobalDashboardPage() {
         return;
       }
 
-      setLoading(true);
       try {
         // Buscar snapshots de todos os hospitais da rede
         const snapshots = await getSnapshotSelectedByGroup("rede", redeId);
@@ -135,8 +133,6 @@ export default function GlobalDashboardPage() {
       } catch (error) {
         console.error("❌ Erro ao buscar dados da rede:", error);
         setBaselineData(null);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -151,7 +147,6 @@ export default function GlobalDashboardPage() {
         return;
       }
 
-      setLoading(true);
       try {
         const data = await getNetworkSectors(redeId);
         console.log("📊 Dados atuais brutos recebidos da rede:", data);
@@ -202,8 +197,6 @@ export default function GlobalDashboardPage() {
       } catch (error) {
         console.error("❌ Erro ao buscar dados atuais da rede:", error);
         setAtualData(null);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -218,7 +211,6 @@ export default function GlobalDashboardPage() {
         return;
       }
 
-      setLoading(true);
       try {
         const data = await getNetworkProjectedSectors(redeId);
         console.log("📊 Dados projetados brutos recebidos da rede:", data);
@@ -274,8 +266,6 @@ export default function GlobalDashboardPage() {
       } catch (error) {
         console.error("❌ Erro ao buscar dados projetados da rede:", error);
         setProjetadoData(null);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -290,7 +280,6 @@ export default function GlobalDashboardPage() {
         return;
       }
 
-      setLoading(true);
       try {
         const data = await getNetworkComparative(redeId, {
           includeProjected: true,
@@ -301,8 +290,6 @@ export default function GlobalDashboardPage() {
       } catch (error) {
         console.error("❌ Erro ao buscar dados comparativos da rede:", error);
         setComparativoData(null);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -329,17 +316,7 @@ export default function GlobalDashboardPage() {
           <TabsTrigger value="comparativo">Comparativo</TabsTrigger>
         </TabsList>
 
-        {loading ? (
-          <Card className="mt-6">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-center h-64">
-                <p className="text-muted-foreground">
-                  Carregando dados da rede...
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : !redeId ? (
+        {!redeId ? (
           <Card className="mt-6">
             <CardContent className="pt-6">
               <div className="flex items-center justify-center h-64">
@@ -373,6 +350,7 @@ export default function GlobalDashboardPage() {
                   isGlobalView={true}
                   aggregationType="rede"
                   entityId={redeId}
+                  redeId={redeId}
                 />
               </div>
             </TabsContent>
