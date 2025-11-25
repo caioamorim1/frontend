@@ -77,13 +77,17 @@ export async function getNetworkComparative(
   redeId: string,
   params?: Record<string, any>
 ): Promise<NetworkComparativeResponse> {
+  console.log(
+    `🔍 [API] getNetworkComparative called for redeId=${redeId}`,
+    params
+  );
   const res = await api.get(
     `/hospital-sectors-aggregate/rede/${redeId}/comparative`,
     {
       params,
     }
   );
-
+  console.log("✅ [API] getNetworkComparative response:", res.data);
   return res.data as NetworkComparativeResponse;
 }
 
@@ -137,8 +141,9 @@ export interface SectorOccupation {
   sectorId: string;
   sectorName: string;
   sectorType: "internacao" | "nao_internacao";
-  taxaOcupacao: number; // Taxa no momento atual
+  taxaOcupacao: number; // Taxa mensal/histórica
   taxaOcupacaoDia: number; // 🆕 Taxa média do dia inteiro
+  taxaOcupacaoHoje: number; // 🆕 Taxa de ocupação no momento atual
   ocupacaoMaximaAtendivel: number; // 🆕 Nova métrica baseada no quadro de pessoal
   ociosidade: number;
   superlotacao: number;
@@ -154,8 +159,9 @@ export interface SectorOccupation {
 
 export interface OccupationSummary {
   sectorName: string;
-  taxaOcupacao: number; // Taxa no momento atual
+  taxaOcupacao: number; // Taxa mensal/histórica
   taxaOcupacaoDia: number; // 🆕 Taxa média do dia inteiro
+  taxaOcupacaoHoje: number; // 🆕 Taxa de ocupação no momento atual
   ocupacaoMaximaAtendivel: number; // 🆕 Nova métrica baseada no quadro de pessoal
   ociosidade: number;
   superlotacao: number;
@@ -968,7 +974,20 @@ export const getNetworkSectors = async (
   redeId: string
 ): Promise<HospitalSectorsData> => {
   try {
+    console.log("📡 [API] getNetworkSectors - Iniciando requisição:", {
+      redeId,
+    });
     const response = await api.get(`/hospital-sectors-network/rede/${redeId}`);
+    console.log("✅ [API] getNetworkSectors - Resposta recebida:", {
+      status: response.status,
+      data: response.data,
+      hasInternation: !!response.data?.internation,
+      internationLength: response.data?.internation?.length,
+      hasAssistance: !!response.data?.assistance,
+      assistanceLength: response.data?.assistance?.length,
+      exemploInternacao: response.data?.internation?.[0],
+      exemploAssistencia: response.data?.assistance?.[0],
+    });
     return response.data;
   } catch (error) {
     console.error("❌ [API] getNetworkSectors - Erro capturado:", error);

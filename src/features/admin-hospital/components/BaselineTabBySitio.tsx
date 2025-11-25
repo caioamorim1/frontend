@@ -110,7 +110,7 @@ export default function BaselineTabBySitio({
     const totalFuncionarios = sitiosBaseline.reduce(
       (sum, sitio) =>
         sum +
-        sitio.cargosSitio.reduce(
+        (sitio.cargosSitio || []).reduce(
           (s, c) => s + (c.quantidade_funcionarios || 0),
           0
         ),
@@ -127,7 +127,7 @@ export default function BaselineTabBySitio({
     const cargosMap = new Map<string, string>();
 
     sitiosBaseline.forEach((sitio) => {
-      sitio.cargosSitio.forEach((cs) => {
+      (sitio.cargosSitio || []).forEach((cs) => {
         const cargoId = cs.cargoUnidade.cargo.id;
         const cargoNome = cs.cargoUnidade.cargo.nome;
         if (!cargosMap.has(cargoId)) {
@@ -223,13 +223,13 @@ export default function BaselineTabBySitio({
                     >
                       {sitio.nome}
                       <span className="ml-2 text-sm text-muted-foreground font-normal">
-                        ({sitio.cargosSitio.length} cargo
-                        {sitio.cargosSitio.length !== 1 ? "s" : ""})
+                        ({(sitio.cargosSitio || []).length} cargo
+                        {(sitio.cargosSitio || []).length !== 1 ? "s" : ""})
                       </span>
                     </TableCell>
                   </TableRow>
 
-                  {sitio.cargosSitio.map((cargoSitio) => (
+                  {(sitio.cargosSitio || []).map((cargoSitio) => (
                     <TableRow
                       key={`cargo-${cargoSitio.cargoUnidade.cargo.id}-${sitio.id}`}
                     >
@@ -242,7 +242,7 @@ export default function BaselineTabBySitio({
                     </TableRow>
                   ))}
 
-                  {sitio.cargosSitio.length === 0 && (
+                  {(sitio.cargosSitio || []).length === 0 && (
                     <TableRow>
                       <TableCell
                         colSpan={2}

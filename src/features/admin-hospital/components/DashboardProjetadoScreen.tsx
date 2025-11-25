@@ -352,6 +352,13 @@ const TabContentNoInternacao: React.FC<{
     (sector) => selectedSector === "all" || sector.id === selectedSector
   );
 
+  console.log("💰 [TabContentNoInternacao] Calculando custos:", {
+    sourceDataLength: sourceData.length,
+    detailedDataLength: detailedData.length,
+    selectedSector,
+    exemploSetor: detailedData[0],
+  });
+
   const totalStaff = detailedData.reduce(
     (acc, sector) =>
       acc +
@@ -359,10 +366,25 @@ const TabContentNoInternacao: React.FC<{
     0
   );
 
-  const amountTotal = detailedData.reduce(
-    (acc, sector) => acc + getProjectedCost(sector),
-    0
-  );
+  const amountTotal = detailedData.reduce((acc, sector) => {
+    const cost = getProjectedCost(sector);
+    console.log("💰 [TabContentNoInternacao] Custo do setor:", {
+      sectorId: sector.id,
+      sectorName: sector.name,
+      projectedCostAmount: sector.projectedCostAmount,
+      costAmount: sector.costAmount,
+      calculatedCost: cost,
+      hasProjectedStaff: !!sector.projectedStaff,
+      projectedStaff: sector.projectedStaff,
+    });
+    return acc + cost;
+  }, 0);
+
+  console.log("💰 [TabContentNoInternacao] Totais calculados:", {
+    totalStaff,
+    amountTotal,
+    formatado: formatAmountBRL(amountTotal),
+  });
 
   const chartDataProjetado: ChartData[] = detailedData
     .map((item) => ({
@@ -524,9 +546,21 @@ export const DashboardProjetadoScreen: React.FC<
           transformedData = props.externalData;
         }
 
+        console.log("📊 [DashboardProjetado] Dados externos (Global View):", {
+          externalData: props.externalData,
+          transformedData,
+        });
         setChartData(transformedData);
       } else {
         const resp = await getHospitalProjectedSectors(hospitalId);
+        console.log("📊 [DashboardProjetado] Resposta da API:", {
+          hospitalId,
+          response: resp,
+          hasItems: !!resp.items,
+          itemsLength: resp.items?.length,
+          hasInternation: !!resp.internation,
+          hasAssistance: !!resp.assistance,
+        });
 
         let transformed: ProjectedData = { internation: [], assistance: [] };
 
@@ -555,6 +589,12 @@ export const DashboardProjetadoScreen: React.FC<
           };
         }
 
+        console.log("📊 [DashboardProjetado] Dados transformados:", {
+          internationCount: transformed.internation.length,
+          assistanceCount: transformed.assistance.length,
+          exemploInternacao: transformed.internation[0],
+          exemploAssistencia: transformed.assistance[0],
+        });
         setChartData(transformed);
       }
 

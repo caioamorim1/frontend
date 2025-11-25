@@ -8,6 +8,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import api from "../lib/api";
 import { jwtDecode } from "jwt-decode";
+import { useAlert } from "./AlertContext";
 
 // Interface expandida para incluir o papel do usuário
 interface UserPayload {
@@ -23,6 +24,10 @@ interface UserPayload {
     id: string;
     nome: string;
   };
+  // Tempo de expiração do token (timestamp Unix em segundos)
+  exp?: number;
+  // Tempo de emissão do token
+  iat?: number;
 }
 
 interface AuthContextType {
@@ -43,6 +48,73 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { showAlert } = useAlert();
+
+  // Timer para verificar expiração do token
+  useEffect(() => {
+    let warningTimeoutId: NodeJS.Timeout;
+    let logoutTimeoutId: NodeJS.Timeout;
+
+    if (token && user?.exp) {
+      const now = Math.floor(Date.now() / 1000);
+      const expiresAt = user.exp;
+      const timeUntilExpiration = expiresAt - now;
+
+      console.log(
+        `🕐 Token expira em ${Math.floor(
+          timeUntilExpiration / 60
+        )} minutos (${new Date(expiresAt * 1000).toLocaleTimeString()})`
+      );
+
+      // Se o token já está expirado
+      if (timeUntilExpiration <= 0) {
+        console.warn("⚠️ Token já expirado. Deslogando...");
+        logout();
+        return;
+      }
+
+      // Agendar aviso para 2 minutos antes da expiração
+      const timeUntilWarning = (timeUntilExpiration - 120) * 1000; // Converter para ms
+
+      if (timeUntilWarning > 0) {
+        warningTimeoutId = setTimeout(() => {
+          console.warn("⚠️ Mostrando aviso: 2 minutos para expiração");
+          showAlert(
+            "destructive",
+            "Sessão Expirando",
+            "Sua sessão expirará em 2 minutos. Você será desconectado automaticamente."
+          );
+        }, timeUntilWarning);
+      } else {
+        // Se faltam menos de 2 minutos, mostrar aviso imediatamente
+        showAlert(
+          "destructive",
+          "Sessão Expirando",
+          "Sua sessão expirará em breve. Você será desconectado automaticamente."
+        );
+      }
+
+      // Agendar logout para quando o token expirar (com 5 segundos de margem)
+      const timeUntilLogout = (timeUntilExpiration - 5) * 1000;
+
+      if (timeUntilLogout > 0) {
+        logoutTimeoutId = setTimeout(() => {
+          console.warn("⚠️ Token expirado. Deslogando...");
+          showAlert(
+            "destructive",
+            "Sessão Expirada",
+            "Sua sessão expirou. Redirecionando para login..."
+          );
+          setTimeout(() => logout(), 2000);
+        }, timeUntilLogout);
+      }
+    }
+
+    return () => {
+      if (warningTimeoutId) clearTimeout(warningTimeoutId);
+      if (logoutTimeoutId) clearTimeout(logoutTimeoutId);
+    };
+  }, [token, user]);
 
   useEffect(() => {
     setLoading(true);
@@ -51,6 +123,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem("authToken", token);
         api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         const decoded = jwtDecode<UserPayload>(token);
+
+        // Verificar se o token já está expirado
+        if (decoded.exp) {
+          const now = Math.floor(Date.now() / 1000);
+          if (decoded.exp <= now) {
+            console.warn("⚠️ Token expirado ao carregar. Limpando sessão...");
+            setToken(null);
+            setUser(null);
+            localStorage.removeItem("authToken");
+            delete api.defaults.headers.common["Authorization"];
+            setLoading(false);
+            return;
+          }
+        }
 
         // Unifica o papel do usuário em uma única propriedade 'appRole'
         let finalRole: UserPayload["appRole"] = "COMUM";
@@ -113,8 +199,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
+    // Limpar token do estado
     setToken(null);
+    setUser(null);
+
+    // Limpar localStorage
+    localStorage.removeItem("authToken");
+
+    // Limpar header de autorização do axios
+    delete api.defaults.headers.common["Authorization"];
+
+    // Redirecionar para login
     navigate("/login");
+
+    console.log("✅ Logout realizado - Token e dados limpos");
   };
 
   const value = {

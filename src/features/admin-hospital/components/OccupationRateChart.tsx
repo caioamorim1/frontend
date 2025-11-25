@@ -69,11 +69,6 @@ const barConfig = [
     label: "Cobertura de Equipe",
   }, // Azul médio (referência)
   {
-    key: "Capacidade Produtiva",
-    color: "hsl(210, 70%, 65%)",
-    label: "Capacidade Produtiva",
-  }, // Azul claro (não usado como barra)
-  {
     key: "Ociosidade",
     color: "hsl(142, 71%, 45%)",
     label: "Excedente de Capacidade",
@@ -89,7 +84,6 @@ const barConfig = [
 const labelMap: Record<string, string> = {
   "Taxa de Ocupação": "Taxa Atual",
   "Ocupação Máxima Atendível": "Cobertura de Equipe",
-  "Capacidade Produtiva": "Capacidade Produtiva",
   Ociosidade: "Excedente de Capacidade",
   Superlotação: "Deficit de Equipe",
 };
@@ -105,7 +99,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             [
               "Taxa de Ocupação",
               "Ocupação Máxima Atendível",
-              "Capacidade Produtiva",
               "Ociosidade",
               "Superlotação",
             ].includes(p.dataKey)
@@ -158,7 +151,7 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
   const mappedSetorial: OccupationData[] | null = analysis
     ? analysis.sectors.map((s) => ({
         name: s.sectorName,
-        "Taxa de Ocupação": s.taxaOcupacao,
+        "Taxa de Ocupação": s.taxaOcupacaoHoje,
         "Taxa de Ocupação Diária": s.taxaOcupacaoDia,
         "Ocupação Máxima Atendível": s.ocupacaoMaximaAtendivel,
         "Capacidade Produtiva": s.capacidadeProdutiva,
@@ -170,7 +163,7 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
   const mappedSummary: OccupationData | null = analysis
     ? {
         name: analysis.summary.sectorName || "Global",
-        "Taxa de Ocupação": analysis.summary.taxaOcupacao,
+        "Taxa de Ocupação": analysis.summary.taxaOcupacaoHoje,
         "Taxa de Ocupação Diária": analysis.summary.taxaOcupacaoDia,
         "Ocupação Máxima Atendível": analysis.summary.ocupacaoMaximaAtendivel,
         "Capacidade Produtiva": analysis.summary.capacidadeProdutiva,
@@ -295,11 +288,11 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
               {/* PRIMEIRA BARRA: Excedente de capacidade (topo, verde) */}
               <Bar
                 dataKey="Ociosidade"
-                fill={barConfig[3].color}
+                fill={barConfig[2].color}
                 barSize={view === "global" ? 80 : 40}
                 stackId="barra1"
                 radius={[4, 4, 0, 0]}
-                name={barConfig[3].label}
+                name={barConfig[2].label}
               />
 
               {/* SEGUNDA BARRA: Cobertura de Equipe (base) */}
@@ -314,11 +307,11 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
               {/* SEGUNDA BARRA: Deficit de equipe (topo, vermelho) */}
               <Bar
                 dataKey="Superlotação"
-                fill={barConfig[4].color}
+                fill={barConfig[3].color}
                 barSize={view === "global" ? 80 : 40}
                 stackId="barra2"
                 radius={[4, 4, 0, 0]}
-                name={barConfig[4].label}
+                name={barConfig[3].label}
               />
             </ComposedChart>
           </ResponsiveContainer>
@@ -353,15 +346,6 @@ export const OccupationRateChart: React.FC<OccupationRateChartProps> = ({
                   {typeof tableSummary?.["Ocupação Máxima Atendível"] ===
                   "number"
                     ? tableSummary["Ocupação Máxima Atendível"].toFixed(1)
-                    : "N/A"}
-                  %
-                </TableCell>
-                <TableCell
-                  className="text-center font-bold text-2xl text-foreground"
-                  title="Capacidade produtiva padrão (100%)"
-                >
-                  {typeof tableSummary?.["Capacidade Produtiva"] === "number"
-                    ? tableSummary["Capacidade Produtiva"].toFixed(0)
                     : "N/A"}
                   %
                 </TableCell>
