@@ -1,5 +1,6 @@
 // Gerenciar Quadro de Funcionários - Atual Tab
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   Unidade,
   Cargo,
@@ -365,7 +366,7 @@ export default function AtualTab({
   const handleAddCargoToUnidade = () => {
     if (!selectedCargoUnidade) return;
 
-    // Adiciona o cargo com quantidade 1
+    // Adiciona o cargo com quantidade 0
     setCargosNaUnidade((prev) => {
       // Verifica se já existe
       const jaExiste = prev.find((c) => c.cargoId === selectedCargoUnidade);
@@ -374,7 +375,7 @@ export default function AtualTab({
       }
       return [
         ...prev,
-        { cargoId: selectedCargoUnidade, quantidade_funcionarios: 1 },
+        { cargoId: selectedCargoUnidade, quantidade_funcionarios: 0 },
       ];
     });
 
@@ -667,6 +668,122 @@ export default function AtualTab({
               </div>
             </CardHeader>
           </Card>
+
+          {/* Modal Adicionar Cargo */}
+          {showAddCargoModal && createPortal(
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60">
+              <div className="bg-white dark:bg-neutral-900 p-6 rounded-2xl shadow-lg w-[95%] max-w-3xl relative">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">
+                    Adicionar Novo Cargo
+                  </h3>
+                  <button
+                    className="text-gray-500 hover:text-gray-700"
+                    onClick={() => setShowAddCargoModal(false)}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Nome do Cargo
+                    </label>
+                    <input
+                      type="text"
+                      value={novoCargo.nome || ""}
+                      onChange={(e) =>
+                        setNovoCargo((p) => ({ ...p, nome: e.target.value }))
+                      }
+                      className="mt-1 block w-full p-2 border rounded-md"
+                      placeholder="Ex: Enfermeiro"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Salário (R$)
+                    </label>
+                    <CurrencyInput
+                      value={novoCargo.salario || "0"}
+                      onChange={(val) =>
+                        setNovoCargo((p) => ({ ...p, salario: val }))
+                      }
+                      placeholder="R$ 0,00"
+                      className="mt-1 block w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Carga Horária (Semanal)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={novoCargo.carga_horaria || ""}
+                      onChange={(e) =>
+                        setNovoCargo((p) => ({
+                          ...p,
+                          carga_horaria: e.target.value,
+                        }))
+                      }
+                      className="mt-1 block w-full p-2 border rounded-md"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Adicionais e Tributos (R$)
+                    </label>
+                    <CurrencyInput
+                      value={novoCargo.adicionais_tributos || "0"}
+                      onChange={(val) =>
+                        setNovoCargo((p) => ({
+                          ...p,
+                          adicionais_tributos: val,
+                        }))
+                      }
+                      placeholder="R$ 0,00"
+                      className="mt-1 block w-full"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Descrição
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={novoCargo.descricao || ""}
+                      onChange={(e) =>
+                        setNovoCargo((p) => ({
+                          ...p,
+                          descricao: e.target.value,
+                        }))
+                      }
+                      className="mt-1 block w-full p-2 border rounded-md"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowAddCargoModal(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button onClick={saveNovoCargo} disabled={savingCargo}>
+                    {savingCargo ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
         </div>
       );
     }
@@ -1083,6 +1200,122 @@ export default function AtualTab({
             )}
           </CardContent>
         </Card>
+
+        {/* Modal Adicionar Cargo */}
+        {showAddCargoModal && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60">
+            <div className="bg-white dark:bg-neutral-900 p-6 rounded-2xl shadow-lg w-[95%] max-w-3xl relative">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">
+                  Adicionar Novo Cargo
+                </h3>
+                <button
+                  className="text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowAddCargoModal(false)}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Nome do Cargo
+                  </label>
+                  <input
+                    type="text"
+                    value={novoCargo.nome || ""}
+                    onChange={(e) =>
+                      setNovoCargo((p) => ({ ...p, nome: e.target.value }))
+                    }
+                    className="mt-1 block w-full p-2 border rounded-md"
+                    placeholder="Ex: Enfermeiro"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Salário (R$)
+                  </label>
+                  <CurrencyInput
+                    value={novoCargo.salario || "0"}
+                    onChange={(val) =>
+                      setNovoCargo((p) => ({ ...p, salario: val }))
+                    }
+                    placeholder="R$ 0,00"
+                    className="mt-1 block w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Carga Horária (Semanal)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={novoCargo.carga_horaria || ""}
+                    onChange={(e) =>
+                      setNovoCargo((p) => ({
+                        ...p,
+                        carga_horaria: e.target.value,
+                      }))
+                    }
+                    className="mt-1 block w-full p-2 border rounded-md"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Adicionais e Tributos (R$)
+                  </label>
+                  <CurrencyInput
+                    value={novoCargo.adicionais_tributos || "0"}
+                    onChange={(val) =>
+                      setNovoCargo((p) => ({
+                        ...p,
+                        adicionais_tributos: val,
+                      }))
+                    }
+                    placeholder="R$ 0,00"
+                    className="mt-1 block w-full"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Descrição
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={novoCargo.descricao || ""}
+                    onChange={(e) =>
+                      setNovoCargo((p) => ({
+                        ...p,
+                        descricao: e.target.value,
+                      }))
+                    }
+                    className="mt-1 block w-full p-2 border rounded-md"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowAddCargoModal(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={saveNovoCargo} disabled={savingCargo}>
+                  {savingCargo ? "Salvando..." : "Salvar"}
+                </Button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
       </div>
     );
   }
@@ -1231,8 +1464,8 @@ export default function AtualTab({
           )}
 
           {/* Modal Adicionar Cargo */}
-          {showAddCargoModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          {showAddCargoModal && createPortal(
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60">
               <div className="bg-white dark:bg-neutral-900 p-6 rounded-2xl shadow-lg w-[95%] max-w-3xl relative">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">
@@ -1342,7 +1575,8 @@ export default function AtualTab({
                   </Button>
                 </div>
               </div>
-            </div>
+            </div>,
+            document.body
           )}
         </CardContent>
       </Card>
