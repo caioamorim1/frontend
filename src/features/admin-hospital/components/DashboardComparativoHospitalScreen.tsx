@@ -31,14 +31,17 @@ type SectorType = "global" | "internacao" | "nao-internacao";
 
 export const DashboardComparativoHospitalScreen: React.FC<{
   title: string;
-}> = ({ title }) => {
+  externalData?: any;
+  isGlobalView?: boolean;
+}> = ({ title, externalData, isGlobalView = false }) => {
   const { hospitalId } = useParams<{ hospitalId: string }>();
 
   const [comparativeData, setComparativeData] =
     useState<HospitalComparativeResponse | null>(null);
   const [activeTab, setActiveTab] = useState<SectorType>("global");
   const [selectedSector, setSelectedSector] = useState<string>("all");
-  const [loading, setLoading] = useState(true);
+  // Se temos externalData, já começamos sem loading
+  const [loading, setLoading] = useState(!externalData);
 
   useEffect(() => {
     setSelectedSector("all");
@@ -48,21 +51,86 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     if (comparativeData) setLoading(false);
   }, [comparativeData]);
 
-  // Buscar dados comparativos da nova API
+  // Se externalData for fornecido, usar ele diretamente
+  useEffect(() => {
+    if (externalData) {
+      console.log("📊 [Comparativo] Dados externos recebidos:", externalData);
+
+      // Normalizar dados da rede para o formato esperado pelo componente
+      if (isGlobalView) {
+        console.log(
+          "📊 [Comparativo] Modo Global - Normalizando dados da rede"
+        );
+
+        const normalizedSectors = {
+          internation: externalData.sectors.internation.map((sector: any) => ({
+            id: sector.name,
+            name: sector.name,
+            tipo: "INTERNACAO" as const,
+            quadroAtualReal: sector.quadroAtualReal || {},
+            custosAtualReal: sector.custosAtualReal || {},
+            quadroAtualSnapshot: sector.quadroAtualSnapshot || {},
+            custosAtualSnapshot: sector.custosAtualSnapshot || {},
+            quadroProjetadoSnapshot: sector.quadroProjetadoSnapshot || {},
+            diferencas: sector.diferencas || {},
+            dimensionamento: {
+              leitosOcupados: sector.bedStatusEvaluated || 0,
+              leitosVagos: sector.bedStatusVacant || 0,
+              leitosInativos: sector.bedStatusInactive || 0,
+              totalLeitos: sector.bedCount || 0,
+              distribuicaoClassificacao: {
+                "Cuidados Mínimos": sector.minimumCare || 0,
+                "Cuidados Intermediários": sector.intermediateCare || 0,
+                "Alta Dependência": sector.highDependency || 0,
+                "Semi-Intensivo": sector.semiIntensive || 0,
+                Intensivo: sector.intensive || 0,
+              },
+            },
+          })),
+          assistance: externalData.sectors.assistance.map((sector: any) => ({
+            id: sector.name,
+            name: sector.name,
+            tipo: "NAO_INTERNACAO" as const,
+            quadroAtualReal: sector.quadroAtualReal || {},
+            custosAtualReal: sector.custosAtualReal || {},
+            quadroAtualSnapshot: sector.quadroAtualSnapshot || {},
+            custosAtualSnapshot: sector.custosAtualSnapshot || {},
+            quadroProjetadoSnapshot: sector.quadroProjetadoSnapshot || {},
+            diferencas: sector.diferencas || {},
+          })),
+        };
+
+        console.log("📊 [Comparativo] Setores normalizados:", {
+          internation: normalizedSectors.internation.length,
+          assistance: normalizedSectors.assistance.length,
+          exemploInternacao: normalizedSectors.internation[0],
+        });
+
+        setComparativeData({
+          ...externalData,
+          sectors: normalizedSectors,
+        });
+      } else {
+        console.log("📊 [Comparativo] Modo Hospital - Usando dados diretos");
+        setComparativeData(externalData);
+      }
+
+      setLoading(false);
+    }
+  }, [externalData, isGlobalView]);
+
+  // Buscar dados comparativos da nova API (somente se não tiver externalData)
   useEffect(() => {
     let mounted = true;
-    if (!hospitalId) return;
+    if (!hospitalId || externalData) return;
 
     const fetchComparativeData = async () => {
       try {
         setLoading(true);
 
-        
-
         const resp = await getHospitalComparative(hospitalId, {
           includeProjected: true,
         });
-
 
         if (!mounted) return;
 
@@ -79,15 +147,22 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     return () => {
       mounted = false;
     };
-  }, [hospitalId]);
+  }, [hospitalId, externalData]);
 
   // Processar dados comparativos da nova estrutura
   const processedData = useMemo(() => {
+    console.log(
+      "📊 [Comparativo] processedData - comparativeData:",
+      comparativeData
+    );
+
     if (!comparativeData) {
+      console.log("📊 [Comparativo] comparativeData é null/undefined");
       return null;
     }
 
     const { sectors } = comparativeData;
+    console.log("📊 [Comparativo] sectors:", sectors);
 
     // Determinar quais setores usar baseado na aba ativa
     let baseSectors: NewSectorData[] = [];
@@ -98,6 +173,12 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     } else {
       baseSectors = sectors.assistance;
     }
+
+    console.log("📊 [Comparativo] baseSectors:", {
+      activeTab,
+      count: baseSectors.length,
+      sectors: baseSectors,
+    });
 
     // Criar lista de setores para o dropdown
     const setorList = baseSectors.map((s) => ({ id: s.id, name: s.name }));
@@ -203,8 +284,6 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       { name: "Variação", value: variacaoPessoal },
       { name: "Projetado", value: pessoalProjetadoSnapshot },
     ];
-
-   
 
     // Processar dados por função (cargo) para os gráficos GroupedBarByRole
     const dadosPorFuncao = (() => {
@@ -396,6 +475,9 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     };
   }, [comparativeData, activeTab, selectedSector]);
 
+  console.log("📊 [Comparativo] Resultado processedData:", processedData);
+  console.log("📊 [Comparativo] Estado loading:", loading);
+
   if (loading) {
     return (
       <Card>
@@ -519,7 +601,9 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">Ainda não há comparativo disponível.</p>
+            <p className="text-muted-foreground">
+              Ainda não há comparativo disponível.
+            </p>
           </div>
         </CardContent>
       </Card>

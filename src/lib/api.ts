@@ -61,6 +61,30 @@ export async function getHospitalComparative(
   return res.data as HospitalComparativeResponse;
 }
 
+// --- Network comparative endpoint ---
+export interface NetworkComparativeResponse {
+  redeId: string;
+  hospitalsCount: number;
+  sectors: {
+    internation: any[];
+    assistance: any[];
+  };
+}
+
+export async function getNetworkComparative(
+  redeId: string,
+  params?: Record<string, any>
+): Promise<NetworkComparativeResponse> {
+  const res = await api.get(
+    `/hospital-sectors-aggregate/rede/${redeId}/comparative`,
+    {
+      params,
+    }
+  );
+
+  return res.data as NetworkComparativeResponse;
+}
+
 // --- New: projected sectors aggregated endpoint ---
 export interface HospitalProjectedResponse {
   aggregatedBy?: string;
@@ -78,6 +102,32 @@ export async function getHospitalProjectedSectors(
     { params }
   );
   return res.data as HospitalProjectedResponse;
+}
+
+/**
+ * Busca dados projetados agregados de setores hospitalares de uma rede
+ */
+export async function getNetworkProjectedSectors(
+  redeId: string,
+  params?: Record<string, any>
+): Promise<HospitalProjectedResponse> {
+  try {
+    const res = await api.get(
+      `/hospital-sectors-aggregate/rede/${redeId}/projected`,
+      { params }
+    );
+    return res.data as HospitalProjectedResponse;
+  } catch (error) {
+    console.error(
+      "❌ [API] getNetworkProjectedSectors - Erro capturado:",
+      error
+    );
+    if ((error as any).response) {
+      console.error("❌ [API] Status:", (error as any).response.status);
+      console.error("❌ [API] Data:", (error as any).response.data);
+    }
+    throw error;
+  }
 }
 
 // --- New: Occupation Analysis endpoint ---
@@ -170,14 +220,17 @@ api.interceptors.response.use(
   },
   (error) => {
     // Se receber 401 (não autorizado) ou 403 (token expirado)
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+    if (
+      error.response &&
+      (error.response.status === 401 || error.response.status === 403)
+    ) {
       // Limpar token do localStorage
       localStorage.removeItem("authToken");
-      
+
       // Redirecionar para login
       window.location.href = "/login";
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -829,7 +882,7 @@ export interface GlobalDashboardData {
  * em uma única chamada para Dashboard Global (Rede/Grupo/Região)
  */
 export const getGlobalDashboardData = async (
-  entityType: 'rede' | 'grupo' | 'regiao',
+  entityType: "rede" | "grupo" | "regiao",
   entityId: string
 ): Promise<GlobalDashboardData> => {
   const response = await api.get(
@@ -847,6 +900,26 @@ export const getRedesAggregated = async (redeId: string): Promise<any> => {
     `/hospital-sectors-aggregate/network/${redeId}`
   );
   return response.data;
+};
+
+/**
+ * Busca dados agregados de setores hospitalares de uma rede
+ * Retorna no formato compatível com HospitalSectorsData
+ */
+export const getNetworkSectors = async (
+  redeId: string
+): Promise<HospitalSectorsData> => {
+  try {
+    const response = await api.get(`/hospital-sectors-network/rede/${redeId}`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ [API] getNetworkSectors - Erro capturado:", error);
+    if ((error as any).response) {
+      console.error("❌ [API] Status:", (error as any).response.status);
+      console.error("❌ [API] Data:", (error as any).response.data);
+    }
+    throw error;
+  }
 };
 
 /**
@@ -1656,8 +1729,12 @@ export const deleteAvaliacao = async (id: number): Promise<void> => {
   await api.delete(`/qualitative/evaluations/${id}`);
 };
 
-export const getCompletedEvaluationsWithCategories = async (hospitalId: string): Promise<any[]> => {
-  const response = await api.get(`/qualitative/completed-with-categories?hospitalId=${hospitalId}`);
+export const getCompletedEvaluationsWithCategories = async (
+  hospitalId: string
+): Promise<any[]> => {
+  const response = await api.get(
+    `/qualitative/completed-with-categories?hospitalId=${hospitalId}`
+  );
   return response.data;
 };
 

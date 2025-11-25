@@ -141,7 +141,8 @@ interface ProjectedData {
 const GlobalTabContent: React.FC<{
   sourceData: ProjectedData;
   radarData: ChartDataItem[];
-}> = ({ sourceData, radarData }) => {
+  isGlobalView?: boolean;
+}> = ({ sourceData, radarData, isGlobalView }) => {
   const { internation, assistance } = sourceData;
 
   // ✅ Usar helper functions para compatibilidade
@@ -217,11 +218,13 @@ const GlobalTabContent: React.FC<{
         data={chartDataProjetado}
         title="Análise de Custo Projetado por Setor"
       />
-      <RadarChartComponent
-        data={radarData}
-        title="Análise de Desempenho"
-        description="Comparativo entre o desempenho atual e projetado"
-      />
+      {!isGlobalView && (
+        <RadarChartComponent
+          data={radarData}
+          title="Análise de Desempenho"
+          description="Comparativo entre o desempenho atual e projetado"
+        />
+      )}
     </div>
   );
 };
@@ -329,11 +332,13 @@ const TabContentInternacao: React.FC<{
         data={chartDataProjetado}
         title="Análise de Custo Projetado por Setor"
       />
-      <RadarChartComponent
-        data={radarData}
-        title="Análise de Desempenho"
-        description="Comparativo entre o desempenho atual e projetado"
-      />
+      {radarData && radarData.length > 0 && (
+        <RadarChartComponent
+          data={radarData}
+          title="Análise de Desempenho"
+          description="Comparativo entre o desempenho atual e projetado"
+        />
+      )}
     </div>
   );
 };
@@ -455,11 +460,13 @@ const TabContentNoInternacao: React.FC<{
         data={chartDataProjetado}
         title="Análise de Custo Projetado por Setor"
       />
-      <RadarChartComponent
-        data={radarData}
-        title="Análise de Desempenho"
-        description="Comparativo entre o desempenho atual e projetado"
-      />
+      {radarData && radarData.length > 0 && (
+        <RadarChartComponent
+          data={radarData}
+          title="Análise de Desempenho"
+          description="Comparativo entre o desempenho atual e projetado"
+        />
+      )}
     </div>
   );
 };
@@ -554,29 +561,28 @@ export const DashboardProjetadoScreen: React.FC<
       // Buscar avaliações do hospital com categorias
       if (hospitalId) {
         try {
-          const avaliacoesData = await getCompletedEvaluationsWithCategories(hospitalId);
-          
-       
+          const avaliacoesData = await getCompletedEvaluationsWithCategories(
+            hospitalId
+          );
+
           // Transformar dados para o radar chart
           const radarChartData: ChartDataItem[] = [];
-          
-          avaliacoesData?.forEach(evaluation => {
+
+          avaliacoesData?.forEach((evaluation) => {
             const totalScore = parseFloat(evaluation.total_score);
-            
+
             evaluation.categories?.forEach((cat: any) => {
               radarChartData.push({
                 subject: cat.category_name,
                 atual: totalScore,
-                projetado: cat.category_meta
+                projetado: cat.category_meta,
               });
             });
           });
-          
 
-          
           setRadarData(radarChartData);
         } catch (error) {
-          console.error('Erro ao buscar avaliações:', error);
+          console.error("Erro ao buscar avaliações:", error);
           setRadarData([]);
         }
       }
@@ -624,6 +630,7 @@ export const DashboardProjetadoScreen: React.FC<
                   <GlobalTabContent
                     sourceData={chartData}
                     radarData={radarData}
+                    isGlobalView={props.isGlobalView}
                   />
                 </TabsContent>
                 <TabsContent value="internacao" className="mt-4">

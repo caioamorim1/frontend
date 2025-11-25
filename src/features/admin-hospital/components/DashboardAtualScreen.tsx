@@ -264,8 +264,15 @@ const GlobalTabContent: React.FC<{
   hospitalId?: string;
   aggregationType?: "hospital" | "grupo" | "regiao" | "rede"; // 🆕
   entityId?: string; // 🆕
-}> = ({ sourceData, radarData, hospitalId, aggregationType, entityId }) => {
-
+  isGlobalView?: boolean; // 🆕 Flag para indicar se é visão global
+}> = ({
+  sourceData,
+  radarData,
+  hospitalId,
+  aggregationType,
+  entityId,
+  isGlobalView,
+}) => {
   const { internation, assistance } = sourceData;
 
   const occupationData = useMemo(() => {
@@ -449,18 +456,22 @@ const GlobalTabContent: React.FC<{
         data={chartDataAtual}
         title="Análise de Custo por Setor"
       />
-      <OccupationRateChart
-        data={occupationData.data}
-        summary={occupationData.summary}
-        hospitalId={aggregationType ? undefined : hospitalId}
-        aggregationType={aggregationType}
-        entityId={entityId}
-      />
-      <RadarChartComponent
-        data={radarData}
-        title="Análise Qualitativa"
-        description=""
-      />
+      {!isGlobalView && (
+        <OccupationRateChart
+          data={occupationData.data}
+          summary={occupationData.summary}
+          hospitalId={aggregationType ? undefined : hospitalId}
+          aggregationType={aggregationType}
+          entityId={entityId}
+        />
+      )}
+      {!isGlobalView && (
+        <RadarChartComponent
+          data={radarData}
+          title="Análise Qualitativa"
+          description=""
+        />
+      )}
     </div>
   );
 };
@@ -471,8 +482,15 @@ const TabContentInternacao: React.FC<{
   aggregationType?: "hospital" | "grupo" | "regiao" | "rede"; // 🆕
   entityId?: string; // 🆕
   hospitalId?: string; // 🆕 usar rota oficial na aba de Internação
-}> = ({ sourceData, radarData, aggregationType, entityId, hospitalId }) => {
- 
+  isGlobalView?: boolean; // 🆕 Flag para indicar se é visão global
+}> = ({
+  sourceData,
+  radarData,
+  aggregationType,
+  entityId,
+  hospitalId,
+  isGlobalView,
+}) => {
   const [selectedSector, setSelectedSector] = useState<string>("all");
 
   // Dados de fallback (não usados quando hospitalId é fornecido, pois o gráfico usa a rota oficial)
@@ -726,14 +744,16 @@ const TabContentInternacao: React.FC<{
           title="Nº de colaboradores por função"
         />
       </div>
-      <OccupationRateChart
-        data={emptyOccupation.data}
-        summary={emptyOccupation.summary}
-        showViewSelector={false}
-        aggregationType={aggregationType}
-        entityId={entityId}
-        hospitalId={aggregationType ? undefined : hospitalId}
-      />
+      {!isGlobalView && (
+        <OccupationRateChart
+          data={emptyOccupation.data}
+          summary={emptyOccupation.summary}
+          showViewSelector={false}
+          aggregationType={aggregationType}
+          entityId={entityId}
+          hospitalId={aggregationType ? undefined : hospitalId}
+        />
+      )}
       {selectedSector === "all" && (
         <BargraphicChart
           data={chartDataAtual}
@@ -741,11 +761,13 @@ const TabContentInternacao: React.FC<{
         />
       )}
 
-      <RadarChartComponent
-        data={radarData}
-        title="Análise Qualitativa"
-        description=""
-      />
+      {radarData && radarData.length > 0 && (
+        <RadarChartComponent
+          data={radarData}
+          title="Análise Qualitativa"
+          description=""
+        />
+      )}
     </div>
   );
 };
@@ -753,7 +775,6 @@ const TabContentNoInternacao: React.FC<{
   sourceData: SectorAssistance[];
   radarData: ChartDataItem[];
 }> = ({ sourceData, radarData }) => {
- 
   const [selectedSector, setSelectedSector] = useState<string>("all");
 
   // Verificações de segurança para evitar erros com null/undefined
@@ -913,11 +934,13 @@ const TabContentNoInternacao: React.FC<{
           title="Análise de Custo por Setor"
         />
       )}
-      <RadarChartComponent
-        data={radarData}
-        title="Análise Qualitativa"
-        description=""
-      />
+      {radarData && radarData.length > 0 && (
+        <RadarChartComponent
+          data={radarData}
+          title="Análise Qualitativa"
+          description=""
+        />
+      )}
     </div>
   );
 };
@@ -938,28 +961,28 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
     // Buscar avaliações do hospital com categorias
     if (hospitalId) {
       try {
-        const avaliacoesData = await getCompletedEvaluationsWithCategories(hospitalId);
-        
-   
-        
+        const avaliacoesData = await getCompletedEvaluationsWithCategories(
+          hospitalId
+        );
+
         // Transformar dados para o radar chart
         const radarChartData: ChartDataItem[] = [];
-        
-        avaliacoesData?.forEach(evaluation => {
+
+        avaliacoesData?.forEach((evaluation) => {
           const totalScore = parseFloat(evaluation.total_score);
-          
+
           evaluation.categories?.forEach((cat: any) => {
             radarChartData.push({
               subject: cat.category_name,
               atual: totalScore,
-              projetado: cat.category_meta
+              projetado: cat.category_meta,
             });
           });
         });
-        
+
         setRadarData(radarChartData);
       } catch (error) {
-        console.error('Erro ao buscar avaliações:', error);
+        console.error("Erro ao buscar avaliações:", error);
         setRadarData([]);
       }
     }
@@ -1056,6 +1079,7 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
                     hospitalId={hospitalId}
                     aggregationType={props.aggregationType}
                     entityId={props.entityId}
+                    isGlobalView={props.isGlobalView}
                   />
                 </TabsContent>
                 <TabsContent value="internacao" className="mt-4">
@@ -1065,6 +1089,7 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = (
                     aggregationType={props.aggregationType}
                     entityId={props.entityId}
                     hospitalId={hospitalId}
+                    isGlobalView={props.isGlobalView}
                   />
                 </TabsContent>
                 <TabsContent value="nao-internacao" className="mt-4">
