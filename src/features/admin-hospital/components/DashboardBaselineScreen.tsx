@@ -424,8 +424,6 @@ const TabContentInternacao: React.FC<{
     { name: "Não Avaliados", value: totalUnevaluatedBeds, color: COLORS[3] },
   ];
 
-  
-
   const chartDataAtual: ChartData[] = detailedData
     ? detailedData
         .map((item) => ({
@@ -723,37 +721,37 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
 
     try {
       setLoading(true);
-      
+
       // Buscar avaliações do hospital com categorias
       if (hospitalId) {
         try {
-          const avaliacoesData = await getCompletedEvaluationsWithCategories(hospitalId);
+          const avaliacoesData = await getCompletedEvaluationsWithCategories(
+            hospitalId
+          );
 
-          
           // Transformar dados para o radar chart
           // Cada categoria aparece uma vez com o total_score da avaliação e a meta da categoria
           const radarChartData: ChartDataItem[] = [];
-          
-          avaliacoesData?.forEach(evaluation => {
+
+          avaliacoesData?.forEach((evaluation) => {
             const totalScore = parseFloat(evaluation.total_score);
-            
+
             evaluation.categories?.forEach((cat: any) => {
               radarChartData.push({
                 subject: cat.category_name,
                 atual: totalScore,
-                projetado: cat.category_meta
+                projetado: cat.category_meta,
               });
             });
           });
 
-          
           setRadarData(radarChartData);
         } catch (error) {
-          console.error('Erro ao buscar avaliações:', error);
+          console.error("Erro ao buscar avaliações:", error);
           setRadarData([]);
         }
       }
-      
+
       let dashboardData: any;
       if (props.isGlobalView && props.externalData) {
         // Normalize: externalData may be aggregated (items array) or single object with internation/assistance
@@ -792,9 +790,8 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
           dashboardData = { internation: [], assistance: [] };
         }
       } else {
-       
         const snapshotData = await getAllSnapshotHospitalSectors(hospitalId); // Usa hospitalId da URL
-     
+
         dashboardData = snapshotData;
       }
 
@@ -809,7 +806,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
 
   useEffect(() => {
     loadData();
-  }, [hospitalId]);
+  }, [hospitalId, props.externalData]);
 
   if (loading) {
     return (
@@ -834,7 +831,9 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">Ainda não há baseline disponível.</p>
+            <p className="text-muted-foreground">
+              Ainda não há baseline disponível.
+            </p>
           </div>
         </CardContent>
       </Card>

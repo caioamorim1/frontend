@@ -22,6 +22,14 @@ const initialFormState: Omit<CreateUsuarioDTO, "hospitalId" | "senha"> = {
   permissao: "COMUM",
 };
 
+// Tipo de usuário adicional para o frontend (todos enviados como GESTOR ao backend)
+type TipoUsuario =
+  | "COMUM"
+  | "CONSULTOR"
+  | "AVALIADOR"
+  | "GESTOR_TATICO"
+  | "GESTOR_ESTRATEGICO";
+
 export default function UsuariosPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const { showModal } = useModal();
@@ -32,6 +40,7 @@ export default function UsuariosPage() {
 
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [formData, setFormData] = useState<Partial<Usuario>>(initialFormState);
+  const [tipoUsuario, setTipoUsuario] = useState<TipoUsuario>("COMUM");
   const [searchTerm, setSearchTerm] = useState("");
 
   const fetchUsuarios = async () => {
@@ -56,17 +65,24 @@ export default function UsuariosPage() {
 
   const handleEdit = (usuario: Usuario) => {
     setFormData(usuario);
+    // Mapeia a permissão do backend para o tipo de usuário do frontend
+    // Como todos os tipos específicos são enviados como GESTOR, ao editar mostramos GESTOR_ESTRATEGICO
+    setTipoUsuario(
+      usuario.permissao === "GESTOR" ? "GESTOR_ESTRATEGICO" : "COMUM"
+    );
     setIsFormVisible(true);
   };
 
   const handleAddNew = () => {
     setFormData(initialFormState);
+    setTipoUsuario("COMUM");
     setIsFormVisible(true);
   };
 
   const handleCancel = () => {
     setIsFormVisible(false);
     setFormData(initialFormState);
+    setTipoUsuario("COMUM");
   };
 
   const handleChange = (
@@ -94,22 +110,25 @@ export default function UsuariosPage() {
     try {
       if (formData.id) {
         // A lógica de atualização não muda, pois não alteramos a palavra-passe aqui
+        const permissaoBackend = tipoUsuario === "COMUM" ? "COMUM" : "GESTOR";
         const updateData: UpdateUsuarioDTO = {
           nome: formData.nome,
           email: formData.email,
           cpf: cpfDigits || undefined,
-          permissao: formData.permissao,
+          permissao: permissaoBackend,
         };
         await updateUsuario(formData.id, updateData);
       } else {
         // Se CPF foi informado, usa como senha inicial; caso contrário, usa uma senha padrão
         const senhaInicial = cpfDigits || "123456";
+        // Mapeia tipos de usuário específicos para GESTOR no backend
+        const permissaoBackend = tipoUsuario === "COMUM" ? "COMUM" : "GESTOR";
         const createData: CreateUsuarioDTO = {
           hospitalId,
           nome: formData.nome || "",
           email: formData.email || "",
           cpf: cpfDigits || undefined,
-          permissao: formData.permissao || "COMUM",
+          permissao: permissaoBackend,
           senha: senhaInicial,
         };
         await createUsuario(createData);
@@ -232,13 +251,16 @@ export default function UsuariosPage() {
                 className="focus:ring-1 focus:ring-secondary focus:border-secondary"
               />
               <select
-                name="permissao"
-                value={formData.permissao || "COMUM"}
-                onChange={handleChange}
+                name="tipoUsuario"
+                value={tipoUsuario}
+                onChange={(e) => setTipoUsuario(e.target.value as TipoUsuario)}
                 className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
               >
                 <option value="COMUM">Comum</option>
-                <option value="GESTOR">Gestor</option>
+                <option value="CONSULTOR">Consultor</option>
+                <option value="AVALIADOR">Avaliador</option>
+                <option value="GESTOR_TATICO">Gestor Tático</option>
+                <option value="GESTOR_ESTRATEGICO">Gestor Estratégico</option>
               </select>
             </div>
             <div className="flex justify-end mt-4">
