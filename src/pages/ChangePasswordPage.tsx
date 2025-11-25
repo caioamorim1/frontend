@@ -29,11 +29,11 @@ export default function ChangePasswordPage() {
     setLoading(true);
     try {
       await changePassword(user.id, newPassword);
-      showAlert({
-        title: 'Sucesso',
-        message: 'Palavra-passe alterada com sucesso! Por favor, faça login com a sua nova palavra-passe.',
-        type: 'success',
-      });
+      showAlert(
+        'success',
+        'Sucesso',
+        'Palavra-passe alterada com sucesso! Por favor, faça login com a sua nova palavra-passe.'
+      );
       logout(); // Faz logout para forçar o login com a nova palavra-passe
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ocorreu um erro inesperado.');

@@ -52,8 +52,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Timer para verificar expiração do token
   useEffect(() => {
-    let warningTimeoutId: NodeJS.Timeout;
-    let logoutTimeoutId: NodeJS.Timeout;
+    let warningTimeoutId: ReturnType<typeof setTimeout>;
+    let logoutTimeoutId: ReturnType<typeof setTimeout>;
 
     if (token && user?.exp) {
       const now = Math.floor(Date.now() / 1000);
