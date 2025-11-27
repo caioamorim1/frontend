@@ -345,6 +345,7 @@ export interface Hospital {
   cnpj: string;
   endereco: string;
   telefone: string;
+  foto?: string;
   regiao?: Regiao;
   baseline?: Baseline;
   tipo?: TipoHospital;
@@ -898,16 +899,26 @@ export const getHospitalById = async (id: string): Promise<Hospital> => {
   return response.data;
 };
 export const createHospital = async (
-  data: CreateHospitalDTO
+  data: CreateHospitalDTO | FormData
 ): Promise<Hospital> => {
-  const response = await api.post("/hospitais", data);
+  const response = await api.post("/hospitais", data, {
+    headers:
+      data instanceof FormData
+        ? { "Content-Type": "multipart/form-data" }
+        : undefined,
+  });
   return response.data;
 };
 export const updateHospital = async (
   hospitalId: string,
-  data: UpdateHospitalDTO
+  data: UpdateHospitalDTO | FormData
 ): Promise<Hospital> => {
-  const response = await api.put(`/hospitais/${hospitalId}`, data);
+  const response = await api.put(`/hospitais/${hospitalId}`, data, {
+    headers:
+      data instanceof FormData
+        ? { "Content-Type": "multipart/form-data" }
+        : undefined,
+  });
   return response.data;
 };
 export const deleteHospital = async (hospitalId: string): Promise<void> => {
@@ -1693,6 +1704,26 @@ export const updateSitioFuncional = async (
 };
 export const deleteSitioFuncional = async (sitioId: string): Promise<void> => {
   await api.delete(`/sitios/sitios-funcionais/${sitioId}`);
+};
+
+// Buscar distribuições de um sítio funcional
+export const getSitioDistribuicoes = async (
+  sitioId: string
+): Promise<SitioDistribuicao[]> => {
+  console.log("🔍 [API] Buscando distribuições para sitioId:", sitioId);
+  try {
+    const response = await api.get(
+      `/sitios/sitios-funcionais/${sitioId}/distribuicoes`
+    );
+    console.log("✅ [API] Distribuições recebidas:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "❌ [API] Erro ao buscar distribuições:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
 };
 
 // GESTÃO DE CARGOS EM SÍTIOS

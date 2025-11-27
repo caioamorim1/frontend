@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronRight,
   LogOut,
+  Home,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,35 +29,41 @@ const NavItem = ({
   label: string;
 }) => {
   const location = useLocation();
-  
+
   const isActive = (() => {
     const currentPath = location.pathname;
-    
+
     // Se a rota atual é exatamente a rota do item
     if (currentPath === to) return true;
-    
+
     // Para "Setores" (/hospital/:id/setores)
     // Marca como ativo se estamos em /setores/:setorId
-    if (to.endsWith('/setores')) {
+    if (to.endsWith("/setores")) {
       // Regex para /setores/ seguido de UUID, mas NÃO /gerir-setores
-      return /\/setores\/[a-f0-9\-]+/.test(currentPath) && !currentPath.includes('/gerir-setores');
+      return (
+        /\/setores\/[a-f0-9\-]+/.test(currentPath) &&
+        !currentPath.includes("/gerir-setores")
+      );
     }
-    
+
     // Para "Gerir Setores" (/hospital/:id/gerir-setores)
     // Marca como ativo se estamos em /gerir-setores ou /gerir-setores/:id
-    if (to.endsWith('/gerir-setores')) {
-      return currentPath.includes('/gerir-setores');
+    if (to.endsWith("/gerir-setores")) {
+      return currentPath.includes("/gerir-setores");
     }
-    
+
     // Para "Unidades e Leitos" e rotas de unidade
-    if (to.includes('/unidades-leitos')) {
-      return currentPath.includes('/unidades-leitos') || currentPath.includes('/unidade/');
+    if (to.includes("/unidades-leitos")) {
+      return (
+        currentPath.includes("/unidades-leitos") ||
+        currentPath.includes("/unidade/")
+      );
     }
-    
+
     // Para outras rotas, verifica se a rota atual começa com o caminho do item
-    return currentPath.startsWith(to + '/');
+    return currentPath.startsWith(to + "/");
   })();
-  
+
   return (
     <li>
       <NavLink
@@ -95,9 +102,7 @@ const ExpandableSubItem = ({
       >
         <div className="flex items-center">
           {icon}
-          <span className="ml-3 tracking-wider">
-            {label}
-          </span>
+          <span className="ml-3 tracking-wider">{label}</span>
         </div>
         {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
       </button>
@@ -113,6 +118,11 @@ export default function HospitalAdminSidebar() {
   const { user, logout } = useAuth();
 
   const navItems = [
+    {
+      to: `/hospital/${hospitalId}/home`,
+      icon: <Home size={16} />,
+      label: "Home",
+    },
     {
       to: `/hospital/${hospitalId}/dashboard`,
       icon: <LayoutDashboard size={18} />,

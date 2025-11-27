@@ -29,6 +29,7 @@ import HistoricoColetasPage from "./features/admin-hospital/pages/HistoricoColet
 import AdminsPage from "./features/admin-global/pages/AdminsPage";
 import HospitalDashboardPage from "./features/colab/pages/DashboardPage";
 import GlobalDashboardPage from "./features/admin-global/pages/GlobalDashboardPage";
+import HospitalHomePage from "./features/admin-hospital/pages/HospitalHomePage";
 
 // NOVOS IMPORTS PARA COLETA
 import ColetasPage from "./features/colab/pages/ColetasPage";
@@ -62,6 +63,8 @@ function App() {
 
         {/* Rotas de Admin de Hospital */}
         <Route path="/hospital/:hospitalId" element={<HospitalAdminLayout />}>
+          <Route index element={<HospitalHomePage />} />
+          <Route path="home" element={<HospitalHomePage />} />
           <Route path="dashboard" element={<HospitalDashboardPage />} />
           <Route path="unidades-leitos" element={<MinhasUnidadesPage />} />
           <Route path="setores" element={<SetoresCardPage />} />
@@ -94,7 +97,18 @@ function App() {
 
         {/* Rotas de Colaborador / Gestor (AGORA DENTRO DO LAYOUT PADRÃO) */}
         <Route element={<UnifiedLayout />}>
-          <Route path="/meu-hospital" element={<MinhasUnidadesPage />} />
+          <Route path="/meu-hospital">
+            <Route index element={<MinhasUnidadesPage />} />
+            <Route path="home" element={<HospitalHomePage />} />
+            <Route path="dashboard" element={<HospitalDashboardPage />} />
+            <Route path="pareto" element={<ParetoPage />} />
+            <Route path="setores" element={<SetoresPage />} />
+            <Route path="unidades-leitos" element={<MinhasUnidadesPage />} />
+            <Route path="baseline" element={<BaselinePage />} />
+            <Route path="usuarios" element={<UsuariosPage />} />
+            <Route path="cargos" element={<CargosPage />} />
+            <Route path="gerir-setores" element={<SetoresPage />} />
+          </Route>
           <Route
             path="/unidade/:unidadeId/leitos"
             element={<VisaoLeitosPage />}

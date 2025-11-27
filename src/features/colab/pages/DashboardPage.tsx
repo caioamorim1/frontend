@@ -10,12 +10,13 @@ import { DashboardComparativoHospitalScreen } from "@/features/admin-hospital/co
 import { useEffect, useState } from "react";
 import { clearSectorsCache } from "@/mocks/functionSectores";
 import { useParams } from "react-router-dom";
-import { getSnapshotHospitalSectors } from "@/lib/api";
+import { getSnapshotHospitalSectors, getHospitalSectors } from "@/lib/api";
 
 export default function HospitalDashboardPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const [hasBaseline, setHasBaseline] = useState(false);
   const [checkingBaseline, setCheckingBaseline] = useState(true);
+  const [atualData, setAtualData] = useState<any>(null);
 
   useEffect(() => {
     clearSectorsCache();
@@ -54,6 +55,23 @@ export default function HospitalDashboardPage() {
     checkBaseline();
   }, [hospitalId]);
 
+  // Buscar dados atuais para o comparativo
+  useEffect(() => {
+    const fetchAtualData = async () => {
+      if (!hospitalId) return;
+
+      try {
+        const data = await getHospitalSectors(hospitalId);
+        console.log("📊 [Dashboard Hospital] Dados atuais carregados:", data);
+        setAtualData(data);
+      } catch (error) {
+        console.error("❌ Erro ao buscar dados atuais:", error);
+      }
+    };
+
+    fetchAtualData();
+  }, [hospitalId]);
+
   if (checkingBaseline) {
     return <div>Carregando...</div>;
   }
@@ -70,7 +88,11 @@ export default function HospitalDashboardPage() {
       </div>
 
       <Tabs defaultValue={hasBaseline ? "baseline" : "atual"}>
-        <TabsList className={`grid w-full ${hasBaseline ? "grid-cols-4" : "grid-cols-3"}`}>
+        <TabsList
+          className={`grid w-full ${
+            hasBaseline ? "grid-cols-4" : "grid-cols-3"
+          }`}
+        >
           {hasBaseline && <TabsTrigger value="baseline">Baseline</TabsTrigger>}
           <TabsTrigger value="atual">Atual</TabsTrigger>
           <TabsTrigger value="projetado">Projetado</TabsTrigger>
@@ -100,7 +122,10 @@ export default function HospitalDashboardPage() {
         {/* ✅ CONTEÚDO DA ABA "COMPARATIVO" ATUALIZADO */}
         <TabsContent value="comparativo">
           <div className="grid grid-cols-1 gap-6 mt-6">
-            <DashboardComparativoHospitalScreen title="Análise Comparativa" />
+            <DashboardComparativoHospitalScreen
+              title="Análise Comparativa"
+              atualData={atualData}
+            />
           </div>
         </TabsContent>
       </Tabs>

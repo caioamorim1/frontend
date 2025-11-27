@@ -14,8 +14,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Função para embaralhar array (Fisher-Yates shuffle)
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 // Componente para a Barra de Progresso
-const ProgressBar: React.FC<{ value: number; max: number }> = ({ value, max }) => {
+const ProgressBar: React.FC<{ value: number; max: number }> = ({
+  value,
+  max,
+}) => {
   const percentage = max > 0 ? (value / max) * 100 : 0;
   return (
     <div className="w-full bg-muted rounded-full h-2.5">
@@ -55,6 +68,7 @@ export default function AvaliacaoScpModal({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [shuffledSchema, setShuffledSchema] = useState<ScpSchema | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -63,13 +77,17 @@ export default function AvaliacaoScpModal({
       if (!unidadeId) return;
       try {
         setLoading(true);
-        const unidadeData = (await getUnidadeById(unidadeId)) as UnidadeInternacao;
+        const unidadeData = (await getUnidadeById(
+          unidadeId
+        )) as UnidadeInternacao;
         setUnidade(unidadeData);
         if (unidadeData.scpMetodoKey) {
           const schemaData = await getScpSchema(unidadeData.scpMetodoKey);
           setSchema(schemaData);
         } else {
-          setError("Esta unidade não possui um método de avaliação configurado.");
+          setError(
+            "Esta unidade não possui um método de avaliação configurado."
+          );
         }
       } catch (err) {
         setError("Falha ao carregar dados da avaliação.");
@@ -80,14 +98,31 @@ export default function AvaliacaoScpModal({
     fetchData();
   }, [isOpen, unidadeId]);
 
+  // Embaralhar as opções toda vez que o modal é aberto
+  useEffect(() => {
+    if (isOpen && schema?.questions) {
+      const questionsWithShuffledOptions = schema.questions.map((question) => ({
+        ...question,
+        options: shuffleArray(question.options),
+      }));
+      setShuffledSchema({
+        ...schema,
+        questions: questionsWithShuffledOptions,
+      });
+      // Reset respostas e índice quando o modal abre
+      setRespostas({});
+      setCurrentQuestionIndex(0);
+    }
+  }, [isOpen, schema]);
+
   const handleOptionSelect = (questionKey: string, value: number) => {
     setRespostas((prev) => ({ ...prev, [questionKey]: value }));
   };
 
-  const totalQuestions = schema?.questions.length || 0;
+  const totalQuestions = shuffledSchema?.questions.length || 0;
   const answeredQuestions = Object.keys(respostas).length;
   const isFormComplete = answeredQuestions === totalQuestions;
-  const currentQuestion = schema?.questions[currentQuestionIndex];
+  const currentQuestion = shuffledSchema?.questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === totalQuestions - 1;
   const isFirstQuestion = currentQuestionIndex === 0;
 
@@ -142,7 +177,9 @@ export default function AvaliacaoScpModal({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[99999]">
           <Card className="w-full max-w-md relative z-[100000]">
             <CardContent className="p-8">
-              <p className="text-center">Carregando formulário de avaliação...</p>
+              <p className="text-center">
+                Carregando formulário de avaliação...
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -162,40 +199,49 @@ export default function AvaliacaoScpModal({
       )}
 
       {!loading && !error && schema && currentQuestion && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[99999] p-4">
-          <Card className="w-full max-w-6xl max-h-[90vh] flex flex-col relative z-[100000]">
-            <CardContent className="p-12 flex-1 overflow-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[99999] p-2 sm:p-4">
+          <Card className="w-full max-w-2xl max-h-[95vh] flex flex-col relative z-[100000]">
+            <CardContent className="p-4 sm:p-6 flex-1 overflow-auto">
               {/* Cabeçalho com progresso */}
-              <div className="mb-12">
-                <div className="flex justify-between items-center text-sm text-muted-foreground mb-3">
-                  <span className="text-base">Progresso</span>
-                  <span className="text-base font-semibold">
+              <div className="mb-6">
+                <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
+                  <span className="text-sm">Progresso</span>
+                  <span className="text-sm font-semibold">
                     {currentQuestionIndex + 1} / {totalQuestions}
                   </span>
                 </div>
-                <ProgressBar value={currentQuestionIndex + 1} max={totalQuestions} />
+                <ProgressBar
+                  value={currentQuestionIndex + 1}
+                  max={totalQuestions}
+                />
               </div>
 
               {/* Pergunta atual */}
-              <form onSubmit={handleSubmit} className="space-y-12">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <h2 className="text-3xl font-bold text-gray-900 mb-12 leading-relaxed">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 leading-relaxed">
                     {currentQuestionIndex + 1}. {currentQuestion.text}
                   </h2>
 
                   {/* Opções da pergunta em coluna */}
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-2">
                     {currentQuestion.options.map((option) => (
                       <Button
                         key={option.value}
                         type="button"
-                        variant={respostas[currentQuestion.key] === option.value ? "default" : "outline"}
+                        variant={
+                          respostas[currentQuestion.key] === option.value
+                            ? "default"
+                            : "outline"
+                        }
                         className={cn(
-                          "h-auto py-4 px-6 text-left justify-start text-sm font-medium whitespace-normal min-h-[3rem]",
+                          "h-auto py-3 px-4 text-left justify-start text-sm font-medium whitespace-normal min-h-[2.5rem]",
                           respostas[currentQuestion.key] === option.value &&
                             "bg-primary text-primary-foreground"
                         )}
-                        onClick={() => handleOptionSelect(currentQuestion.key, option.value)}
+                        onClick={() =>
+                          handleOptionSelect(currentQuestion.key, option.value)
+                        }
                       >
                         {option.label}
                       </Button>
@@ -204,24 +250,24 @@ export default function AvaliacaoScpModal({
                 </div>
 
                 {/* Navegação */}
-                <div className="flex justify-between items-center pt-8 border-t">
-                  <div className="flex gap-3">
+                <div className="flex justify-between items-center pt-4 border-t gap-2">
+                  <div className="flex gap-2">
                     <Button
                       type="button"
                       variant="ghost"
                       onClick={handlePrevious}
                       disabled={isFirstQuestion}
-                      className="flex items-center gap-2 text-base py-6 px-6"
+                      className="flex items-center gap-1 text-sm py-2 px-3"
                     >
-                      <ChevronLeft className="h-5 w-5" />
+                      <ChevronLeft className="h-4 w-4" />
                       Anterior
                     </Button>
-                    
+
                     <Button
                       type="button"
                       variant="outline"
                       onClick={onClose}
-                      className="flex items-center gap-2 text-base py-6 px-6 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="flex items-center gap-1 text-sm py-2 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
                       Cancelar
                     </Button>
@@ -231,18 +277,18 @@ export default function AvaliacaoScpModal({
                     <Button
                       type="button"
                       onClick={handleNext}
-                      className="flex items-center gap-2 text-base py-6 px-6"
+                      className="flex items-center gap-1 text-sm py-2 px-3"
                     >
                       Próximo
-                      <ChevronRight className="h-5 w-5" />
+                      <ChevronRight className="h-4 w-4" />
                     </Button>
                   ) : (
                     <Button
                       type="submit"
                       disabled={!isFormComplete}
-                      className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-base py-6 px-6"
+                      className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-sm py-2 px-3"
                     >
-                      <CheckCircle className="h-5 w-5" />
+                      <CheckCircle className="h-4 w-4" />
                       Finalizar e Salvar Avaliação
                     </Button>
                   )}

@@ -222,7 +222,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
 
     let pessoalAtualReal = 0;
 
-    if (atualData && isGlobalView) {
+    if (atualData) {
       console.log("  ✅ Usando dados da aba Atual (atualData) para pessoal");
 
       // Determinar quais setores usar baseado na aba ativa
@@ -275,7 +275,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     // 🚀 SOLUÇÃO: Usar dados da aba "Atual" (atualData) que já vem com costAmount calculado corretamente
     let custoAtualReal = 0;
 
-    if (atualData && isGlobalView) {
+    if (atualData) {
       console.log("  ✅ Usando dados da aba Atual (atualData):", atualData);
 
       // Determinar quais setores usar baseado na aba ativa
@@ -429,12 +429,16 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       { name: "Projetado", value: custoProjetadoSnapshot },
     ];
 
+    console.log("📊 [Gráfico] Dados Waterfall Financeiro:", financialWaterfall);
+
     const personnelWaterfall = [
       { name: "Atual", value: pessoalAtualReal },
       { name: "Baseline", value: pessoalAtualSnapshot },
       { name: "Variação", value: variacaoPessoal },
       { name: "Projetado", value: pessoalProjetadoSnapshot },
     ];
+
+    console.log("📊 [Gráfico] Dados Waterfall Pessoal:", personnelWaterfall);
 
     // Processar dados por função (cargo) para os gráficos GroupedBarByRole
     const dadosPorFuncao = (() => {
@@ -615,6 +619,15 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         quantidadePorFuncao,
       };
     })();
+
+    console.log(
+      "📊 [Gráfico] Dados por Função - Custo:",
+      dadosPorFuncao.custoPorFuncao
+    );
+    console.log(
+      "📊 [Gráfico] Dados por Função - Quantidade:",
+      dadosPorFuncao.quantidadePorFuncao
+    );
 
     return {
       financialWaterfall,

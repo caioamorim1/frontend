@@ -54,6 +54,8 @@ export default function HospitaisPage() {
         Hospital & { redeId?: string; grupoId?: string; regiaoId?: string }
       >
     >(initialFormState);
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
 
   // Estados para controlar seleções em cascata
   const [selectedRedeId, setSelectedRedeId] = useState<string>("");
@@ -76,8 +78,6 @@ export default function HospitaisPage() {
       setRedes(redesData);
       setGrupos(gruposData);
       setRegioes(regioesData);
-
-      
     } catch (err) {
       setError("Falha ao carregar os dados.");
       showAlert("destructive", "Erro", "Falha ao carregar os dados.");
@@ -91,17 +91,21 @@ export default function HospitaisPage() {
   }, []);
 
   const handleEdit = (hospital: any) => {
-   
-
     const regiaoId = hospital.regiao?.id;
     const grupoId = hospital.grupo?.id;
     const redeId = hospital.rede?.id;
 
- 
-
     setFormData({ ...hospital, regiaoId, grupoId, redeId });
     setSelectedRedeId(redeId || "");
     setSelectedGrupoId(grupoId || "");
+
+    // Se o hospital tem foto, carregar preview
+    if (hospital.foto) {
+      setFotoPreview(`http://localhost:3110${hospital.foto}`);
+    } else {
+      setFotoPreview(null);
+    }
+    setFotoFile(null);
 
     // Filtrar grupos e regiões baseado na hierarquia
     if (redeId) {
@@ -111,7 +115,7 @@ export default function HospitaisPage() {
     }
     if (grupoId) {
       const regioesDoGrupo = regioes.filter((r) => r.grupo.id === grupoId);
-  
+
       setFilteredRegioes(regioesDoGrupo);
     }
 
@@ -124,7 +128,39 @@ export default function HospitaisPage() {
     setSelectedGrupoId("");
     setFilteredGrupos([]);
     setFilteredRegioes([]);
+    setFotoFile(null);
+    setFotoPreview(null);
     setIsFormVisible(true);
+  };
+
+  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Verificar tamanho (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        showAlert("destructive", "Erro", "A imagem deve ter no máximo 5MB.");
+        return;
+      }
+
+      // Verificar tipo
+      if (!["image/jpeg", "image/jpg", "image/png"].includes(file.type)) {
+        showAlert(
+          "destructive",
+          "Erro",
+          "Apenas arquivos JPG, JPEG e PNG são permitidos."
+        );
+        return;
+      }
+
+      setFotoFile(file);
+
+      // Criar preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleCancel = () => {
@@ -134,6 +170,8 @@ export default function HospitaisPage() {
     setSelectedGrupoId("");
     setFilteredGrupos([]);
     setFilteredRegioes([]);
+    setFotoFile(null);
+    setFotoPreview(null);
   };
 
   const handleChange = (
@@ -220,41 +258,51 @@ export default function HospitaisPage() {
       return;
     }
 
-    const dataToSubmit = {
-      nome: formData.nome || "",
-      cnpj: formData.cnpj || "",
-      endereco: formData.endereco || "",
-      telefone: formData.telefone || "",
-      regiaoId: formData.regiaoId || null,
-      grupoId: formData.grupoId || null,
-      redeId: formData.redeId || null,
-      tipo: formData.tipo || undefined,
-      gestao: formData.gestao || undefined,
-      perfil: formData.perfil || undefined,
-      complexidade: formData.complexidade || undefined,
-      numeroTotalLeitos: formData.numeroTotalLeitos
-        ? Number(formData.numeroTotalLeitos)
-        : undefined,
-      numeroLeitosUTI: formData.numeroLeitosUTI
-        ? Number(formData.numeroLeitosUTI)
-        : undefined,
-      numeroSalasCirurgicas: formData.numeroSalasCirurgicas
-        ? Number(formData.numeroSalasCirurgicas)
-        : undefined,
-    };
+    // Criar FormData para suportar upload de arquivo
+    const formDataToSubmit = new FormData();
+    formDataToSubmit.append("nome", formData.nome || "");
+    formDataToSubmit.append("cnpj", formData.cnpj || "");
+    formDataToSubmit.append("endereco", formData.endereco || "");
+    formDataToSubmit.append("telefone", formData.telefone || "");
 
- 
+    if (formData.regiaoId)
+      formDataToSubmit.append("regiaoId", formData.regiaoId);
+    if (formData.grupoId) formDataToSubmit.append("grupoId", formData.grupoId);
+    if (formData.redeId) formDataToSubmit.append("redeId", formData.redeId);
+    if (formData.tipo) formDataToSubmit.append("tipo", formData.tipo);
+    if (formData.gestao) formDataToSubmit.append("gestao", formData.gestao);
+    if (formData.perfil) formDataToSubmit.append("perfil", formData.perfil);
+    if (formData.complexidade)
+      formDataToSubmit.append("complexidade", formData.complexidade);
+    if (formData.numeroTotalLeitos)
+      formDataToSubmit.append(
+        "numeroTotalLeitos",
+        String(formData.numeroTotalLeitos)
+      );
+    if (formData.numeroLeitosUTI)
+      formDataToSubmit.append(
+        "numeroLeitosUTI",
+        String(formData.numeroLeitosUTI)
+      );
+    if (formData.numeroSalasCirurgicas)
+      formDataToSubmit.append(
+        "numeroSalasCirurgicas",
+        String(formData.numeroSalasCirurgicas)
+      );
+
+    // Adicionar foto se houver
+    if (fotoFile) {
+      formDataToSubmit.append("foto", fotoFile);
+    }
 
     try {
       if (formData.id) {
-        const resultado = await updateHospital(formData.id, dataToSubmit);
-        
+        const resultado = await updateHospital(formData.id, formDataToSubmit);
+
         showAlert("success", "Sucesso", "Hospital atualizado com sucesso.");
       } else {
-        const resultado = await createHospital(
-          dataToSubmit as CreateHospitalDTO
-        );
-      
+        const resultado = await createHospital(formDataToSubmit);
+
         showAlert("success", "Sucesso", "Hospital criado com sucesso.");
       }
       handleCancel();
@@ -318,7 +366,10 @@ export default function HospitaisPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="nome" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="nome"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Nome do Hospital *
                 </label>
                 <input
@@ -332,7 +383,10 @@ export default function HospitaisPage() {
                 />
               </div>
               <div>
-                <label htmlFor="cnpj" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="cnpj"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   CNPJ *
                 </label>
                 <input
@@ -346,7 +400,10 @@ export default function HospitaisPage() {
                 />
               </div>
               <div>
-                <label htmlFor="endereco" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="endereco"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Endereço
                 </label>
                 <input
@@ -359,7 +416,10 @@ export default function HospitaisPage() {
                 />
               </div>
               <div>
-                <label htmlFor="telefone" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="telefone"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Telefone
                 </label>
                 <input
@@ -371,8 +431,43 @@ export default function HospitaisPage() {
                   className="p-2 border rounded-md w-full"
                 />
               </div>
+              <div className="md:col-span-2">
+                <label
+                  htmlFor="foto"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Logo do Hospital
+                </label>
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <input
+                      id="foto"
+                      name="foto"
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png"
+                      onChange={handleFotoChange}
+                      className="p-2 border rounded-md w-full"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Formatos aceitos: JPG, JPEG, PNG (máximo 5MB)
+                    </p>
+                  </div>
+                  {fotoPreview && (
+                    <div className="w-32 h-32 border rounded-md overflow-hidden bg-gray-50 flex items-center justify-center">
+                      <img
+                        src={fotoPreview}
+                        alt="Preview do logo"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
               <div>
-                <label htmlFor="redeId" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="redeId"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Rede *
                 </label>
                 <select
@@ -392,8 +487,14 @@ export default function HospitaisPage() {
                 </select>
               </div>
               <div>
-                <label htmlFor="grupoId" className="block text-sm font-medium text-gray-700 mb-1">
-                  Grupo {selectedRedeId ? "(Opcional)" : "(Selecione uma Rede primeiro)"}
+                <label
+                  htmlFor="grupoId"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Grupo{" "}
+                  {selectedRedeId
+                    ? "(Opcional)"
+                    : "(Selecione uma Rede primeiro)"}
                 </label>
                 <select
                   id="grupoId"
@@ -416,8 +517,14 @@ export default function HospitaisPage() {
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label htmlFor="regiaoId" className="block text-sm font-medium text-gray-700 mb-1">
-                  Região {selectedGrupoId ? "(Opcional)" : "(Selecione um Grupo primeiro)"}
+                <label
+                  htmlFor="regiaoId"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Região{" "}
+                  {selectedGrupoId
+                    ? "(Opcional)"
+                    : "(Selecione um Grupo primeiro)"}
                 </label>
                 <select
                   id="regiaoId"
@@ -442,7 +549,10 @@ export default function HospitaisPage() {
 
               {/* Novos campos */}
               <div>
-                <label htmlFor="tipo" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="tipo"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Tipo
                 </label>
                 <select
@@ -455,13 +565,18 @@ export default function HospitaisPage() {
                   <option value="">Selecione o Tipo</option>
                   <option value={TipoHospital.PUBLICO}>Público</option>
                   <option value={TipoHospital.PRIVADO}>Privado</option>
-                  <option value={TipoHospital.FILANTROPICO}>Filantrópico</option>
+                  <option value={TipoHospital.FILANTROPICO}>
+                    Filantrópico
+                  </option>
                   <option value={TipoHospital.OUTROS}>Outros</option>
                 </select>
               </div>
 
               <div>
-                <label htmlFor="gestao" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="gestao"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Gestão
                 </label>
                 <select
@@ -485,7 +600,10 @@ export default function HospitaisPage() {
               </div>
 
               <div>
-                <label htmlFor="perfil" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="perfil"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Perfil
                 </label>
                 <select
@@ -516,7 +634,10 @@ export default function HospitaisPage() {
               </div>
 
               <div>
-                <label htmlFor="complexidade" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="complexidade"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Complexidade
                 </label>
                 <select
@@ -540,7 +661,10 @@ export default function HospitaisPage() {
               </div>
 
               <div>
-                <label htmlFor="numeroTotalLeitos" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="numeroTotalLeitos"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Número Total de Leitos
                 </label>
                 <input
@@ -556,7 +680,10 @@ export default function HospitaisPage() {
               </div>
 
               <div>
-                <label htmlFor="numeroLeitosUTI" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="numeroLeitosUTI"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Número Total de Leitos de UTI
                 </label>
                 <input
@@ -572,7 +699,10 @@ export default function HospitaisPage() {
               </div>
 
               <div>
-                <label htmlFor="numeroSalasCirurgicas" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="numeroSalasCirurgicas"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Número de Salas Cirúrgicas
                 </label>
                 <input

@@ -4,6 +4,7 @@ import {
   SitioFuncional,
   UnidadeNaoInternacao,
   SitioDistribuicao,
+  getSitioDistribuicoes,
 } from "@/lib/api";
 import { X, AlertTriangle, Save } from "lucide-react";
 import DistribuicaoTurnosForm from "./DistribuicaoTurnosForm";
@@ -22,6 +23,14 @@ export default function CargoSitioManager({
   onClose,
   onUpdate,
 }: CargoSitioManagerProps) {
+  console.log("🟢 [CargoSitioManager] Componente montado");
+  console.log("🟢 [CargoSitioManager] sitioId:", sitioId);
+  console.log("🟢 [CargoSitioManager] sitio recebido:", sitio);
+  console.log(
+    "🟢 [CargoSitioManager] distribuicoes recebidas:",
+    sitio.distribuicoes
+  );
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -30,6 +39,95 @@ export default function CargoSitioManager({
   const [distribuicoes, setDistribuicoes] = useState<SitioDistribuicao[]>(
     sitio.distribuicoes || []
   );
+
+  console.log(
+    "🟢 [CargoSitioManager] Estado inicial de distribuicoes:",
+    distribuicoes
+  );
+
+  // Buscar distribuições salvas do backend ao montar o componente
+  useEffect(() => {
+    const fetchDistribuicoes = async () => {
+      console.log(
+        "🔄 [CargoSitioManager] Buscando distribuições do backend..."
+      );
+      setLoading(true);
+      try {
+        const response = await getSitioDistribuicoes(sitioId);
+        console.log(
+          "✅ [CargoSitioManager] Resposta completa do backend:",
+          response
+        );
+
+        // A resposta vem como { sitioId, sitioNome, distribuicoes: { ENF: {...}, TEC: {...} } }
+        // Precisamos converter para array de SitioDistribuicao
+        if (response && (response as any).distribuicoes) {
+          const dist = (response as any).distribuicoes;
+          console.log("🔍 [CargoSitioManager] Objeto distribuicoes:", dist);
+
+          const distribuicoesArray: SitioDistribuicao[] = [];
+
+          // Converter ENF
+          if (dist.ENF) {
+            distribuicoesArray.push({
+              id: dist.ENF.id,
+              categoria: "ENF",
+              segSexManha: dist.ENF.segSex.manha,
+              segSexTarde: dist.ENF.segSex.tarde,
+              segSexNoite1: dist.ENF.segSex.noite1,
+              segSexNoite2: dist.ENF.segSex.noite2,
+              sabDomManha: dist.ENF.sabDom.manha,
+              sabDomTarde: dist.ENF.sabDom.tarde,
+              sabDomNoite1: dist.ENF.sabDom.noite1,
+              sabDomNoite2: dist.ENF.sabDom.noite2,
+            });
+          }
+
+          // Converter TEC
+          if (dist.TEC) {
+            distribuicoesArray.push({
+              id: dist.TEC.id,
+              categoria: "TEC",
+              segSexManha: dist.TEC.segSex.manha,
+              segSexTarde: dist.TEC.segSex.tarde,
+              segSexNoite1: dist.TEC.segSex.noite1,
+              segSexNoite2: dist.TEC.segSex.noite2,
+              sabDomManha: dist.TEC.sabDom.manha,
+              sabDomTarde: dist.TEC.sabDom.tarde,
+              sabDomNoite1: dist.TEC.sabDom.noite1,
+              sabDomNoite2: dist.TEC.sabDom.noite2,
+            });
+          }
+
+          console.log(
+            "✅ [CargoSitioManager] Distribuições convertidas para array:",
+            distribuicoesArray
+          );
+
+          if (distribuicoesArray.length > 0) {
+            setDistribuicoes(distribuicoesArray);
+          } else {
+            console.log(
+              "⚠️ [CargoSitioManager] Nenhuma distribuição encontrada, usando dados locais"
+            );
+          }
+        } else {
+          console.log(
+            "⚠️ [CargoSitioManager] Resposta não contém distribuições, usando dados locais"
+          );
+        }
+      } catch (error) {
+        console.error(
+          "❌ [CargoSitioManager] Erro ao buscar distribuições:",
+          error
+        );
+        // Em caso de erro, mantém as distribuições que vieram do prop
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDistribuicoes();
+  }, [sitioId]);
 
   const handleSaveDistribuicoes = async () => {
     setSaving(true);

@@ -127,7 +127,7 @@ export default function ProjetadoTab({
     cargoId: string;
     cargoNome: string;
   }>({ isOpen: false, cargoId: "", cargoNome: "" });
-  
+
   const [dataInicial, setDataInicial] = useState<string>(
     dateRange?.inicio ?? ""
   );
@@ -141,7 +141,8 @@ export default function ProjetadoTab({
 
   // Verificar se algum cargo tem status de conclusão
   const temStatusConclusao = Object.values(metadata).some(
-    (meta) => meta.status === "concluido_parcial" || meta.status === "concluido_final"
+    (meta) =>
+      meta.status === "concluido_parcial" || meta.status === "concluido_final"
   );
 
   useEffect(() => {
@@ -187,7 +188,7 @@ export default function ProjetadoTab({
         fim: dataFinal,
       });
       setAnalise(resp);
-      
+
       // Salvar controle de período (não travado ainda)
       try {
         await saveControlePeriodo({
@@ -199,12 +200,8 @@ export default function ProjetadoTab({
       } catch (saveError: any) {
         console.error("Erro ao salvar período:", saveError);
       }
-      
-      showAlert(
-        "success",
-        "Pronto",
-        "Indicadores calculados para o período."
-      );
+
+      showAlert("success", "Pronto", "Indicadores calculados para o período.");
     } catch (e: any) {
       showAlert(
         "destructive",
@@ -236,20 +233,18 @@ export default function ProjetadoTab({
         // Tenta obter projetado final já salvo no backend
         try {
           const saved = await getProjetadoFinalInternacao(unidade.id);
-          
-         
-          
+
           if (saved && saved.cargos) {
             const novoMapa: AjustesPayload = {};
             const novoMetadata: Record<string, CargoMetadata> = {};
-            
+
             saved.cargos.forEach((c: any) => {
-              const quantidadeAtual = unidade.cargos_unidade?.find(
-                (cu) => cu.cargo.id === c.cargoId
-              )?.quantidade_funcionarios || 0;
-              
+              const quantidadeAtual =
+                unidade.cargos_unidade?.find((cu) => cu.cargo.id === c.cargoId)
+                  ?.quantidade_funcionarios || 0;
+
               const projetadoFinalSalvo = Math.max(0, c.projetadoFinal ?? 0);
-              
+
               // Calcula o ajuste como: ProjetadoFinal - Atual
               const delta = projetadoFinalSalvo - quantidadeAtual;
               novoMapa[c.cargoId] = delta;
@@ -260,9 +255,7 @@ export default function ProjetadoTab({
                 status: c.status || "nao_iniciado",
               };
             });
-            
 
-            
             setAjustes(novoMapa);
             setMetadata(novoMetadata);
           } else {
@@ -339,7 +332,6 @@ export default function ProjetadoTab({
           status: metadata[c.cargoId]?.status || "nao_iniciado",
         })),
       };
-
 
       await saveProjetadoFinalInternacao(unidade.id, payload);
 
@@ -453,10 +445,8 @@ export default function ProjetadoTab({
       linhasUnicas.forEach((l) => {
         const lower = (l.cargoNome || "").toLowerCase();
         const isScp = isCargoSCPView(l.cargoNome);
-        
       });
-      
-      
+
       console.groupEnd();
     }
   } catch {}
@@ -483,30 +473,34 @@ export default function ProjetadoTab({
               <CardTitle>Cálculo por Data Específica</CardTitle>
             </CardHeader>
             <CardContent>
-              {!temStatusConclusao && (
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
-                    <div className="flex flex-col">
-                      <label className="text-sm text-gray-600 mb-1">
-                        Data inicial
-                      </label>
-                      <input
-                        type="date"
-                        value={dataInicial}
-                        onChange={(e) => setDataInicial(e.target.value)}
-                        className="w-full p-2 border rounded-md"
-                      />
-                    </div>
-                    <div className="flex flex-col">
-                      <label className="text-sm text-gray-600 mb-1">Data final</label>
-                      <input
-                        type="date"
-                        value={dataFinal}
-                        onChange={(e) => setDataFinal(e.target.value)}
-                        className="w-full p-2 border rounded-md"
-                      />
-                    </div>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+                  <div className="flex flex-col">
+                    <label className="text-sm text-gray-600 mb-1">
+                      Data inicial
+                    </label>
+                    <input
+                      type="date"
+                      value={dataInicial}
+                      onChange={(e) => setDataInicial(e.target.value)}
+                      disabled={temStatusConclusao}
+                      className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
                   </div>
+                  <div className="flex flex-col">
+                    <label className="text-sm text-gray-600 mb-1">
+                      Data final
+                    </label>
+                    <input
+                      type="date"
+                      value={dataFinal}
+                      onChange={(e) => setDataFinal(e.target.value)}
+                      disabled={temStatusConclusao}
+                      className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+                {!temStatusConclusao && (
                   <div className="flex justify-end">
                     <button
                       onClick={handleCalcular}
@@ -516,17 +510,23 @@ export default function ProjetadoTab({
                       {isCalculating ? "Calculando..." : "Calcular"}
                     </button>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {analise && (
-                <div className={`${!temStatusConclusao ? 'mt-6' : ''} border rounded-lg p-4 bg-white flex flex-col`}>
+                <div
+                  className={`${
+                    !temStatusConclusao ? "mt-6" : ""
+                  } border rounded-lg p-4 bg-white flex flex-col`}
+                >
                   <div className="flex flex-row border rounded-lg justify-around min-w-[200px]">
                     <TooltipProvider>
                       <Tooltip delayDuration={200}>
                         <TooltipTrigger asChild>
                           <div className="p-3 bg-white flex items-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors">
-                            <p className="text-lg font-bold">Leitos Avaliados :</p>
+                            <p className="text-lg font-bold">
+                              Leitos Avaliados :
+                            </p>
                             <p className="text-2xl font-bold tracking-tight text-primary">
                               {(() => {
                                 const ag = analise?.agregados as any;
@@ -537,14 +537,17 @@ export default function ProjetadoTab({
                             </p>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent side="bottom" className="p-0 border-0 shadow-lg">
+                        <TooltipContent
+                          side="bottom"
+                          className="p-0 border-0 shadow-lg"
+                        >
                           <div className="w-[400px] bg-white rounded-lg shadow-xl">
                             <PieChartComp
                               title="Níveis de Cuidado"
                               data={(() => {
                                 const dist =
-                                  analise?.agregados?.distribuicaoTotalClassificacao ||
-                                  {};
+                                  analise?.agregados
+                                    ?.distribuicaoTotalClassificacao || {};
                                 const entries = Object.entries(
                                   dist as Record<string, number>
                                 );
@@ -565,8 +568,8 @@ export default function ProjetadoTab({
                               className="border-0 shadow-none p-0"
                               totalForPercent={(() => {
                                 const dist =
-                                  analise?.agregados?.distribuicaoTotalClassificacao ||
-                                  {};
+                                  analise?.agregados
+                                    ?.distribuicaoTotalClassificacao || {};
                                 return Object.values(
                                   dist as Record<string, number>
                                 ).reduce((sum, val) => sum + (val || 0), 0);
@@ -577,7 +580,9 @@ export default function ProjetadoTab({
                       </Tooltip>
                     </TooltipProvider>
                     <div className="p-3 bg-white flex items-center gap-2">
-                      <p className="text-lg font-bold">Taxa Média de Ocupação :</p>
+                      <p className="text-lg font-bold">
+                        Taxa Média de Ocupação :
+                      </p>
                       <p className="text-2xl font-bold tracking-tight text-primary">
                         {(() => {
                           const ag = analise?.agregados as any;
@@ -598,245 +603,247 @@ export default function ProjetadoTab({
               <CardTitle>Ajuste Qualitativo do Quadro Projetado</CardTitle>
             </CardHeader>
             <CardContent>
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="h-20">
-                    <TableHead className="w-[30%]">Função</TableHead>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="h-20">
+                      <TableHead className="w-[30%]">Função</TableHead>
 
-                    <TableHead className="text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="flex items-center justify-center">
-                          <BarChart3 className="h-7 w-7 text-gray-700" />
-                          <span className="ml-2 text-sm font-medium">
-                            Atual
-                          </span>
+                      <TableHead className="text-center">
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="flex items-center justify-center">
+                            <BarChart3 className="h-7 w-7 text-gray-700" />
+                            <span className="ml-2 text-sm font-medium">
+                              Atual
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </TableHead>
+                      </TableHead>
 
-                    <TableHead className="text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="flex items-center justify-center">
-                          <img
-                            src={brainIcon}
-                            alt="Projetado (Sistema)"
-                            className="h-10 w-10 object-contain mb-1"
-                          />
-                          <span className="text-sm font-medium">
-                            Projetado (Sistema)
-                          </span>
+                      <TableHead className="text-center">
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="flex items-center justify-center">
+                            <img
+                              src={brainIcon}
+                              alt="Projetado (Sistema)"
+                              className="h-10 w-10 object-contain mb-1"
+                            />
+                            <span className="text-sm font-medium">
+                              Projetado (Sistema)
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </TableHead>
+                      </TableHead>
 
-                    <TableHead className="text-center w-[200px]">
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="flex items-center justify-center">
-                          <Settings className="h-7 w-7 text-gray-700" />
-                          <span className="ml-2 text-sm font-medium">
-                            Ajuste Qualitativo
-                          </span>
+                      <TableHead className="text-center w-[200px]">
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="flex items-center justify-center">
+                            <Settings className="h-7 w-7 text-gray-700" />
+                            <span className="ml-2 text-sm font-medium">
+                              Ajuste Qualitativo
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </TableHead>
+                      </TableHead>
 
-                    <TableHead className="text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="flex items-center justify-center">
-                          <Target className="h-7 w-7 text-gray-700" />
-                          <span className="ml-2 text-sm font-medium">
-                            Projetado Final
-                          </span>
+                      <TableHead className="text-center">
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="flex items-center justify-center">
+                            <Target className="h-7 w-7 text-gray-700" />
+                            <span className="ml-2 text-sm font-medium">
+                              Projetado Final
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </TableHead>
+                      </TableHead>
 
-                    <TableHead className="text-center w-[120px]">
-                      Observação
-                    </TableHead>
+                      <TableHead className="text-center w-[120px]">
+                        Observação
+                      </TableHead>
 
-                    <TableHead className="text-center w-[200px]">
-                      Status
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-
-                <TableBody>
-                  {/* Cargos com Projetado (Enfermeiro/Técnico) */}
-                  {cargosComProjetado.map((linha) => {
-                    const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
-                    const ajusteAtual = ajustes[linha.cargoId] || 0;
-                    // Usa quantidadeAtual como base para o ajuste qualitativo
-                    const projetadoFinal = quantidadeAtual + ajusteAtual;
-                    return (
-                      <TableRow key={linha.cargoId}>
-                        <TableCell className="font-medium">
-                          {linha.cargoNome}
-                        </TableCell>
-                        <TableCell className="text-center font-medium text-gray-500">
-                          {quantidadeAtual}
-                        </TableCell>
-                        <TableCell className="text-center font-medium text-gray-600">
-                          {linha.quantidadeProjetada}
-                        </TableCell>
-                        <TableCell>
-                          <AjusteInput
-                            value={ajusteAtual}
-                            onChange={(novoValor) =>
-                              handleAjusteChange(linha.cargoId, novoValor)
-                            }
-                            disabled={
-                              metadata[linha.cargoId]?.status ===
-                                "concluido_parcial" ||
-                              metadata[linha.cargoId]?.status ===
-                                "concluido_final"
-                            }
-                          />
-                        </TableCell>
-                        <TableCell className="text-center font-bold text-xl text-primary">
-                          {projetadoFinal}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <ObservacaoButton
-                            hasObservacao={
-                              !!metadata[linha.cargoId]?.observacao
-                            }
-                            onClick={() =>
-                              handleOpenObservacaoModal(
-                                linha.cargoId,
-                                linha.cargoNome
-                              )
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={
-                              metadata[linha.cargoId]?.status || "nao_iniciado"
-                            }
-                            onValueChange={(value) =>
-                              handleStatusChange(linha.cargoId, value)
-                            }
-                          >
-                            <SelectTrigger className="text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {STATUS_OPTIONS.map((option) => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                  className="text-xs"
-                                >
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-
-                  {/* Outros Cargos (sem projetado - usa Atual) */}
-                  {cargosAtuais.map((linha) => {
-                    const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
-                    const ajusteAtual = ajustes[linha.cargoId] || 0;
-                    const projetadoFinal = quantidadeAtual + ajusteAtual;
-                    return (
-                      <TableRow key={linha.cargoId}>
-                        <TableCell className="font-medium">
-                          {linha.cargoNome}
-                        </TableCell>
-                        <TableCell className="text-center font-medium text-gray-600">
-                          {quantidadeAtual}
-                        </TableCell>
-                        <TableCell className="text-center font-medium text-gray-400">
-                          -
-                        </TableCell>
-                        <TableCell>
-                          <AjusteInput
-                            value={ajusteAtual}
-                            onChange={(novoValor) =>
-                              handleAjusteChange(linha.cargoId, novoValor)
-                            }
-                            disabled={
-                              metadata[linha.cargoId]?.status ===
-                                "concluido_parcial" ||
-                              metadata[linha.cargoId]?.status ===
-                                "concluido_final"
-                            }
-                          />
-                        </TableCell>
-                        <TableCell className="text-center font-bold text-xl text-primary">
-                          {projetadoFinal}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <ObservacaoButton
-                            hasObservacao={
-                              !!metadata[linha.cargoId]?.observacao
-                            }
-                            onClick={() =>
-                              handleOpenObservacaoModal(
-                                linha.cargoId,
-                                linha.cargoNome
-                              )
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={
-                              metadata[linha.cargoId]?.status || "nao_iniciado"
-                            }
-                            onValueChange={(value) =>
-                              handleStatusChange(linha.cargoId, value)
-                            }
-                          >
-                            <SelectTrigger className="text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {STATUS_OPTIONS.map((option) => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                  className="text-xs"
-                                >
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-
-                  {linhasUnicas.length === 0 && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="text-center text-muted-foreground h-24"
-                      >
-                        Nenhum cargo encontrado para dimensionamento.
-                      </TableCell>
+                      <TableHead className="text-center w-[200px]">
+                        Status
+                      </TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="flex justify-end mt-6 gap-3">
-              <Button onClick={handleOpenAvaliar} disabled={saving}>
-                {"Avaliação"}
-              </Button>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? "Salvando..." : "Salvar Ajustes"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                  </TableHeader>
+
+                  <TableBody>
+                    {/* Cargos com Projetado (Enfermeiro/Técnico) */}
+                    {cargosComProjetado.map((linha) => {
+                      const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
+                      const ajusteAtual = ajustes[linha.cargoId] || 0;
+                      // Usa quantidadeAtual como base para o ajuste qualitativo
+                      const projetadoFinal = quantidadeAtual + ajusteAtual;
+                      return (
+                        <TableRow key={linha.cargoId}>
+                          <TableCell className="font-medium">
+                            {linha.cargoNome}
+                          </TableCell>
+                          <TableCell className="text-center font-medium text-gray-500">
+                            {quantidadeAtual}
+                          </TableCell>
+                          <TableCell className="text-center font-medium text-gray-600">
+                            {linha.quantidadeProjetada}
+                          </TableCell>
+                          <TableCell>
+                            <AjusteInput
+                              value={ajusteAtual}
+                              onChange={(novoValor) =>
+                                handleAjusteChange(linha.cargoId, novoValor)
+                              }
+                              disabled={
+                                metadata[linha.cargoId]?.status ===
+                                  "concluido_parcial" ||
+                                metadata[linha.cargoId]?.status ===
+                                  "concluido_final"
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="text-center font-bold text-xl text-primary">
+                            {projetadoFinal}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <ObservacaoButton
+                              hasObservacao={
+                                !!metadata[linha.cargoId]?.observacao
+                              }
+                              onClick={() =>
+                                handleOpenObservacaoModal(
+                                  linha.cargoId,
+                                  linha.cargoNome
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={
+                                metadata[linha.cargoId]?.status ||
+                                "nao_iniciado"
+                              }
+                              onValueChange={(value) =>
+                                handleStatusChange(linha.cargoId, value)
+                              }
+                            >
+                              <SelectTrigger className="text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.map((option) => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                    className="text-xs"
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+
+                    {/* Outros Cargos (sem projetado - usa Atual) */}
+                    {cargosAtuais.map((linha) => {
+                      const quantidadeAtual = getQuantidadeAtual(linha.cargoId);
+                      const ajusteAtual = ajustes[linha.cargoId] || 0;
+                      const projetadoFinal = quantidadeAtual + ajusteAtual;
+                      return (
+                        <TableRow key={linha.cargoId}>
+                          <TableCell className="font-medium">
+                            {linha.cargoNome}
+                          </TableCell>
+                          <TableCell className="text-center font-medium text-gray-600">
+                            {quantidadeAtual}
+                          </TableCell>
+                          <TableCell className="text-center font-medium text-gray-400">
+                            -
+                          </TableCell>
+                          <TableCell>
+                            <AjusteInput
+                              value={ajusteAtual}
+                              onChange={(novoValor) =>
+                                handleAjusteChange(linha.cargoId, novoValor)
+                              }
+                              disabled={
+                                metadata[linha.cargoId]?.status ===
+                                  "concluido_parcial" ||
+                                metadata[linha.cargoId]?.status ===
+                                  "concluido_final"
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="text-center font-bold text-xl text-primary">
+                            {projetadoFinal}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <ObservacaoButton
+                              hasObservacao={
+                                !!metadata[linha.cargoId]?.observacao
+                              }
+                              onClick={() =>
+                                handleOpenObservacaoModal(
+                                  linha.cargoId,
+                                  linha.cargoNome
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={
+                                metadata[linha.cargoId]?.status ||
+                                "nao_iniciado"
+                              }
+                              onValueChange={(value) =>
+                                handleStatusChange(linha.cargoId, value)
+                              }
+                            >
+                              <SelectTrigger className="text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.map((option) => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                    className="text-xs"
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+
+                    {linhasUnicas.length === 0 && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          className="text-center text-muted-foreground h-24"
+                        >
+                          Nenhum cargo encontrado para dimensionamento.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="flex justify-end mt-6 gap-3">
+                <Button onClick={handleOpenAvaliar} disabled={saving}>
+                  {"Avaliação"}
+                </Button>
+                <Button onClick={handleSave} disabled={saving}>
+                  {saving ? "Salvando..." : "Salvar Ajustes"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
