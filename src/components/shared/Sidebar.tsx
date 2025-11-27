@@ -16,6 +16,7 @@ import {
   ListChecks,
   Shield,
   BarChart3,
+  Home,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getHospitais, getRedes, Hospital, Rede } from "@/lib/api";
@@ -167,6 +168,11 @@ const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
 
   const subItems = [
     {
+      to: `/hospital/${hospital.id}/home`,
+      icon: <Home size={16} />,
+      label: "Home",
+    },
+    {
       to: `/hospital/${hospital.id}/dashboard`,
       icon: <LayoutDashboard size={16} />,
       label: "Dashboard",
@@ -249,7 +255,7 @@ export default function Sidebar() {
     {
       to: `/admin/hospitais`,
       icon: <HospitalIcon size={18} />,
-      label: "Gerir Hospitais",
+      label: "Hospitais",
       end: true,
     },
     {
@@ -402,6 +408,11 @@ export default function Sidebar() {
                   <span className="ml-3 font-medium">Meu Hospital</span>
                 </div>
                 <ul className="pl-5 border-l-2 border-white/20 ml-3">
+                  <NavItem
+                    to="/meu-hospital/home"
+                    icon={<Home size={16} />}
+                    label="Home"
+                  />
                   <NavItem
                     to="/meu-hospital/dashboard"
                     icon={<LayoutDashboard size={16} />}

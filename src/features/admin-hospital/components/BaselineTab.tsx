@@ -1,9 +1,6 @@
 import { useMemo, useEffect, useState } from "react";
 import { Briefcase, Users } from "lucide-react";
-import {
-  getHospitalSnapshots,
-  type Snapshot,
-} from "@/lib/api";
+import { getHospitalSnapshots, type Snapshot } from "@/lib/api";
 
 interface QuadroFuncionariosProps {
   hospitalId: string;
@@ -14,7 +11,8 @@ export default function QuadroFuncionariosResumo({
   hospitalId,
   setorId,
 }: QuadroFuncionariosProps) {
-  const [snapshotSelecionado, setSnapshotSelecionado] = useState<Snapshot | null>(null);
+  const [snapshotSelecionado, setSnapshotSelecionado] =
+    useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,12 +26,11 @@ export default function QuadroFuncionariosResumo({
       try {
         // Buscar snapshots do hospital
         const snapshotsData = await getHospitalSnapshots(hospitalId, 10);
-        
+
         // Encontrar o snapshot selecionado
         const snapshotSelecionado = snapshotsData.snapshots?.find(
           (s) => s.selecionado === true
         );
-
 
         if (!snapshotSelecionado) {
           setError(
@@ -68,6 +65,7 @@ export default function QuadroFuncionariosResumo({
     }
 
     const dados = snapshotSelecionado.dados;
+    const projetadoFinal = dados.projetadoFinal || {};
 
     // Procura primeiro nos setores de internação
     const internationSector = dados.internation?.find(
@@ -75,15 +73,32 @@ export default function QuadroFuncionariosResumo({
     );
 
     if (internationSector) {
+      // Buscar dados projetados desta unidade
+      const unidadeProjetada = projetadoFinal.internacao?.find(
+        (up: any) => up.unidadeId === setorId
+      );
 
+      return (internationSector.staff || []).map((staffMember: any) => {
+        // Buscar quantidade projetada do cargo
+        let quantidadeProjetada = null;
+        if (unidadeProjetada && unidadeProjetada.cargos) {
+          const cargoProj = unidadeProjetada.cargos.find(
+            (c: any) => c.cargoId === staffMember.id
+          );
+          if (cargoProj) {
+            quantidadeProjetada = cargoProj.projetadoFinal;
+          }
+        }
 
-      return (internationSector.staff || []).map((staffMember: any) => ({
-        cargo: {
-          id: staffMember.id,
-          nome: staffMember.role,
-        },
-        quantidade_funcionarios: staffMember.quantity,
-      }));
+        return {
+          cargo: {
+            id: staffMember.id,
+            nome: staffMember.role,
+          },
+          quantidade_funcionarios: staffMember.quantity,
+          quantidade_projetada: quantidadeProjetada,
+        };
+      });
     }
 
     // Se não encontrou, procura nos setores de assistência (não-internação)
@@ -92,11 +107,18 @@ export default function QuadroFuncionariosResumo({
     );
 
     if (assistanceSector) {
-
+      // Buscar dados projetados desta unidade
+      const unidadeProjetada = projetadoFinal.naoInternacao?.find(
+        (up: any) => up.unidadeId === setorId
+      );
 
       const functionalSites = assistanceSector.functionalSites;
 
-      if (functionalSites && Array.isArray(functionalSites) && functionalSites.length > 0) {
+      if (
+        functionalSites &&
+        Array.isArray(functionalSites) &&
+        functionalSites.length > 0
+      ) {
         // Calcular cargos dos sítios funcionais
         const cargosMap = new Map();
 
@@ -116,28 +138,55 @@ export default function QuadroFuncionariosResumo({
                   nome: cargoNome,
                 },
                 quantidade_funcionarios: quantidade,
+                quantidade_projetada: null,
               });
             }
           });
         });
 
+        // Adicionar dados projetados aos cargos
+        if (unidadeProjetada && unidadeProjetada.sitios) {
+          unidadeProjetada.sitios.forEach((sitioProj: any) => {
+            sitioProj.cargos?.forEach((cargoProj: any) => {
+              if (cargosMap.has(cargoProj.cargoId)) {
+                const cargo = cargosMap.get(cargoProj.cargoId);
+                // Somar as quantidades projetadas de todos os sítios
+                if (cargo.quantidade_projetada === null) {
+                  cargo.quantidade_projetada = 0;
+                }
+                cargo.quantidade_projetada += cargoProj.projetadoFinal || 0;
+              }
+            });
+          });
+        }
+
         const cargosArray = Array.from(cargosMap.values());
- 
 
         return cargosArray;
       }
 
       // Se não tem sítios, usa staff direto (estrutura antiga)
-      return (assistanceSector.staff || []).map((staffMember: any) => ({
-        cargo: {
-          id: staffMember.id,
-          nome: staffMember.role,
-        },
-        quantidade_funcionarios: staffMember.quantity,
-      }));
+      return (assistanceSector.staff || []).map((staffMember: any) => {
+        let quantidadeProjetada = null;
+        if (unidadeProjetada && unidadeProjetada.cargos) {
+          const cargoProj = unidadeProjetada.cargos.find(
+            (c: any) => c.cargoId === staffMember.id
+          );
+          if (cargoProj) {
+            quantidadeProjetada = cargoProj.projetadoFinal;
+          }
+        }
+
+        return {
+          cargo: {
+            id: staffMember.id,
+            nome: staffMember.role,
+          },
+          quantidade_funcionarios: staffMember.quantity,
+          quantidade_projetada: quantidadeProjetada,
+        };
+      });
     }
-
-
 
     return [];
   }, [snapshotSelecionado, setorId]);
@@ -248,16 +297,19 @@ export default function QuadroFuncionariosResumo({
         </div>
       </div>
 
-      {/* Tabela Simplificada */}
+      {/* Tabela com Atual e Projetado */}
       <div className="border rounded-lg overflow-hidden">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs text-gray-500 uppercase tracking-wider">
             <tr>
-              <th scope="col" className="px-6 py-3 w-3/4">
+              <th scope="col" className="px-6 py-3 w-2/4">
                 Cargo
               </th>
               <th scope="col" className="px-6 py-3 text-right">
-                Nº de Funcionários
+                Nº de Funcionários (Atual)
+              </th>
+              <th scope="col" className="px-6 py-3 text-right">
+                Nº de Funcionários (Projetado)
               </th>
             </tr>
           </thead>
@@ -269,6 +321,12 @@ export default function QuadroFuncionariosResumo({
                 </td>
                 <td className="px-6 py-4 text-right font-bold text-gray-700">
                   {item.quantidade_funcionarios}
+                </td>
+                <td className="px-6 py-4 text-right font-bold text-primary">
+                  {item.quantidade_projetada !== null &&
+                  item.quantidade_projetada !== undefined
+                    ? item.quantidade_projetada
+                    : "-"}
                 </td>
               </tr>
             ))}

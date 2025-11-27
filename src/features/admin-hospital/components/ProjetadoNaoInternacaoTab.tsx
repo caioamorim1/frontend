@@ -136,6 +136,52 @@ export default function ProjetadoNaoInternacaoTab({
     cargoNome: string;
   }>({ isOpen: false, cargoId: "", cargoNome: "" });
 
+  // Função para abrir o modal com dados atualizados do backend
+  const handleOpenSitioManager = async (sitio: SitioFuncional) => {
+    console.log(
+      "🔵 [handleOpenSitioManager] Abrindo modal para sítio:",
+      sitio.nome
+    );
+    console.log(
+      "🔵 [handleOpenSitioManager] Distribuições atuais do sítio:",
+      sitio.distribuicoes
+    );
+    try {
+      // Recarrega os dados do backend para garantir que temos a versão mais recente
+      const analiseData = await getAnaliseNaoInternacao(unidade.id);
+      console.log(
+        "🔵 [handleOpenSitioManager] Dados recebidos do backend:",
+        analiseData
+      );
+      if (analiseData && analiseData.tabela) {
+        // Encontra o sítio atualizado
+        const sitioAtualizado = analiseData.tabela.find(
+          (s: any) => s.id === sitio.id
+        );
+        if (sitioAtualizado) {
+          setManagingSitio(sitioAtualizado as SitioFuncional);
+        } else {
+          console.warn(
+            "⚠️ [handleOpenSitioManager] Sítio não encontrado nos dados atualizados, usando dados locais"
+          );
+          setManagingSitio(sitio);
+        }
+      } else {
+        console.warn(
+          "⚠️ [handleOpenSitioManager] Dados do backend vazios, usando dados locais"
+        );
+        setManagingSitio(sitio);
+      }
+    } catch (error) {
+      console.error(
+        "❌ [handleOpenSitioManager] Erro ao carregar dados atualizados do sítio:",
+        error
+      );
+      // Em caso de erro, abre com os dados que temos
+      setManagingSitio(sitio);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -477,7 +523,7 @@ export default function ProjetadoNaoInternacaoTab({
                           <TableCell colSpan={3} className="text-right">
                             <button
                               onClick={() =>
-                                setManagingSitio(sitio as SitioFuncional)
+                                handleOpenSitioManager(sitio as SitioFuncional)
                               }
                               className="inline-flex items-center gap-1 text-green-600 hover:text-green-800 text-sm"
                               title="Gerenciar Cargos"

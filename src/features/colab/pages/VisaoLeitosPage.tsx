@@ -312,7 +312,10 @@ const LeitoCard: FC<{
 
 // --- Componente Principal da Página ---
 export default function VisaoLeitosPage() {
-  const { unidadeId, hospitalId } = useParams<{ unidadeId: string; hospitalId: string }>();
+  const { unidadeId, hospitalId } = useParams<{
+    unidadeId: string;
+    hospitalId: string;
+  }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { showAlert } = useAlert();
@@ -327,11 +330,12 @@ export default function VisaoLeitosPage() {
   });
   const [detailsModalSessao, setDetailsModalSessao] =
     useState<SessaoAtiva | null>(null);
-  const [avaliacaoModalState, setAvaliacaoModalState] = useState<AvaliacaoModalState>({
-    isOpen: false,
-    leitoId: "",
-    prontuario: "",
-  });
+  const [avaliacaoModalState, setAvaliacaoModalState] =
+    useState<AvaliacaoModalState>({
+      isOpen: false,
+      leitoId: "",
+      prontuario: "",
+    });
 
   const fetchData = async () => {
     if (!unidadeId) return;
@@ -388,11 +392,7 @@ export default function VisaoLeitosPage() {
       return;
     }
     try {
-      showAlert(
-        "success",
-        "Sucesso",
-        "Paciente admitido. Abrindo avaliação."
-      );
+      showAlert("success", "Sucesso", "Paciente admitido. Abrindo avaliação.");
       setAvaliacaoModalState({
         isOpen: true,
         leitoId,
@@ -425,6 +425,31 @@ export default function VisaoLeitosPage() {
     [unidade?.leitos]
   );
 
+  // Calcular % de leitos avaliados (não pendentes)
+  const estatisticasLeitos = useMemo(() => {
+    if (!leitosOrdenados.length) {
+      return {
+        total: 0,
+        avaliados: 0,
+        percentualAvaliados: 0,
+      };
+    }
+
+    const total = leitosOrdenados.length;
+    const pendentes = leitosOrdenados.filter(
+      (leito) => leito.status === StatusLeito.PENDENTE
+    ).length;
+    const avaliados = total - pendentes;
+    const percentualAvaliados = total > 0 ? (avaliados / total) * 100 : 0;
+
+    return {
+      total,
+      avaliados,
+      pendentes,
+      percentualAvaliados,
+    };
+  }, [leitosOrdenados]);
+
   if (loading) return <p>Carregando mapa de leitos...</p>;
   if (error)
     return <p className="text-red-500 bg-red-50 p-4 rounded-md">{error}</p>;
@@ -449,12 +474,53 @@ export default function VisaoLeitosPage() {
         onClose={() => setDetailsModalSessao(null)}
       />
 
-      <div>
+      <div className="space-y-4">
         <Link to={backLink} className="text-sm text-gray-500 hover:underline">
           &larr; Voltar para Unidades
         </Link>
-        <h1 className="text-3xl font-bold text-primary">{unidade.nome}</h1>
-        <p className="text-muted-foreground">Mapa de leitos da unidade</p>
+
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-primary">{unidade.nome}</h1>
+            <p className="text-muted-foreground">Mapa de leitos da unidade</p>
+          </div>
+
+          {/* Card compacto com estatísticas */}
+          <Card className="w-full sm:w-auto min-w-[280px]">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-6">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    Total de Leitos
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {estatisticasLeitos.total}
+                  </p>
+                </div>
+                <div className="space-y-1 text-center">
+                  <p className="text-xs text-muted-foreground">Avaliados</p>
+                  <p className="text-2xl font-bold">
+                    {estatisticasLeitos.avaliados}
+                  </p>
+                </div>
+                <div className="space-y-1 text-center">
+                  <p className="text-xs text-muted-foreground">Pendentes</p>
+                  <p className="text-2xl font-bold">
+                    {estatisticasLeitos.pendentes}
+                  </p>
+                </div>
+                <div className="space-y-1 text-right pl-4 border-l">
+                  <p className="text-xs text-muted-foreground font-semibold">
+                    % Avaliados
+                  </p>
+                  <p className="text-3xl font-bold text-primary">
+                    {estatisticasLeitos.percentualAvaliados.toFixed(0)}%
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
@@ -485,7 +551,11 @@ export default function VisaoLeitosPage() {
         <AvaliacaoScpModal
           isOpen={avaliacaoModalState.isOpen}
           onClose={() =>
-            setAvaliacaoModalState({ isOpen: false, leitoId: "", prontuario: "" })
+            setAvaliacaoModalState({
+              isOpen: false,
+              leitoId: "",
+              prontuario: "",
+            })
           }
           unidadeId={unidadeId}
           leitoId={avaliacaoModalState.leitoId}
@@ -493,7 +563,11 @@ export default function VisaoLeitosPage() {
           hospitalId={hospitalId}
           onSuccess={() => {
             fetchData();
-            setAvaliacaoModalState({ isOpen: false, leitoId: "", prontuario: "" });
+            setAvaliacaoModalState({
+              isOpen: false,
+              leitoId: "",
+              prontuario: "",
+            });
           }}
         />
       )}

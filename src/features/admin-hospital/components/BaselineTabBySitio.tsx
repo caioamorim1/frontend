@@ -35,6 +35,7 @@ interface SitioBaseline {
       };
     };
     quantidade_funcionarios: number;
+    quantidade_projetada?: number | null;
   }[];
 }
 
@@ -102,7 +103,33 @@ export default function BaselineTabBySitio({
       return [];
     }
 
-    return sitiosFuncionais;
+    // Buscar dados projetados
+    const projetadoFinal = snapshotData.projetadoFinal || {};
+    const unidadeProjetada = projetadoFinal.naoInternacao?.find(
+      (up: any) => up.unidadeId === unidadeId
+    );
+
+    // Mapear sítios com dados projetados
+    return sitiosFuncionais.map((sitio: any) => {
+      const sitioProjetado = unidadeProjetada?.sitios?.find(
+        (sp: any) => sp.sitioId === sitio.id
+      );
+
+      return {
+        ...sitio,
+        cargosSitio: (sitio.cargosSitio || []).map((cargoSitio: any) => {
+          const cargoId = cargoSitio.cargoUnidade.cargo.id;
+          const cargoProj = sitioProjetado?.cargos?.find(
+            (cp: any) => cp.cargoId === cargoId
+          );
+
+          return {
+            ...cargoSitio,
+            quantidade_projetada: cargoProj ? cargoProj.projetadoFinal : null,
+          };
+        }),
+      };
+    });
   }, [snapshotData, unidadeId]);
 
   // Calcula totais
@@ -209,8 +236,13 @@ export default function BaselineTabBySitio({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[60%]">Cargo</TableHead>
-                <TableHead className="text-center">Quantidade</TableHead>
+                <TableHead className="w-[50%]">Cargo</TableHead>
+                <TableHead className="text-center">
+                  Quantidade (Atual)
+                </TableHead>
+                <TableHead className="text-center">
+                  Quantidade (Projetado)
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -218,7 +250,7 @@ export default function BaselineTabBySitio({
                 <React.Fragment key={`sitio-fragment-${sitio.id}`}>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableCell
-                      colSpan={2}
+                      colSpan={3}
                       className="font-semibold text-primary"
                     >
                       {sitio.nome}
@@ -236,8 +268,14 @@ export default function BaselineTabBySitio({
                       <TableCell className="font-medium pl-8">
                         {cargoSitio.cargoUnidade.cargo.nome}
                       </TableCell>
-                      <TableCell className="text-center font-bold text-lg">
+                      <TableCell className="text-center font-bold text-lg text-gray-700">
                         {cargoSitio.quantidade_funcionarios}
+                      </TableCell>
+                      <TableCell className="text-center font-bold text-lg text-primary">
+                        {cargoSitio.quantidade_projetada !== null &&
+                        cargoSitio.quantidade_projetada !== undefined
+                          ? cargoSitio.quantidade_projetada
+                          : "-"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -245,7 +283,7 @@ export default function BaselineTabBySitio({
                   {(sitio.cargosSitio || []).length === 0 && (
                     <TableRow>
                       <TableCell
-                        colSpan={2}
+                        colSpan={3}
                         className="text-center text-muted-foreground h-12 pl-8 italic"
                       >
                         Nenhum cargo associado a este sítio.
