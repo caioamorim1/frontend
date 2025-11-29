@@ -756,7 +756,7 @@ export default function HospitaisPage() {
                     <tr key={hospital.id} className="hover:bg-slate-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
                         <Link
-                          to={`/hospital/${hospital.id}/dashboard`}
+                          to={`/hospital/${hospital.id}/home`}
                           className="text-primary font-semibold hover:underline"
                         >
                           {hospital.nome}

@@ -134,7 +134,7 @@ const RedeSubMenu = ({
           {hospitais.map((hospital) => (
             <li key={hospital.id}>
               <NavLink
-                to={`/hospital/${hospital.id}/dashboard`}
+                to={`/hospital/${hospital.id}/home`}
                 className={({ isActive }) =>
                   `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${
                     isActive
@@ -372,7 +372,7 @@ export default function Sidebar() {
                       {hospitaisSemRede.map((hospital) => (
                         <li key={hospital.id}>
                           <NavLink
-                            to={`/hospital/${hospital.id}/dashboard`}
+                            to={`/hospital/${hospital.id}/home`}
                             className={({ isActive }) =>
                               `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${
                                 isActive
