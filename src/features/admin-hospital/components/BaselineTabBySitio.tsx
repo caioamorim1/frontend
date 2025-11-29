@@ -237,11 +237,9 @@ export default function BaselineTabBySitio({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50%]">Cargo</TableHead>
+                <TableHead className="text-center">Atual Baseline</TableHead>
                 <TableHead className="text-center">
-                  Quantidade (Atual)
-                </TableHead>
-                <TableHead className="text-center">
-                  Quantidade (Projetado)
+                  Projetado Baseline
                 </TableHead>
               </TableRow>
             </TableHeader>

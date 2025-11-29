@@ -150,13 +150,25 @@ export default function ProjetadoNaoInternacaoTab({
       // Recarrega os dados do backend para garantir que temos a versão mais recente
       const analiseData = await getAnaliseNaoInternacao(unidade.id);
       console.log(
+        "📥 [handleOpenSitioManager] RESPOSTA COMPLETA DA API:",
+        JSON.stringify(analiseData, null, 2)
+      );
+      console.log(
         "🔵 [handleOpenSitioManager] Dados recebidos do backend:",
         analiseData
+      );
+      console.log(
+        "📋 [handleOpenSitioManager] Tabela de sítios:",
+        analiseData?.tabela
       );
       if (analiseData && analiseData.tabela) {
         // Encontra o sítio atualizado
         const sitioAtualizado = analiseData.tabela.find(
           (s: any) => s.id === sitio.id
+        );
+        console.log(
+          "🎯 [handleOpenSitioManager] Sítio encontrado na resposta:",
+          sitioAtualizado
         );
         if (sitioAtualizado) {
           setManagingSitio(sitioAtualizado as SitioFuncional);
@@ -520,18 +532,20 @@ export default function ProjetadoNaoInternacaoTab({
                               {cargosDoSitio.length !== 1 ? "s" : ""})
                             </span>
                           </TableCell>
-                          <TableCell colSpan={3} className="text-right">
+                          <TableCell className="text-center"></TableCell>
+                          <TableCell className="text-center">
                             <button
                               onClick={() =>
                                 handleOpenSitioManager(sitio as SitioFuncional)
                               }
                               className="inline-flex items-center gap-1 text-green-600 hover:text-green-800 text-sm"
-                              title="Gerenciar Cargos"
+                              title="Gerar Cálculo"
                             >
                               <Users size={18} />
-                              <span>Gerenciar Cargos</span>
+                              <span>Gerar Cálculo</span>
                             </button>
                           </TableCell>
+                          <TableCell colSpan={4}></TableCell>
                         </TableRow>
 
                         {/* Linhas de Cargos do Sítio */}

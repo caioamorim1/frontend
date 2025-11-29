@@ -125,9 +125,7 @@ export default function DistribuicaoTurnosForm({
               />
             </div>
             <div>
-              <Label htmlFor={`${categoria}-seg-noite1`}>
-                Noite 1 (19h-1h)
-              </Label>
+              <Label htmlFor={`${categoria}-seg-noite1`}>Noite 1</Label>
               <Input
                 id={`${categoria}-seg-noite1`}
                 type="number"
@@ -141,7 +139,7 @@ export default function DistribuicaoTurnosForm({
               />
             </div>
             <div>
-              <Label htmlFor={`${categoria}-seg-noite2`}>Noite 2 (1h-7h)</Label>
+              <Label htmlFor={`${categoria}-seg-noite2`}>Noite 2</Label>
               <Input
                 id={`${categoria}-seg-noite2`}
                 type="number"
@@ -193,9 +191,7 @@ export default function DistribuicaoTurnosForm({
               />
             </div>
             <div>
-              <Label htmlFor={`${categoria}-sab-noite1`}>
-                Noite 1 (19h-1h)
-              </Label>
+              <Label htmlFor={`${categoria}-sab-noite1`}>Noite 1</Label>
               <Input
                 id={`${categoria}-sab-noite1`}
                 type="number"
@@ -209,7 +205,7 @@ export default function DistribuicaoTurnosForm({
               />
             </div>
             <div>
-              <Label htmlFor={`${categoria}-sab-noite2`}>Noite 2 (1h-7h)</Label>
+              <Label htmlFor={`${categoria}-sab-noite2`}>Noite 2</Label>
               <Input
                 id={`${categoria}-sab-noite2`}
                 type="number"
@@ -231,8 +227,7 @@ export default function DistribuicaoTurnosForm({
           <AlertDescription>
             <span className="font-bold">Importante:</span> Informe a quantidade
             de profissionais <span className="font-bold">por turno</span>, não o
-            total. O sistema calculará automaticamente o dimensionamento
-            semanal.
+            total. O sistema calculará automaticamente o dimensionamento mensal.
           </AlertDescription>
         </Alert>
       </div>
