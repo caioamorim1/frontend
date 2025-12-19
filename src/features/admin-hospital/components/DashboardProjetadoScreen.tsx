@@ -134,6 +134,7 @@ interface ProjectedSector {
 interface ProjectedData {
   internation: ProjectedSector[];
   assistance: ProjectedSector[];
+  neutral?: ProjectedSector[];
 }
 
 // --- COMPONENTES DAS ABAS (ADAPTADOS PARA DADOS PROJETADOS REAIS) ---
@@ -143,7 +144,7 @@ const GlobalTabContent: React.FC<{
   radarData: ChartDataItem[];
   isGlobalView?: boolean;
 }> = ({ sourceData, radarData, isGlobalView }) => {
-  const { internation, assistance } = sourceData;
+  const { internation, assistance, neutral } = sourceData;
 
   // ✅ Usar helper functions para compatibilidade
   const totalStaffInternation = internation.reduce(
@@ -170,8 +171,16 @@ const GlobalTabContent: React.FC<{
     0
   );
 
+  // Neutral sectors calculations (no staff, only cost)
+  const safeNeutral = neutral || [];
+  const amountTotalNeutral = safeNeutral.reduce(
+    (acc, sector) => acc + getProjectedCost(sector),
+    0
+  );
+
   const totalStaff = totalStaffInternation + totalStaffAssistance;
-  const amountTotal = amountTotalInternation + amountTotalAssistance;
+  const amountTotal =
+    amountTotalInternation + amountTotalAssistance + amountTotalNeutral;
 
   const chartDataInternation: ChartData[] = internation.map((item) => ({
     key: item.id,
@@ -195,9 +204,21 @@ const GlobalTabContent: React.FC<{
     ),
   }));
 
+  const chartDataNeutral: ChartData[] = safeNeutral.map((item) => ({
+    key: item.id,
+    name: item.name,
+    value: getProjectedCost(item),
+    color: generateBlueMonochromaticScale(
+      getProjectedCost(item),
+      0,
+      Math.max(...safeNeutral.map((i) => getProjectedCost(i)), 1)
+    ),
+  }));
+
   const chartDataProjetado: ChartData[] = [
     ...chartDataInternation,
     ...chartDataAssistance,
+    ...chartDataNeutral,
   ].sort((a, b) => b.value - a.value);
 
   return (
@@ -565,9 +586,10 @@ export const DashboardProjetadoScreen: React.FC<
         let transformed: ProjectedData = { internation: [], assistance: [] };
 
         if (resp.items && Array.isArray(resp.items)) {
-          // items is an array of regions/hospitals/groups that contain internation/assistance
+          // items is an array of regions/hospitals/groups that contain internation/assistance/neutral
           const allInternation: ProjectedSector[] = [];
           const allAssistance: ProjectedSector[] = [];
+          const allNeutral: ProjectedSector[] = [];
 
           resp.items.forEach((item: any, idx: number) => {
             if (item.internation && Array.isArray(item.internation)) {
@@ -576,16 +598,21 @@ export const DashboardProjetadoScreen: React.FC<
             if (item.assistance && Array.isArray(item.assistance)) {
               allAssistance.push(...item.assistance);
             }
+            if (item.neutral && Array.isArray(item.neutral)) {
+              allNeutral.push(...item.neutral);
+            }
           });
 
           transformed = {
             internation: allInternation,
             assistance: allAssistance,
+            neutral: allNeutral,
           };
-        } else if (resp.internation || resp.assistance) {
+        } else if (resp.internation || resp.assistance || resp.neutral) {
           transformed = {
             internation: resp.internation || [],
             assistance: resp.assistance || [],
+            neutral: resp.neutral || [],
           };
         }
 

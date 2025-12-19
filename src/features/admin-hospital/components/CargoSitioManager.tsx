@@ -15,6 +15,7 @@ interface CargoSitioManagerProps {
   sitio: SitioFuncional;
   onClose: () => void;
   onUpdate?: () => void;
+  disabled?: boolean;
 }
 
 export default function CargoSitioManager({
@@ -22,10 +23,12 @@ export default function CargoSitioManager({
   sitio,
   onClose,
   onUpdate,
+  disabled = false,
 }: CargoSitioManagerProps) {
   console.log("🟢 [CargoSitioManager] Componente montado");
   console.log("🟢 [CargoSitioManager] sitioId:", sitioId);
   console.log("🟢 [CargoSitioManager] sitio recebido:", sitio);
+  console.log("🟢 [CargoSitioManager] disabled:", disabled);
   console.log(
     "🟢 [CargoSitioManager] distribuicoes recebidas:",
     sitio.distribuicoes
@@ -168,6 +171,16 @@ export default function CargoSitioManager({
           Gerenciar Sítio: {sitio.nome}
         </h2>
 
+        {disabled && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-3 rounded-md flex items-center gap-2">
+            <AlertTriangle size={18} />
+            <span className="text-sm font-medium">
+              Este sítio possui pelo menos um cargo com entrega concluída. Os
+              campos estão bloqueados para edição.
+            </span>
+          </div>
+        )}
+
         {loading && <p>Carregando...</p>}
         {error && (
           <p className="text-red-500 text-sm bg-red-50 p-2 rounded flex items-center gap-2">
@@ -181,6 +194,7 @@ export default function CargoSitioManager({
             onChange={(novasDistribuicoes) => {
               setDistribuicoes(novasDistribuicoes);
             }}
+            readonly={disabled}
           />
           <div className="flex justify-end pt-4 border-t">
             <div className="flex gap-2">
@@ -188,7 +202,7 @@ export default function CargoSitioManager({
                 onClick={() => {
                   handleSaveDistribuicoes();
                 }}
-                disabled={saving}
+                disabled={saving || disabled}
                 className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
               >
                 <Save size={16} />

@@ -1,11 +1,13 @@
 import { SectorInternation } from "./internationDatabase";
 import { SectorAssistance } from "./noInternationDatabase";
+import { SectorNeutral } from "./neutralDatabase";
 import { getHospitalSectors, type HospitalSectorsData } from "@/lib/api";
 
 export type HospitalSector = {
   id: string;
   internation: SectorInternation[];
   assistance: SectorAssistance[];
+  neutral: SectorNeutral[];
 };
 
 // Cache simples para evitar múltiplas chamadas
@@ -25,11 +27,9 @@ export async function getAllHospitalSectors(
   }
 
   try {
-    
     const apiData: HospitalSectorsData = await getHospitalSectors(hospitalId);
-   
 
-    const { id, internation, assistance } = apiData;
+    const { id, internation, assistance, neutral } = apiData;
 
     // Transforma os dados da API para o formato esperado pelos componentes
 
@@ -136,13 +136,31 @@ export async function getAllHospitalSectors(
       };
     });
 
+    // Transforma os dados de unidades neutras
+    const neutralTransformed = (neutral || []).map((sector) => {
+      const { id, name, descr, costAmount, status } = sector;
+
+      // costAmount já vem como number da API
+      const costAmountParsed =
+        typeof costAmount === "number"
+          ? costAmount
+          : parseFloat(String(costAmount)) || 0;
+
+      return {
+        id,
+        name,
+        descr: descr || "",
+        costAmount: costAmountParsed,
+        status: status || "inativo",
+      };
+    });
+
     const transformedData: HospitalSector = {
       id,
       internation: internationTransformed,
       assistance: assistanceTransformed,
+      neutral: neutralTransformed,
     };
-
-
 
     // Atualiza cache
     cachedData = transformedData;

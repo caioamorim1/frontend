@@ -9,6 +9,7 @@ import {
   SessaoAtiva,
   StatusLeito,
   admitirPaciente,
+  getUltimoProntuarioLeito,
 } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -49,6 +50,7 @@ interface ActionModalState {
   isOpen: boolean;
   leito: Leito | null;
   action: ModalAction | null;
+  suggestedProntuario?: string;
 }
 
 interface AvaliacaoModalState {
@@ -65,6 +67,18 @@ const ActionModal: FC<{
 }> = ({ modalState, onClose, onSubmit }) => {
   const [inputValue, setInputValue] = useState("");
   const { showAlert } = useAlert();
+
+  useEffect(() => {
+    if (modalState.isOpen && modalState.suggestedProntuario) {
+      console.log(
+        "Preenchendo campo com prontuário sugerido:",
+        modalState.suggestedProntuario
+      );
+      setInputValue(modalState.suggestedProntuario);
+    } else {
+      setInputValue("");
+    }
+  }, [modalState.isOpen, modalState.suggestedProntuario]);
 
   const modalConfig = {
     EVALUATE: {
@@ -164,7 +178,8 @@ const ActionModal: FC<{
 const EvaluationDetailsModal: FC<{
   sessao: SessaoAtiva | null;
   onClose: () => void;
-}> = ({ sessao, onClose }) => {
+  onEdit: (sessao: SessaoAtiva) => void;
+}> = ({ sessao, onClose, onEdit }) => {
   if (!sessao) return null;
 
   // A API não retorna a data da avaliação na SessaoAtiva. Se retornar no futuro, basta substituir aqui.
@@ -200,6 +215,12 @@ const EvaluationDetailsModal: FC<{
               </p>
             </div>
           </div>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              Fechar
+            </Button>
+            <Button onClick={() => onEdit(sessao)}>Editar Avaliação</Button>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -210,7 +231,7 @@ const EvaluationDetailsModal: FC<{
 const LeitoCard: FC<{
   leito: Leito;
   sessao?: SessaoAtiva;
-  onAction: (leito: Leito, action: ModalAction) => void;
+  onAction: (leito: Leito, action: ModalAction) => Promise<void>;
   onSetStatus: (leitoId: string, status: StatusLeito) => void;
   onShowDetails: (sessao: SessaoAtiva) => void;
 }> = ({ leito, sessao, onAction, onSetStatus, onShowDetails }) => {
@@ -336,6 +357,10 @@ export default function VisaoLeitosPage() {
       leitoId: "",
       prontuario: "",
     });
+  const [editAvaliacaoModalState, setEditAvaliacaoModalState] = useState<{
+    isOpen: boolean;
+    sessao: SessaoAtiva | null;
+  }>({ isOpen: false, sessao: null });
 
   const fetchData = async () => {
     if (!unidadeId) return;
@@ -401,6 +426,47 @@ export default function VisaoLeitosPage() {
     } catch (error) {
       showAlert("destructive", "Erro", "Não foi possível iniciar a avaliação.");
     }
+  };
+
+  const handleOpenActionModal = async (leito: Leito, action: ModalAction) => {
+    let suggestedProntuario = undefined;
+
+    // Se for ação de avaliar, buscar último prontuário
+    if (action === "EVALUATE") {
+      try {
+        console.log("Buscando último prontuário para leito:", leito.id);
+        const ultimoProntuario = await getUltimoProntuarioLeito(leito.id);
+        if (ultimoProntuario && ultimoProntuario.prontuario) {
+          suggestedProntuario = ultimoProntuario.prontuario;
+          console.log("✅ Prontuário encontrado:", {
+            prontuario: suggestedProntuario,
+            dataAplicacao: ultimoProntuario.dataAplicacao,
+            avaliacaoId: ultimoProntuario.avaliacaoId,
+          });
+        } else {
+          console.log(
+            "ℹ️ Nenhum prontuário anterior encontrado para este leito"
+          );
+        }
+      } catch (err: any) {
+        console.warn(
+          "⚠️ Erro ao buscar prontuário (continuando sem sugestão):",
+          {
+            leitoId: leito.id,
+            status: err.response?.status,
+            message: err.response?.data?.message || err.message,
+          }
+        );
+        // Continua normalmente sem prontuário sugerido
+      }
+    }
+
+    setActionModalState({
+      isOpen: true,
+      leito,
+      action,
+      suggestedProntuario,
+    });
   };
 
   const handleModalSubmit = (leitoId: string, value: string) => {
@@ -472,6 +538,10 @@ export default function VisaoLeitosPage() {
       <EvaluationDetailsModal
         sessao={detailsModalSessao}
         onClose={() => setDetailsModalSessao(null)}
+        onEdit={(sessao) => {
+          setDetailsModalSessao(null);
+          setEditAvaliacaoModalState({ isOpen: true, sessao });
+        }}
       />
 
       <div className="space-y-4">
@@ -530,9 +600,7 @@ export default function VisaoLeitosPage() {
               key={leito.id}
               leito={leito}
               sessao={sessoesPorLeitoId.get(leito.id)}
-              onAction={(leito, action) =>
-                setActionModalState({ isOpen: true, leito, action })
-              }
+              onAction={handleOpenActionModal}
               onSetStatus={handleSetStatus}
               onShowDetails={(sessao) => setDetailsModalSessao(sessao)}
             />
@@ -568,6 +636,26 @@ export default function VisaoLeitosPage() {
               leitoId: "",
               prontuario: "",
             });
+          }}
+        />
+      )}
+
+      {/* Modal de Edição de Avaliação SCP */}
+      {unidadeId && hospitalId && editAvaliacaoModalState.sessao && (
+        <AvaliacaoScpModal
+          isOpen={editAvaliacaoModalState.isOpen}
+          onClose={() =>
+            setEditAvaliacaoModalState({ isOpen: false, sessao: null })
+          }
+          unidadeId={unidadeId}
+          leitoId={editAvaliacaoModalState.sessao.leito.id}
+          prontuario={editAvaliacaoModalState.sessao.prontuario}
+          hospitalId={hospitalId}
+          sessaoId={editAvaliacaoModalState.sessao.id}
+          respostasIniciais={editAvaliacaoModalState.sessao.itens || {}}
+          onSuccess={() => {
+            fetchData();
+            setEditAvaliacaoModalState({ isOpen: false, sessao: null });
           }}
         />
       )}

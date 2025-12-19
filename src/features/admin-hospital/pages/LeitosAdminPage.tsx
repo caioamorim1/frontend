@@ -26,7 +26,11 @@ export default function LeitosAdminPage() {
     setError(null);
     try {
       const data = await getLeitosByUnidade(setorId);
-      setLeitos(data);
+      // Ordenar leitos em ordem crescente pelo número
+      const leitosOrdenados = data.sort((a, b) =>
+        a.numero.localeCompare(b.numero, undefined, { numeric: true })
+      );
+      setLeitos(leitosOrdenados);
     } catch (err) {
       setError("Falha ao carregar os leitos.");
     } finally {

@@ -40,92 +40,30 @@ export default function BaselinePage() {
 
   // Função para calcular a variação de custo de um snapshot
   const calcularVariacaoCusto = (snapshot: Snapshot) => {
-    if (!snapshot?.dados) return null;
+    console.log(
+      "📊 [BaselinePage] Calculando variação de custo. Snapshot:",
+      snapshot
+    );
 
-    let custoAtualTotal = 0;
-    let custoProjetadoTotal = 0;
+    if (!snapshot?.resumo) {
+      console.log("⚠️ [BaselinePage] Snapshot sem resumo");
+      return null;
+    }
 
-    // Processar unidades de internação
-    const internacao = snapshot.dados.internation || [];
-    const projetadoInternacao = snapshot.dados.projetadoFinal?.internacao || [];
+    console.log("📊 [BaselinePage] Resumo do snapshot:", snapshot.resumo);
 
-    internacao.forEach((unidade: any) => {
-      // Custo atual da unidade
-      const custoAtual = unidade.costAmount || 0;
-      custoAtualTotal += custoAtual;
+    const custoAtualTotal = snapshot.resumo.custoTotal || 0;
+    const custoProjetadoTotal = snapshot.resumo.custoTotalProjetado || 0;
+    const variacao = custoProjetadoTotal - custoAtualTotal;
+    const percentualVariacao =
+      custoAtualTotal > 0 ? (variacao / custoAtualTotal) * 100 : 0;
 
-      // Encontrar dados projetados desta unidade
-      const unidadeProjetada = projetadoInternacao.find(
-        (up: any) => up.unidadeId === unidade.id
-      );
-
-      if (unidadeProjetada && unidadeProjetada.cargos) {
-        // Calcular custo projetado baseado nos cargos
-        let custoProjetadoUnidade = 0;
-        
-        unidadeProjetada.cargos.forEach((cargoProj: any) => {
-          // Encontrar o cargo no staff atual para pegar o unitCost
-          const cargoAtual = unidade.staff?.find(
-            (s: any) => s.id === cargoProj.cargoId
-          );
-          
-          if (cargoAtual) {
-            const unitCost = cargoAtual.unitCost || 0;
-            const quantidadeProjetada = cargoProj.projetadoFinal || 0;
-            custoProjetadoUnidade += unitCost * quantidadeProjetada;
-          }
-        });
-        
-        custoProjetadoTotal += custoProjetadoUnidade;
-      } else {
-        // Se não há projetado, mantém o custo atual
-        custoProjetadoTotal += custoAtual;
-      }
+    console.log("📊 [BaselinePage] Resultados do cálculo:", {
+      custoAtualTotal,
+      custoProjetadoTotal,
+      variacao,
+      percentualVariacao,
     });
-
-    // Processar unidades de não-internação (assistência)
-    const assistance = snapshot.dados.assistance || [];
-    const projetadoAssistencia = snapshot.dados.projetadoFinal?.naoInternacao || [];
-
-    assistance.forEach((unidade: any) => {
-      const custoAtual = unidade.costAmount || 0;
-      custoAtualTotal += custoAtual;
-
-      const unidadeProjetada = projetadoAssistencia.find(
-        (up: any) => up.unidadeId === unidade.id
-      );
-
-      if (unidadeProjetada && unidadeProjetada.sitios) {
-        let custoProjetadoUnidade = 0;
-        
-        unidadeProjetada.sitios.forEach((sitio: any) => {
-          sitio.cargos?.forEach((cargoProj: any) => {
-            // Encontrar o cargo no staff atual
-            const sitioAtual = unidade.functionalSites?.find(
-              (fs: any) => fs.id === sitio.sitioId
-            );
-            const cargoAtual = sitioAtual?.staff?.find(
-              (s: any) => s.id === cargoProj.cargoId
-            );
-            
-            if (cargoAtual) {
-              const unitCost = cargoAtual.unitCost || 0;
-              const quantidadeProjetada = cargoProj.projetadoFinal || 0;
-              custoProjetadoUnidade += unitCost * quantidadeProjetada;
-            }
-          });
-        });
-        
-        custoProjetadoTotal += custoProjetadoUnidade;
-      } else {
-        custoProjetadoTotal += custoAtual;
-      }
-    });
-
-    const variacao = custoProjetadoTotal - (custoAtualTotal / 100);
-    const percentualVariacao = custoAtualTotal > 0 
-      ? (variacao / (custoAtualTotal / 100)) * 100 
-      : 0;
 
     return {
       custoAtual: custoAtualTotal,
@@ -152,8 +90,7 @@ export default function BaselinePage() {
       const snapshotSelecionado = snapshotsData.snapshots?.find(
         (s) => s.selecionado === true
       );
-  
-      
+
       if (snapshotSelecionado) {
         setSelectedSnapshotId(snapshotSelecionado.id);
       }
@@ -291,7 +228,7 @@ export default function BaselinePage() {
             <div className="space-y-3">
               {snapshots.map((snapshot) => {
                 const variacaoCusto = calcularVariacaoCusto(snapshot);
-                
+
                 return (
                   <div
                     key={snapshot.id}
@@ -312,16 +249,21 @@ export default function BaselinePage() {
                         <div className="flex gap-4 mt-2 text-sm">
                           <span className="text-muted-foreground">
                             Profissionais:{" "}
-                            <strong>{snapshot.resumo.totalProfissionais}</strong>
+                            <strong>
+                              {snapshot.resumo.totalProfissionais}
+                            </strong>
                           </span>
                           <span className="text-muted-foreground">
                             Custo Atual:{" "}
                             <strong>
                               R${" "}
-                              {(snapshot.resumo.custoTotal / 100).toLocaleString('pt-BR', { 
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2 
-                              })}
+                              {snapshot.resumo.custoTotal.toLocaleString(
+                                "pt-BR",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                }
+                              )}
                             </strong>
                           </span>
                           {variacaoCusto && (
@@ -329,21 +271,30 @@ export default function BaselinePage() {
                               <span className="text-muted-foreground">
                                 Custo Projetado:{" "}
                                 <strong>
-                                  R$ {variacaoCusto.custoProjetado.toLocaleString('pt-BR', { 
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2 
-                                  })}
+                                  R${" "}
+                                  {variacaoCusto.custoProjetado.toLocaleString(
+                                    "pt-BR",
+                                    {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    }
+                                  )}
                                 </strong>
                               </span>
                               <span className="text-muted-foreground">
                                 Variação:{" "}
                                 <strong>
-                                  {variacaoCusto.variacao > 0 ? '+' : ''}
-                                  R$ {Math.abs(variacaoCusto.variacao).toLocaleString('pt-BR', { 
+                                  {variacaoCusto.variacao > 0 ? "+" : ""}
+                                  R${" "}
+                                  {Math.abs(
+                                    variacaoCusto.variacao
+                                  ).toLocaleString("pt-BR", {
                                     minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2 
-                                  })}
-                                  {' '}({variacaoCusto.variacao > 0 ? '+' : ''}{variacaoCusto.percentualVariacao.toFixed(2)}%)
+                                    maximumFractionDigits: 2,
+                                  })}{" "}
+                                  ({variacaoCusto.variacao > 0 ? "+" : ""}
+                                  {variacaoCusto.percentualVariacao.toFixed(2)}
+                                  %)
                                 </strong>
                               </span>
                             </>
@@ -360,7 +311,9 @@ export default function BaselinePage() {
                     </div>
                     <Button
                       variant={
-                        selectedSnapshotId === snapshot.id ? "default" : "outline"
+                        selectedSnapshotId === snapshot.id
+                          ? "default"
+                          : "outline"
                       }
                       size="sm"
                       onClick={() => handleSelecionarBaseline(snapshot.id)}

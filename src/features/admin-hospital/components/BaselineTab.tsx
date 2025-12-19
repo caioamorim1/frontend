@@ -306,10 +306,10 @@ export default function QuadroFuncionariosResumo({
                 Cargo
               </th>
               <th scope="col" className="px-6 py-3 text-right">
-                Nº de Funcionários (Atual)
+                Atual Baseline
               </th>
               <th scope="col" className="px-6 py-3 text-right">
-                Nº de Funcionários (Projetado)
+                Projetado Baseline
               </th>
             </tr>
           </thead>

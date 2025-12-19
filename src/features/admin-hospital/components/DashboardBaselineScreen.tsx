@@ -238,6 +238,7 @@ const GlobalTabContent: React.FC<{
 }> = ({ sourceData, radarData, isGlobalView }) => {
   const internation = sourceData?.internation || [];
   const assistance = sourceData?.assistance || [];
+  const neutral = sourceData?.neutral || [];
 
   const totalStaffInternation = internation.reduce(
     (acc, sector) => acc + sumStaff(sector),
@@ -257,8 +258,28 @@ const GlobalTabContent: React.FC<{
     0
   );
 
+  // Neutral sectors: only cost, no staff
+  const amountTotalNeutral = neutral.reduce(
+    (acc, sector) => acc + parseCostUtil(sector.costAmount),
+    0
+  );
+
   const totalStaff = totalStaffInternation + totalStaffAssistance;
-  const amountTotal = amountTotalInternation + amountTotalAssistance;
+  const amountTotal =
+    amountTotalInternation + amountTotalAssistance + amountTotalNeutral;
+
+  console.log("📊 [DashboardBaselineScreen] Valores calculados:", {
+    internationCount: internation.length,
+    assistanceCount: assistance.length,
+    neutralCount: neutral.length,
+    amountTotalInternation,
+    amountTotalAssistance,
+    amountTotalNeutral,
+    amountTotal,
+    totalStaff,
+    internationSample: internation[0],
+    neutralSample: neutral[0],
+  });
 
   const chartDataInternation: ChartData[] = internation
     ? internation.map((item) => ({
@@ -286,9 +307,23 @@ const GlobalTabContent: React.FC<{
       }))
     : [];
 
+  const chartDataNeutral: ChartData[] = neutral
+    ? neutral.map((item) => ({
+        key: item.id,
+        name: item.name,
+        value: parseCostUtil(item.costAmount),
+        color: generateBlueMonochromaticScale(
+          parseCostUtil(item.costAmount),
+          0,
+          Math.max(...neutral.map((i) => parseCostUtil(i.costAmount)), 1)
+        ),
+      }))
+    : [];
+
   const chartDataAtual: ChartData[] = [
     ...chartDataInternation,
     ...chartDataAssistance,
+    ...chartDataNeutral,
   ].sort((a, b) => b.value - a.value);
 
   return (
@@ -785,9 +820,10 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
           dashboardData = {
             internation: props.externalData.internation || [],
             assistance: props.externalData.assistance || [],
+            neutral: props.externalData.neutral || [],
           };
         } else {
-          dashboardData = { internation: [], assistance: [] };
+          dashboardData = { internation: [], assistance: [], neutral: [] };
         }
       } else {
         const snapshotData = await getAllSnapshotHospitalSectors(hospitalId); // Usa hospitalId da URL

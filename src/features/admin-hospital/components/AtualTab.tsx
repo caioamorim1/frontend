@@ -120,28 +120,78 @@ const AjusteInput = ({
 }: {
   value: number;
   onChange: (newValue: number) => void;
-}) => (
-  <div className="flex items-center justify-center gap-2">
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-7 w-7"
-      onClick={() => onChange(value - 1)}
-      disabled={value <= 0}
-    >
-      <MinusCircle className="h-5 w-5 text-red-500" />
-    </Button>
-    <span className="font-bold text-lg w-10 text-center">{value}</span>
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-7 w-7"
-      onClick={() => onChange(value + 1)}
-    >
-      <PlusCircle className="h-5 w-5 text-green-500" />
-    </Button>
-  </div>
-);
+}) => {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [tempValue, setTempValue] = React.useState(value.toString());
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleSave = () => {
+    const newValue = Math.max(0, parseInt(tempValue) || 0);
+    onChange(newValue);
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSave();
+    } else if (e.key === "Escape") {
+      setTempValue(value.toString());
+      setIsEditing(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-center gap-2">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7"
+        onClick={() => onChange(value - 1)}
+        disabled={value <= 0}
+      >
+        <MinusCircle className="h-5 w-5 text-red-500" />
+      </Button>
+      {isEditing ? (
+        <input
+          ref={inputRef}
+          type="number"
+          min="0"
+          value={tempValue}
+          onChange={(e) => setTempValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          className="font-bold text-lg w-16 text-center border rounded px-1 focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      ) : (
+        <span
+          className="font-bold text-lg w-10 text-center cursor-pointer hover:bg-gray-100 rounded px-2 py-1"
+          onClick={() => {
+            setTempValue(value.toString());
+            setIsEditing(true);
+          }}
+          title="Clique para editar"
+        >
+          {value}
+        </span>
+      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7"
+        onClick={() => onChange(value + 1)}
+      >
+        <PlusCircle className="h-5 w-5 text-green-500" />
+      </Button>
+    </div>
+  );
+};
 
 export default function AtualTab({
   unidade,

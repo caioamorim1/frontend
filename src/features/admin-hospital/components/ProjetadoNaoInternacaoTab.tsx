@@ -68,39 +68,89 @@ const AjusteInput = ({
   value: number;
   onChange: (newValue: number) => void;
   disabled?: boolean;
-}) => (
-  <div className="flex items-center justify-center gap-2">
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-7 w-7"
-      onClick={() => onChange(value - 1)}
-      disabled={disabled}
-    >
-      <MinusCircle
-        className={`h-5 w-5 ${disabled ? "text-gray-300" : "text-red-500"}`}
-      />
-    </Button>
-    <span
-      className={`font-bold text-lg w-8 text-center ${
-        disabled ? "text-gray-400" : ""
-      }`}
-    >
-      {value}
-    </span>
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-7 w-7"
-      onClick={() => onChange(value + 1)}
-      disabled={disabled}
-    >
-      <PlusCircle
-        className={`h-5 w-5 ${disabled ? "text-gray-300" : "text-green-500"}`}
-      />
-    </Button>
-  </div>
-);
+}) => {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [tempValue, setTempValue] = React.useState(value.toString());
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleSave = () => {
+    const newValue = parseInt(tempValue) || 0;
+    onChange(newValue);
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSave();
+    } else if (e.key === "Escape") {
+      setTempValue(value.toString());
+      setIsEditing(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-center gap-2">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7"
+        onClick={() => onChange(value - 1)}
+        disabled={disabled}
+      >
+        <MinusCircle
+          className={`h-5 w-5 ${disabled ? "text-gray-300" : "text-red-500"}`}
+        />
+      </Button>
+      {isEditing ? (
+        <input
+          ref={inputRef}
+          type="number"
+          value={tempValue}
+          onChange={(e) => setTempValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+          className="font-bold text-lg w-16 text-center border rounded px-1 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+        />
+      ) : (
+        <span
+          className={`font-bold text-lg w-8 text-center ${
+            disabled
+              ? "text-gray-400"
+              : "cursor-pointer hover:bg-gray-100 rounded px-2 py-1"
+          }`}
+          onClick={() => {
+            if (!disabled) {
+              setTempValue(value.toString());
+              setIsEditing(true);
+            }
+          }}
+          title={disabled ? "" : "Clique para editar"}
+        >
+          {value}
+        </span>
+      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7"
+        onClick={() => onChange(value + 1)}
+        disabled={disabled}
+      >
+        <PlusCircle
+          className={`h-5 w-5 ${disabled ? "text-gray-300" : "text-green-500"}`}
+        />
+      </Button>
+    </div>
+  );
+};
 
 interface ProjetadoNaoInternacaoTabProps {
   unidade: UnidadeNaoInternacao;
@@ -136,62 +186,19 @@ export default function ProjetadoNaoInternacaoTab({
     cargoNome: string;
   }>({ isOpen: false, cargoId: "", cargoNome: "" });
 
-  // Função para abrir o modal com dados atualizados do backend
-  const handleOpenSitioManager = async (sitio: SitioFuncional) => {
+  // Função para abrir o modal com dados locais (sem buscar do backend)
+  const handleOpenSitioManager = (sitio: GrupoDeCargos) => {
     console.log(
       "🔵 [handleOpenSitioManager] Abrindo modal para sítio:",
       sitio.nome
     );
+    console.log("🔵 [handleOpenSitioManager] Sítio completo:", sitio);
     console.log(
       "🔵 [handleOpenSitioManager] Distribuições atuais do sítio:",
-      sitio.distribuicoes
+      (sitio as any).distribuicoes
     );
-    try {
-      // Recarrega os dados do backend para garantir que temos a versão mais recente
-      const analiseData = await getAnaliseNaoInternacao(unidade.id);
-      console.log(
-        "📥 [handleOpenSitioManager] RESPOSTA COMPLETA DA API:",
-        JSON.stringify(analiseData, null, 2)
-      );
-      console.log(
-        "🔵 [handleOpenSitioManager] Dados recebidos do backend:",
-        analiseData
-      );
-      console.log(
-        "📋 [handleOpenSitioManager] Tabela de sítios:",
-        analiseData?.tabela
-      );
-      if (analiseData && analiseData.tabela) {
-        // Encontra o sítio atualizado
-        const sitioAtualizado = analiseData.tabela.find(
-          (s: any) => s.id === sitio.id
-        );
-        console.log(
-          "🎯 [handleOpenSitioManager] Sítio encontrado na resposta:",
-          sitioAtualizado
-        );
-        if (sitioAtualizado) {
-          setManagingSitio(sitioAtualizado as SitioFuncional);
-        } else {
-          console.warn(
-            "⚠️ [handleOpenSitioManager] Sítio não encontrado nos dados atualizados, usando dados locais"
-          );
-          setManagingSitio(sitio);
-        }
-      } else {
-        console.warn(
-          "⚠️ [handleOpenSitioManager] Dados do backend vazios, usando dados locais"
-        );
-        setManagingSitio(sitio);
-      }
-    } catch (error) {
-      console.error(
-        "❌ [handleOpenSitioManager] Erro ao carregar dados atualizados do sítio:",
-        error
-      );
-      // Em caso de erro, abre com os dados que temos
-      setManagingSitio(sitio);
-    }
+    // Usa os dados locais da analiseBase para garantir que reflete mudanças não salvas
+    setManagingSitio(sitio as any);
   };
 
   useEffect(() => {
@@ -276,10 +283,19 @@ export default function ProjetadoNaoInternacaoTab({
   };
 
   const handleStatusChange = (cargoId: string, status: string) => {
-    setMetadata((prev) => ({
-      ...prev,
-      [cargoId]: { ...prev[cargoId], status },
-    }));
+    console.log("📝 [handleStatusChange] Status alterado:");
+    console.log("   - cargoId (key):", cargoId);
+    console.log("   - novo status:", status);
+    console.log("   - metadata anterior:", metadata);
+    
+    setMetadata((prev) => {
+      const novoMetadata = {
+        ...prev,
+        [cargoId]: { ...prev[cargoId], status },
+      };
+      console.log("   - metadata atualizado:", novoMetadata);
+      return novoMetadata;
+    });
   };
 
   const handleOpenObservacaoModal = (cargoId: string, cargoNome: string) => {
@@ -393,12 +409,55 @@ export default function ProjetadoNaoInternacaoTab({
     return total;
   };
 
+  // Verificar se algum cargo do sítio gerenciado tem status concluído
+  const verificarStatusConcluido = (sitio: GrupoDeCargos): boolean => {
+    if (!sitio.cargos) {
+      console.log("⚠️ [verificarStatusConcluido] Sítio sem cargos");
+      return false;
+    }
+
+    console.log("🔍 [verificarStatusConcluido] Verificando sítio:", sitio.nome);
+    console.log(
+      "🔍 [verificarStatusConcluido] sitio.cargos:",
+      sitio.cargos
+    );
+    console.log("🔍 [verificarStatusConcluido] Metadata atual:", metadata);
+
+    const hasCompletedCargo = sitio.cargos.some((cargo) => {
+      // Usar a mesma estrutura de chave que é usada na tabela
+      const key = cargo.cargoId + sitio.id;
+      const meta = metadata[key];
+      const isCompleted =
+        meta?.status === "concluido_parcial" ||
+        meta?.status === "concluido_final";
+
+      console.log(
+        `🔍 [verificarStatusConcluido] Cargo: ${cargo.cargoNome}`
+      );
+      console.log(`   - cargoId: ${cargo.cargoId}`);
+      console.log(`   - sitioId: ${sitio.id}`);
+      console.log(`   - Key: ${key}`);
+      console.log(`   - Metadata: ${JSON.stringify(meta)}`);
+      console.log(`   - Status: ${meta?.status}`);
+      console.log(`   - Concluído: ${isCompleted}`);
+
+      return isCompleted;
+    });
+
+    console.log(
+      "🔍 [verificarStatusConcluido] Resultado final:",
+      hasCompletedCargo
+    );
+    return hasCompletedCargo;
+  };
+
   return (
     <>
       {managingSitio && (
         <CargoSitioManager
           sitioId={managingSitio.id}
           sitio={managingSitio}
+          disabled={verificarStatusConcluido(managingSitio)}
           onClose={() => {
             setManagingSitio(null);
             // Recarrega os dados após fechar o modal
@@ -536,7 +595,7 @@ export default function ProjetadoNaoInternacaoTab({
                           <TableCell className="text-center">
                             <button
                               onClick={() =>
-                                handleOpenSitioManager(sitio as SitioFuncional)
+                                handleOpenSitioManager(sitio)
                               }
                               className="inline-flex items-center gap-1 text-green-600 hover:text-green-800 text-sm"
                               title="Gerar Cálculo"
