@@ -71,38 +71,56 @@ export const EvaluationsTab: React.FC<{
 
   const handleSaveEvaluation = (evaluationData: EvaluationDTO) => {
     console.log("🔍 [handleSaveEvaluation] Iniciando salvamento da avaliação");
-    console.log("🔍 [handleSaveEvaluation] unidadeInternacao:", unidadeInternacao);
-    console.log("🔍 [handleSaveEvaluation] unidadeNaoInternacao:", unidadeNaoInternacao);
-    console.log("🔍 [handleSaveEvaluation] evaluationData recebida:", evaluationData);
-    
+    console.log(
+      "🔍 [handleSaveEvaluation] unidadeInternacao:",
+      unidadeInternacao
+    );
+    console.log(
+      "🔍 [handleSaveEvaluation] unidadeNaoInternacao:",
+      unidadeNaoInternacao
+    );
+    console.log(
+      "🔍 [handleSaveEvaluation] evaluationData recebida:",
+      evaluationData
+    );
+
     if (!evaluationData || !evaluationData.questionnaireId) {
       showAlert("destructive", "Dados da avaliação inválidos.", "error");
       return;
     }
-    
+
     // Atribuir sectorId
     evaluationData.sectorId = unidadeInternacao
       ? unidadeInternacao.id
       : unidadeNaoInternacao
       ? unidadeNaoInternacao.id
       : null;
-    
+
     // Atribuir hospitalId
     evaluationData.hospitalId = unidadeInternacao
-      ? unidadeInternacao.hospital?.id || unidadeInternacao.hospitalId
+      ? unidadeInternacao.hospitalId
       : unidadeNaoInternacao
-      ? unidadeNaoInternacao.hospital?.id || unidadeNaoInternacao.hospitalId
+      ? unidadeNaoInternacao.hospitalId
       : null;
-    
-    console.log("🔍 [handleSaveEvaluation] sectorId atribuído:", evaluationData.sectorId);
-    console.log("🔍 [handleSaveEvaluation] hospitalId atribuído:", evaluationData.hospitalId);
-    console.log("🔍 [handleSaveEvaluation] evaluationData completa:", evaluationData);
-    
+
+    console.log(
+      "🔍 [handleSaveEvaluation] sectorId atribuído:",
+      evaluationData.sectorId
+    );
+    console.log(
+      "🔍 [handleSaveEvaluation] hospitalId atribuído:",
+      evaluationData.hospitalId
+    );
+    console.log(
+      "🔍 [handleSaveEvaluation] evaluationData completa:",
+      evaluationData
+    );
+
     if (!evaluationData.sectorId) {
       showAlert("destructive", "Setor inválido para a avaliação.", "error");
       return;
     }
-    
+
     if (!evaluationData.hospitalId) {
       showAlert("destructive", "Hospital inválido para a avaliação.", "error");
       return;
@@ -122,11 +140,18 @@ export const EvaluationsTab: React.FC<{
           showAlert("success", "Avaliação criada com sucesso!", "success");
         })
         .catch((error) => {
-          console.error("❌ [handleSaveEvaluation] Erro ao criar avaliação:", error);
-          console.error("❌ [handleSaveEvaluation] Erro completo:", error.response?.data);
+          console.error(
+            "❌ [handleSaveEvaluation] Erro ao criar avaliação:",
+            error
+          );
+          console.error(
+            "❌ [handleSaveEvaluation] Erro completo:",
+            error.response?.data
+          );
           showAlert(
             "destructive",
-            "Erro ao criar avaliação: " + (error.response?.data?.message || error.message),
+            "Erro ao criar avaliação: " +
+              (error.response?.data?.message || error.message),
             "error"
           );
         });

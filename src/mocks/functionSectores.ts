@@ -206,6 +206,7 @@ export async function getAllHospitalSectors(
       id: hospitalId,
       internation: [],
       assistance: [],
+      neutral: [],
     };
   }
 }

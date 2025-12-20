@@ -177,7 +177,7 @@ export default function ProjetadoNaoInternacaoTab({
   const [ajustes, setAjustes] = useState<AjustesPayload>({});
   const [metadata, setMetadata] = useState<Record<string, CargoMetadata>>({});
   const [showAvaliarPage, setShowAvaliarPage] = useState(false);
-  const [managingSitio, setManagingSitio] = useState<SitioFuncional | null>(
+  const [managingSitio, setManagingSitio] = useState<GrupoDeCargos | null>(
     null
   );
   const [modalObservacao, setModalObservacao] = useState<{
@@ -287,7 +287,7 @@ export default function ProjetadoNaoInternacaoTab({
     console.log("   - cargoId (key):", cargoId);
     console.log("   - novo status:", status);
     console.log("   - metadata anterior:", metadata);
-    
+
     setMetadata((prev) => {
       const novoMetadata = {
         ...prev,
@@ -417,10 +417,7 @@ export default function ProjetadoNaoInternacaoTab({
     }
 
     console.log("🔍 [verificarStatusConcluido] Verificando sítio:", sitio.nome);
-    console.log(
-      "🔍 [verificarStatusConcluido] sitio.cargos:",
-      sitio.cargos
-    );
+    console.log("🔍 [verificarStatusConcluido] sitio.cargos:", sitio.cargos);
     console.log("🔍 [verificarStatusConcluido] Metadata atual:", metadata);
 
     const hasCompletedCargo = sitio.cargos.some((cargo) => {
@@ -431,9 +428,7 @@ export default function ProjetadoNaoInternacaoTab({
         meta?.status === "concluido_parcial" ||
         meta?.status === "concluido_final";
 
-      console.log(
-        `🔍 [verificarStatusConcluido] Cargo: ${cargo.cargoNome}`
-      );
+      console.log(`🔍 [verificarStatusConcluido] Cargo: ${cargo.cargoNome}`);
       console.log(`   - cargoId: ${cargo.cargoId}`);
       console.log(`   - sitioId: ${sitio.id}`);
       console.log(`   - Key: ${key}`);
@@ -594,9 +589,7 @@ export default function ProjetadoNaoInternacaoTab({
                           <TableCell className="text-center"></TableCell>
                           <TableCell className="text-center">
                             <button
-                              onClick={() =>
-                                handleOpenSitioManager(sitio)
-                              }
+                              onClick={() => handleOpenSitioManager(sitio)}
                               className="inline-flex items-center gap-1 text-green-600 hover:text-green-800 text-sm"
                               title="Gerar Cálculo"
                             >

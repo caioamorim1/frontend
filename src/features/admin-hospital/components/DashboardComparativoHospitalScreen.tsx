@@ -189,8 +189,18 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       baseSectors = sectors.assistance;
     }
 
-    // Criar lista de setores para o dropdown
-    const setorList = baseSectors.map((s) => ({ id: s.id, name: s.name }));
+    // Criar lista de setores para o dropdown (excluindo unidades neutras)
+    const setorList = baseSectors
+      .filter((s) => (s as any).tipo !== "NEUTRAL")
+      .map((s) => ({ id: s.id, name: s.name }));
+
+    const selectedSectorName =
+      selectedSector === "all"
+        ? null
+        : setorList.find((s) => s.id === selectedSector)?.name || null;
+    const selectedSectorNameLower = selectedSectorName
+      ? selectedSectorName.trim().toLowerCase()
+      : null;
 
     // Filtrar setores baseado na seleção
     const filteredSectors =
@@ -246,7 +256,10 @@ export const DashboardComparativoHospitalScreen: React.FC<{
           ? sectorsFromAtual
           : sectorsFromAtual.filter(
               (s) =>
-                s.name?.trim().toLowerCase() === selectedSector.toLowerCase()
+                s.id === selectedSector ||
+                s.unidadeId === selectedSector ||
+                (!!selectedSectorNameLower &&
+                  s.name?.trim().toLowerCase() === selectedSectorNameLower)
             );
 
       // Somar quantidade de staff
@@ -311,7 +324,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       // Fallback: usar cálculo antigo (para modo hospital)
       custoAtualReal = filteredSectors.reduce((sum, sector, index) => {
         // Para unidades neutras, usar custoAtualReal diretamente
-        if (sector.tipo === "NEUTRAL") {
+        if ((sector as any).tipo === "NEUTRAL") {
           const custoNeutro = (sector as any).custoAtualReal || 0;
           return sum + custoNeutro;
         }
@@ -332,9 +345,9 @@ export const DashboardComparativoHospitalScreen: React.FC<{
 
     // Custo Baseline: custoUnitário × quantidade para cada cargo, somado por setor
     const custoAtualSnapshot = filteredSectors.reduce((sum, sector, index) => {
-      // Para unidades neutras, usar custoAtualSnapshot diretamente
-      if (sector.tipo === "NEUTRAL") {
-        const custoNeutro = (sector as any).custoAtualSnapshot || 0;
+      // Para unidades neutras, usar custoAtualSnapshot diretamente (dividir por 100 pois vem como 5000000 ao invés de 50000)
+      if ((sector as any).tipo === "NEUTRAL") {
+        const custoNeutro = ((sector as any).custoAtualSnapshot || 0) / 100;
         return sum + custoNeutro;
       }
 
@@ -366,8 +379,9 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         );
 
         // Para unidades neutras, usar custoAtualSnapshot diretamente (não há projeção de custo diferente)
-        if (sector.tipo === "NEUTRAL") {
-          const custoNeutro = (sector as any).custoAtualSnapshot || 0;
+        // Dividir por 100 pois vem como 5000000 ao invés de 50000
+        if ((sector as any).tipo === "NEUTRAL") {
+          const custoNeutro = ((sector as any).custoAtualSnapshot || 0) / 100;
           console.log(
             `    💚 Setor NEUTRO - Custo projetado (= snapshot): R$${custoNeutro}`
           );
@@ -635,8 +649,9 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       variacaoPercentual,
       setorList,
       dadosPorFuncao, // Adicionar dados por função
+      selectedSectorName,
     };
-  }, [comparativeData, activeTab, selectedSector]);
+  }, [comparativeData, atualData, activeTab, selectedSector]);
 
   console.log("📊 [Comparativo] Resultado processedData:", processedData);
   console.log("📊 [Comparativo] Estado loading:", loading);
@@ -667,7 +682,11 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     variacaoPercentual,
     setorList,
     dadosPorFuncao,
+    selectedSectorName,
   } = processedData;
+
+  const selectedSectorLabel =
+    selectedSector !== "all" ? selectedSectorName || selectedSector : null;
 
   const renderContent = () => (
     <div className="space-y-6">
@@ -722,7 +741,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
           <GroupedBarByRole
             title={`Custo por Função${
-              selectedSector !== "all" ? ` – ${selectedSector}` : ""
+              selectedSectorLabel ? ` – ${selectedSectorLabel}` : ""
             }`}
             data={dadosPorFuncao.custoPorFuncao}
             unit="currency"
@@ -730,7 +749,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
           />
           <GroupedBarByRole
             title={`Quantidade por Função${
-              selectedSector !== "all" ? ` – ${selectedSector}` : ""
+              selectedSectorLabel ? ` – ${selectedSectorLabel}` : ""
             }`}
             data={dadosPorFuncao.quantidadePorFuncao}
             unit="people"

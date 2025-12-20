@@ -200,6 +200,40 @@ export async function getNetworkOccupationAnalysis(
   return res.data as OccupationAnalysisResponse;
 }
 
+// --- Occupation Dashboard (4 meses histórico) ---
+export interface OccupationHistoryMonth {
+  month: string; // "2025-09"
+  monthLabel: string; // "Setembro/2025"
+  taxaOcupacao: number; // Já em %
+}
+
+export interface SectorOccupationDashboard {
+  sectorId: string;
+  sectorName: string;
+  sectorType: string;
+  ocupacaoMaximaAtendivel: number; // Já em %
+  historico4Meses: OccupationHistoryMonth[];
+}
+
+export interface OccupationDashboardResponse {
+  hospitalId: string;
+  hospitalName: string;
+  sectors: SectorOccupationDashboard[];
+  summary: {
+    ocupacaoMaximaAtendivel: number;
+    historico4Meses: OccupationHistoryMonth[];
+  };
+}
+
+export async function getHospitalOccupationDashboard(
+  hospitalId: string
+): Promise<OccupationDashboardResponse> {
+  const res = await api.get(
+    `/hospital-sectors/${hospitalId}/occupation-dashboard`
+  );
+  return res.data as OccupationDashboardResponse;
+}
+
 // --- Password Reset APIs ---
 export interface PasswordResetRequestResponse {
   success: boolean;

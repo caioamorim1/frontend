@@ -144,10 +144,10 @@ export default function SetorDetailPage() {
     }
 
     // Para unidades de internação, usar cargos_unidade (lógica antiga)
-    if (!unidade.cargos_unidade) return [];
+    if (!(unidade as any).cargos_unidade) return [];
 
     // @ts-ignore
-    return unidade.cargos_unidade.map((cu) => ({
+    return (unidade as any).cargos_unidade.map((cu: any) => ({
       ...cu,
       cargo: {
         ...cu.cargo,
@@ -196,7 +196,7 @@ export default function SetorDetailPage() {
       </div>
 
       <CardInfo
-        unidade={unidade}
+        unidade={unidade as any}
         sessoes={sessoes}
         initialRange={dateRange}
         initialTravado={travadoControle}

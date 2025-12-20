@@ -81,13 +81,23 @@ export default function GlobalDashboardPage() {
         // Agregar dados de internação e não-internação de todos os hospitais
         const allInternation: any[] = [];
         const allAssistance: any[] = [];
+        const allNeutral: any[] = [];
 
         snapshots.forEach((snapshot) => {
+          const hospitalAny = snapshot.hospital as any;
+          const dadosAny = snapshot.dados as any;
+
           if (snapshot.dados?.internation) {
             // Normalizar valores de costAmount (centavos -> reais)
             const normalizedInternation = snapshot.dados.internation.map(
               (unit: any) => ({
                 ...unit,
+                hospitalId: snapshot.hospital?.id,
+                hospitalNome: snapshot.hospital?.nome,
+                regiaoId: hospitalAny?.regiao?.id,
+                regiaoNome: hospitalAny?.regiao?.nome,
+                grupoId: hospitalAny?.regiao?.grupo?.id,
+                grupoNome: hospitalAny?.regiao?.grupo?.nome,
                 costAmount: unit.costAmount ? unit.costAmount / 100 : 0,
                 staff:
                   unit.staff?.map((s: any) => ({
@@ -104,6 +114,12 @@ export default function GlobalDashboardPage() {
             const normalizedAssistance = snapshot.dados.assistance.map(
               (unit: any) => ({
                 ...unit,
+                hospitalId: snapshot.hospital?.id,
+                hospitalNome: snapshot.hospital?.nome,
+                regiaoId: hospitalAny?.regiao?.id,
+                regiaoNome: hospitalAny?.regiao?.nome,
+                grupoId: hospitalAny?.regiao?.grupo?.id,
+                grupoNome: hospitalAny?.regiao?.grupo?.nome,
                 costAmount: unit.costAmount ? unit.costAmount / 100 : 0,
                 staff:
                   unit.staff?.map((s: any) => ({
@@ -115,17 +131,34 @@ export default function GlobalDashboardPage() {
             );
             allAssistance.push(...normalizedAssistance);
           }
+
+          if (dadosAny?.neutral) {
+            // Neutral: manter costAmount em centavos aqui, pois o DashboardBaselineScreen
+            // já trata como centavos (divide por 100) no baseline.
+            const normalizedNeutral = dadosAny.neutral.map((unit: any) => ({
+              ...unit,
+              hospitalId: snapshot.hospital?.id,
+              hospitalNome: snapshot.hospital?.nome,
+              regiaoId: hospitalAny?.regiao?.id,
+              regiaoNome: hospitalAny?.regiao?.nome,
+              grupoId: hospitalAny?.regiao?.grupo?.id,
+              grupoNome: hospitalAny?.regiao?.grupo?.nome,
+            }));
+            allNeutral.push(...normalizedNeutral);
+          }
         });
 
         // Dados no formato que o DashboardBaselineScreen espera
         const aggregatedData = {
           internation: allInternation,
           assistance: allAssistance,
+          neutral: allNeutral,
         };
 
         console.log("✅ Dados agregados e normalizados:", {
           totalUnidadesInternacao: allInternation.length,
           totalUnidadesNaoInternacao: allAssistance.length,
+          totalUnidadesNeutras: allNeutral.length,
           exemploInternacao: allInternation[0],
         });
 
@@ -308,7 +341,7 @@ export default function GlobalDashboardPage() {
       </div>
 
       {/* Abas de Dashboard */}
-      <Tabs defaultValue="atual">
+      <Tabs defaultValue="baseline">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="baseline">Baseline</TabsTrigger>
           <TabsTrigger value="atual">Atual</TabsTrigger>

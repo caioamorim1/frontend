@@ -389,12 +389,12 @@ export default function AtualTab({
           setRemovedPairs(new Set());
         } else {
           // Para internação, carrega normalmente
-          const cargosAtuaisFormatados = (unidade.cargos_unidade || []).map(
-            (cu) => ({
-              cargoId: cu.cargo.id,
-              quantidade_funcionarios: cu.quantidade_funcionarios,
-            })
-          );
+          const cargosAtuaisFormatados = (
+            (unidade as any).cargos_unidade || []
+          ).map((cu) => ({
+            cargoId: cu.cargo.id,
+            quantidade_funcionarios: cu.quantidade_funcionarios,
+          }));
 
           setCargosNaUnidade(cargosAtuaisFormatados);
           setInitialState(_.cloneDeep(cargosAtuaisFormatados));
@@ -411,7 +411,12 @@ export default function AtualTab({
       }
     };
     carregarCargos();
-  }, [hospitalId, unidade.cargos_unidade, unidade.id, isNaoInternacao]);
+  }, [
+    hospitalId,
+    (unidade as any).cargos_unidade,
+    unidade.id,
+    isNaoInternacao,
+  ]);
 
   const handleAddCargoToUnidade = () => {
     if (!selectedCargoUnidade) return;
@@ -1407,9 +1412,9 @@ export default function AtualTab({
                   );
                   if (!cargo) return null;
 
-                  const cargoUnidadeCompleto = unidade.cargos_unidade?.find(
-                    (cu) => cu.cargo.id === cargo.id
-                  );
+                  const cargoUnidadeCompleto = (
+                    unidade as any
+                  ).cargos_unidade?.find((cu: any) => cu.cargo.id === cargo.id);
                   const lastAddedLabel = getLastAddedLabel(
                     cargoUnidadeCompleto?.quantidade_atualizada_em
                   );
