@@ -10,15 +10,10 @@ import {
   ResponsiveContainer,
   Cell,
   ReferenceLine,
+  LabelList,
 } from "recharts";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -26,60 +21,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getSnapshotHospitalSectors } from "@/lib/api";
+import { Building2, TrendingUp, Target } from "lucide-react";
+import { DashboardBaselineDetalhamento } from "./DashboardBaselineDetalhamento";
 import {
-  DollarSign,
-  Users,
-  Building,
-  ChevronsRight,
-  CircleDollarSign,
-} from "lucide-react";
-import RadarChartComponent from "./graphicsComponents/RadarChart";
+  DashboardBaselineGlobalTab,
+  type BaselineRankingItem,
+} from "./DashboardBaselineGlobalTab";
 
-import { PieChartComp } from "./graphicsComponents/PieChartComp";
-import { HorizontalBarChartComp } from "./graphicsComponents/HorizontalBarChartComp";
-import BargraphicChart from "./graphicsComponents/BarChartComp";
-import {
-  COLORS,
-  generateMultiColorScale,
-  generateBlueMonochromaticScale,
-} from "@/lib/generateMultiColorScale";
-import { formatAmountBRL } from "@/lib/utils";
-import {
-  parseCost as parseCostUtil,
-  getStaffArray,
-  sumStaff,
-} from "@/lib/dataUtils";
-import { HospitalSector } from "@/mocks/functionSectores";
-import { SectorInternation } from "@/mocks/internationDatabase";
-import { SectorAssistance } from "@/mocks/noInternationDatabase";
-import { getCompletedEvaluationsWithCategories } from "@/lib/api";
-
-import { getAllSnapshotHospitalSectors } from "@/mocks/snapshotSectores";
-// --- ESTRUTURA DE DADOS APROFUNDADA ---
+// Estrutura de dados para waterfall
 export interface WaterfallDataItem {
   name: string;
   value: number;
-}
-
-export interface SectorAnalysis {
-  custo: WaterfallDataItem[];
-  quantitativo: WaterfallDataItem[];
-}
-
-export interface DetailedWaterfallData {
-  [sectorName: string]: SectorAnalysis;
-}
-
-interface DashboardBaselineScreenProps {
-  title: string;
-  externalData?: any;
-  isGlobalView?: boolean;
-}
-
-interface ChartDataItem {
-  subject: string;
-  atual: number;
-  projetado: number;
+  // Campos opcionais usados em alguns gráficos/tooltips
+  range?: [number, number];
+  color?: string;
+  qtd?: number;
+  custoReais?: number;
 }
 
 const axisTick = {
@@ -87,32 +46,7 @@ const axisTick = {
   fill: "hsl(var(--muted-foreground))",
 } as const;
 
-interface InfoCardProps {
-  title: string;
-  value: string | number; // Pode ser um número ou uma string
-  icon?: React.ReactNode; // Opcional: para passar um ícone como um componente React
-}
-
-export const InfoCard: React.FC<InfoCardProps> = ({ title, value, icon }) => {
-  return (
-    <div className="flex items-center space-x-4 p-4 border rounded-lg shadow-sm bg-white min-w-[200px]">
-      {/* Container do Ícone (se existir) */}
-      {icon && (
-        <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-600">
-          {icon}
-        </div>
-      )}
-
-      {/* Título e Valor */}
-      <div>
-        <h4 className="text-sm font-medium text-gray-500">{title}</h4>
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
-      </div>
-    </div>
-  );
-};
-
-// --- LÓGICA DE PROCESSAMENTO (COM NOVAS CORES) ---
+// Processamento de dados waterfall
 const processWaterfallData = (data: WaterfallDataItem[]) => {
   let cumulative = 0;
   return data.map((item, index) => {
@@ -137,7 +71,7 @@ const processWaterfallData = (data: WaterfallDataItem[]) => {
   });
 };
 
-// --- COMPONENTES AUXILIARES ---
+// Tooltip customizado
 const CustomTooltip = ({ active, payload, label, isCurrency }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
@@ -164,6 +98,7 @@ const CustomTooltip = ({ active, payload, label, isCurrency }: any) => {
   return null;
 };
 
+// Componente Waterfall reutilizável
 const ReusableWaterfall: React.FC<{
   data: WaterfallDataItem[];
   unit: "currency" | "people";
@@ -172,7 +107,7 @@ const ReusableWaterfall: React.FC<{
   if (!data || data.length <= 1)
     return (
       <div className="flex items-center justify-center h-[350px] text-muted-foreground">
-        Selecione um setor para ver a análise.
+        Dados insuficientes para análise.
       </div>
     );
   const yDomain = [
@@ -231,469 +166,197 @@ const ReusableWaterfall: React.FC<{
   );
 };
 
-const GlobalTabContent: React.FC<{
-  sourceData: HospitalSector;
-  radarData: ChartDataItem[];
+interface DashboardBaselineScreenProps {
+  title: string;
+  externalData?: any;
   isGlobalView?: boolean;
-}> = ({ sourceData, radarData, isGlobalView }) => {
-  const internation = sourceData?.internation || [];
-  const assistance = sourceData?.assistance || [];
+}
 
-  const totalStaffInternation = internation.reduce(
-    (acc, sector) => acc + sumStaff(sector),
-    0
-  );
-  const amountTotalInternation = internation.reduce(
-    (acc, sector) => acc + parseCostUtil(sector.costAmount),
-    0
-  );
+interface CargoProjetado {
+  cargoId: string;
+  projetadoFinal: number;
+  status: string;
+  observacao: string;
+}
 
-  const totalStaffAssistance = assistance.reduce(
-    (acc, sector) => acc + sumStaff(sector),
-    0
-  );
-  const amountTotalAssistance = assistance.reduce(
-    (acc, sector) => acc + parseCostUtil(sector.costAmount),
-    0
-  );
+interface UnidadeProjetadaInternacao {
+  unidadeId: string;
+  unidadeNome: string;
+  hospitalId: string;
+  cargos: CargoProjetado[];
+  custoTotalUnidade?: number;
+}
 
-  const totalStaff = totalStaffInternation + totalStaffAssistance;
-  const amountTotal = amountTotalInternation + amountTotalAssistance;
+interface SitioProjetado {
+  sitioId: string;
+  cargos: CargoProjetado[];
+}
 
-  const chartDataInternation: ChartData[] = internation
-    ? internation.map((item) => ({
-        key: item.id,
-        name: item.name,
-        value: parseCostUtil(item.costAmount),
-        color: generateBlueMonochromaticScale(
-          parseCostUtil(item.costAmount),
-          0,
-          Math.max(...internation.map((i) => parseCostUtil(i.costAmount)))
-        ),
-      }))
-    : [];
+interface UnidadeProjetadaNaoInternacao {
+  unidadeId: string;
+  unidadeNome: string;
+  hospitalId: string;
+  sitios: SitioProjetado[];
+  custoTotalUnidade?: number;
+}
 
-  const chartDataAssistance: ChartData[] = assistance
-    ? assistance.map((item) => ({
-        key: item.id,
-        name: item.name,
-        value: parseCostUtil(item.costAmount),
-        color: generateBlueMonochromaticScale(
-          parseCostUtil(item.costAmount),
-          0,
-          Math.max(...assistance.map((i) => parseCostUtil(i.costAmount)))
-        ),
-      }))
-    : [];
+interface SnapshotResponse {
+  snapshot: {
+    id: string;
+    observacao?: string;
+    dataHora?: string;
+    dados: {
+      internation?: any[];
+      assistance?: any[];
+      neutral?: any[];
+      projetadoFinal?: {
+        internacao?: UnidadeProjetadaInternacao[];
+        naoInternacao?: UnidadeProjetadaNaoInternacao[];
+      };
+    };
+    resumo: {
+      custoTotal: number;
+      totalProfissionais: number;
+      custoTotalProjetado?: number;
+      totalProfissionaisProjetado?: number;
+      totalUnidadesInternacao?: number;
+      totalUnidadesAssistencia?: number;
+    };
+  };
+  situacaoAtual?: {
+    unidades: Array<{
+      unidadeId: string;
+      unidadeNome: string;
+      tipo: "INTERNACAO" | "NAO_INTERNACAO";
+      totalFuncionarios: number;
+      custoTotal: number;
+      cargos: Array<{
+        cargoId: string;
+        cargoNome: string;
+        quantidadeFuncionarios: number;
+        quantidadeAtualizadaEm: string;
+        custoUnitario: number;
+        custoTotal: number;
+      }>;
+    }>;
+    unidadesNeutras: Array<{
+      unidadeId: string;
+      unidadeNome: string;
+      custoTotal: number;
+    }>;
+    totais: {
+      totalFuncionarios: number;
+      custoUnidades: number;
+      custoUnidadesNeutras: number;
+      custoTotal: number;
+    };
+  };
+}
 
-  const chartDataAtual: ChartData[] = [
-    ...chartDataInternation,
-    ...chartDataAssistance,
-  ].sort((a, b) => b.value - a.value);
+// Card de informação reutilizável
+const InfoCard: React.FC<{
+  title: string;
+  value: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  variant: "primary" | "warning" | "success";
+}> = ({ title, value, subtitle, icon, variant }) => {
+  const variantStyles = {
+    primary:
+      "shadow-[0_4px_12px_rgba(0,93,151,0.3)] border-l-4 border-[#005D97]",
+    warning:
+      "shadow-[0_4px_12px_rgba(0,112,185,0.3)] border-l-4 border-[#0070B9]",
+    success:
+      "shadow-[0_4px_12px_rgba(38,140,204,0.3)] border-l-4 border-[#268CCC]",
+  };
 
   return (
-    <div className="space-y-12">
-      <div className="flex gap-4">
-        <InfoCard
-          title="Total de Funcionários"
-          value={totalStaff}
-          icon={<Building size={24} />}
-        />
-        <InfoCard
-          title="Custo Total"
-          value={formatAmountBRL(amountTotal)}
-          icon={<CircleDollarSign size={24} />}
-        />
-      </div>
-      <BargraphicChart
-        data={chartDataAtual}
-        title="Análise de Custo por Setor"
-      />
-      {!isGlobalView && (
-        <RadarChartComponent
-          data={radarData}
-          title="Análise Qualitativa"
-          description=""
-        />
-      )}
-    </div>
+    <Card className={variantStyles[variant]}>
+      <CardContent className="pt-6">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <h3 className="text-2xl font-bold mt-2">{value}</h3>
+            <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+          </div>
+          <div className="ml-4 text-muted-foreground">{icon}</div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
-const TabContentInternacao: React.FC<{
-  sourceData: SectorInternation[];
-  radarData: ChartDataItem[];
-  isGlobalView?: boolean;
-}> = ({ sourceData, radarData, isGlobalView }) => {
-  const [selectedSector, setSelectedSector] = useState<string>("all");
+// Card de variação com formatação condicional
+const VariationCard: React.FC<{
+  title: string;
+  value: number;
+  unit: "currency" | "quantity" | "percentage";
+  lastUpdate?: string;
+}> = ({ title, value, unit, lastUpdate }) => {
+  // Formatação condicional: verde se = 0, vermelho se ≠ 0
+  const getTextColorClass = () => {
+    if (value === 0) return "text-green-600";
+    return "text-red-600";
+  };
 
-  const detailedData = sourceData.filter(
-    (sector) => selectedSector === "all" || sector.id === selectedSector
-  );
+  const formatValue = () => {
+    const prefix = value >= 0 ? "+" : "";
+    if (unit === "currency") {
+      return `${prefix}R$ ${Math.abs(value).toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+    }
+    if (unit === "percentage") {
+      return `${prefix}${value.toFixed(1)}%`;
+    }
+    return `${prefix}${value}`;
+  };
 
-  const totalMinimumCare = detailedData.reduce((acc, sector) => {
-    const careLevel = sector.CareLevel || (sector as any).careLevel || {};
-    return acc + (careLevel?.minimumCare || 0);
-  }, 0);
-  const totalIntermediateCare = detailedData.reduce((acc, sector) => {
-    const careLevel = sector.CareLevel || (sector as any).careLevel || {};
-    return acc + (careLevel?.intermediateCare || 0);
-  }, 0);
-  const totalHighDependency = detailedData.reduce((acc, sector) => {
-    const careLevel = sector.CareLevel || (sector as any).careLevel || {};
-    return acc + (careLevel?.highDependency || 0);
-  }, 0);
-  const totalSemiIntensive = detailedData.reduce((acc, sector) => {
-    const careLevel = sector.CareLevel || (sector as any).careLevel || {};
-    return acc + (careLevel?.semiIntensive || 0);
-  }, 0);
-  const totalIntensive = detailedData.reduce((acc, sector) => {
-    const careLevel = sector.CareLevel || (sector as any).careLevel || {};
-    return acc + (careLevel?.intensive || 0);
-  }, 0);
-
-  // Calcular totais usando dados do dimensionamento quando disponível
-  const totalBedsDia = detailedData.reduce((acc, sector) => {
-    const dimensionamento = (sector as any).projetadoFinal?.dimensionamento;
-    return acc + (dimensionamento?.totalLeitosDia || 0);
-  }, 0);
-
-  const totalOccupiedBeds = detailedData.reduce((acc, sector) => {
-    const dimensionamento = (sector as any).projetadoFinal?.dimensionamento;
-    return (
-      acc +
-      (dimensionamento?.leitosOcupados || sector.bedStatus?.evaluated || 0)
-    );
-  }, 0);
-
-  const totalVacantBeds = detailedData.reduce((acc, sector) => {
-    const dimensionamento = (sector as any).projetadoFinal?.dimensionamento;
-    return (
-      acc + (dimensionamento?.leitosVagos || sector.bedStatus?.vacant || 0)
-    );
-  }, 0);
-
-  const totalInactiveBeds = detailedData.reduce((acc, sector) => {
-    const dimensionamento = (sector as any).projetadoFinal?.dimensionamento;
-    return (
-      acc + (dimensionamento?.leitosInativos || sector.bedStatus?.inactive || 0)
-    );
-  }, 0);
-
-  // Não avaliados = totalLeitosDia - (ocupados + vagos + inativos)
-  const totalUnevaluatedBeds = Math.max(
-    0,
-    totalBedsDia - (totalOccupiedBeds + totalVacantBeds + totalInactiveBeds)
-  );
-
-  const totalBeds = detailedData.reduce((acc, sector) => {
-    const dimensionamento = (sector as any).projetadoFinal?.dimensionamento;
-    return acc + (dimensionamento?.totalLeitos || sector.bedCount || 0);
-  }, 0);
-
-  const averageOccupancyPercentage =
-    totalBeds > 0 ? Math.round((totalOccupiedBeds / totalBeds) * 100) : 0;
-  const assessmentsCompletedPercentage =
-    totalBeds > 0 ? Math.round((totalOccupiedBeds / totalBeds) * 100) : 0;
-
-  const totalStaff = detailedData.reduce(
-    (acc, sector) => acc + sumStaff(sector),
-    0
-  );
-  const amountTotal = detailedData.reduce(
-    (acc, sector) => acc + parseCostUtil(sector.costAmount),
-    0
-  );
-
-  const chartDataCareLevels = [
-    { name: "Cuidado Mínimo", value: totalMinimumCare, color: COLORS[0] },
-    {
-      name: "Cuidado Intermediário",
-      value: totalIntermediateCare,
-      color: COLORS[1],
-    },
-    { name: "Alta Dependência", value: totalHighDependency, color: COLORS[2] },
-    { name: "Semi-Intensivo", value: totalSemiIntensive, color: COLORS[3] },
-    { name: "Intensivo", value: totalIntensive, color: COLORS[4] },
-  ];
-
-  const chartDataBedStates = [
-    { name: "Leitos Ocupados", value: totalOccupiedBeds, color: COLORS[0] },
-    { name: "Leitos Vagos", value: totalVacantBeds, color: COLORS[1] },
-    { name: "Leitos Inativos", value: totalInactiveBeds, color: COLORS[2] },
-    { name: "Não Avaliados", value: totalUnevaluatedBeds, color: COLORS[3] },
-  ];
-
-  const chartDataAtual: ChartData[] = detailedData
-    ? detailedData
-        .map((item) => ({
-          key: item.id,
-          name: item.name,
-          value: parseCostUtil(item.costAmount),
-          color: generateBlueMonochromaticScale(
-            parseCostUtil(item.costAmount),
-            0,
-            Math.max(...detailedData.map((i) => parseCostUtil(i.costAmount)))
-          ),
-        }))
-        .sort((a, b) => b.value - a.value) // <--- Adicionado aqui para ordenar
-    : [];
-
-  const staffBySectorMap: Record<string, number> = {};
-
-  // Soma os colaboradores por setor (seguro para staff nulo)
-  detailedData.forEach((sector) => {
-    let totalInSector = 0;
-    const staffArr = getStaffArray(sector);
-    staffArr.forEach((staffMember) => {
-      totalInSector += staffMember.quantity || 0;
-    });
-    staffBySectorMap[sector.name] = totalInSector;
-  });
-
-  // Transforma em dados para gráfico
-  const chartDataColaboradoresPorSetor: ChartData[] = Object.entries(
-    staffBySectorMap
-  ).map(([sectorName, totalQuantity], index) => ({
-    key: sectorName,
-    name: sectorName,
-    value: totalQuantity,
-    color: COLORS[index % COLORS.length],
-  }));
-
-  const staffByRoleMap: Record<string, number> = {};
-
-  detailedData.forEach((sector) => {
-    const staffArr = getStaffArray(sector);
-    staffArr.forEach((staffMember) => {
-      const { role, quantity } = staffMember;
-      staffByRoleMap[role] = (staffByRoleMap[role] || 0) + (quantity || 0);
-    });
-  });
-
-  const chartDataColaboradoresPorFuncao: ChartData[] = Object.entries(
-    staffByRoleMap
-  ).map(([role, totalQuantity], index) => ({
-    key: role,
-    name: role,
-    value: totalQuantity,
-    color: COLORS[index % COLORS.length],
-  }));
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "Não disponível";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "Não disponível";
+    }
+  };
 
   return (
-    <div className="space-y-12">
-      <div className="flex gap-4">
-        <InfoCard
-          title="Custo Total"
-          value={formatAmountBRL(amountTotal)}
-          icon={<DollarSign size={24} />}
-        />
-        <InfoCard
-          title="Total de Funcionários"
-          value={totalStaff}
-          icon={<Users size={24} />}
-        />
-        <InfoCard
-          title="Total de Leitos"
-          value={totalBeds}
-          icon={<Building size={24} />}
-        />
-        <InfoCard
-          title="Taxa de Ocupação"
-          value={`${averageOccupancyPercentage}%`}
-          icon={<Building size={24} />}
-        />
-        {/* <InfoCard title="Avaliações Completas" value={`${assessmentsCompletedPercentage}%`} icon={<Users size={24} />} /> */}
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">
-            Selecione o Setor
-          </label>
-          <Select value={selectedSector} onValueChange={setSelectedSector}>
-            <SelectTrigger>
-              <SelectValue placeholder="Escolha um setor..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Setores</SelectItem>
-              {sourceData.map((sector) => (
-                <SelectItem key={sector.id} value={sector.id}>
-                  {sector.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <PieChartComp data={chartDataCareLevels} title="Níveis de Cuidado" />
-        <PieChartComp
-          data={chartDataBedStates}
-          title="Estados dos Leitos"
-          totalForPercent={totalBedsDia}
-        />
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
-        <HorizontalBarChartComp
-          data={chartDataColaboradoresPorSetor}
-          title="Nº de colaboradores"
-        />
-        <HorizontalBarChartComp
-          data={chartDataColaboradoresPorFuncao}
-          title="Nº de colaboradores por função"
-        />
-      </div>
-      {selectedSector === "all" && (
-        <BargraphicChart
-          data={chartDataAtual}
-          title="Análise de Custo por Setor"
-        />
-      )}
-      {!isGlobalView && (
-        <RadarChartComponent
-          data={radarData}
-          title="Análise Qualitativa"
-          description=""
-        />
-      )}
-    </div>
-  );
-};
-const TabContentNoInternacao: React.FC<{
-  sourceData: SectorAssistance[];
-  radarData: ChartDataItem[];
-  isGlobalView?: boolean;
-}> = ({ sourceData, radarData, isGlobalView }) => {
-  const [selectedSector, setSelectedSector] = useState<string>("all");
+    <>
+      {/* Card com a informação principal */}
+      <Card className="border bg-white">
+        <CardContent className="pt-4 pb-4">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-gray-600">{title}</p>
+            <div className={`text-2xl font-bold ${getTextColorClass()}`}>
+              {formatValue()}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-  const detailedData = sourceData.filter(
-    (sector) => selectedSector === "all" || sector.id === selectedSector
-  );
-
-  const totalStaff = detailedData.reduce(
-    (acc, sector) => acc + sumStaff(sector),
-    0
-  );
-  const amountTotal = detailedData.reduce(
-    (acc, sector) => acc + parseCostUtil(sector.costAmount),
-    0
-  );
-
-  const chartDataAtual: ChartData[] = detailedData
-    ? detailedData
-        .map((item) => ({
-          key: item.id,
-          name: item.name,
-          value: parseCostUtil(item.costAmount),
-          color: generateBlueMonochromaticScale(
-            parseCostUtil(item.costAmount),
-            0,
-            Math.max(...detailedData.map((i) => parseCostUtil(i.costAmount)))
-          ),
-        }))
-        .sort((a, b) => b.value - a.value) // <--- Adicionado aqui para ordenar
-    : [];
-
-  // Passo 1: Calcular o total de funcionários por função em todos os setores filtrados.
-  const staffBySectorMap: Record<string, number> = {};
-
-  // Soma os colaboradores por setor
-  detailedData.forEach((sector) => {
-    let totalInSector = 0;
-    const staffArr = getStaffArray(sector);
-    staffArr.forEach((staffMember) => {
-      totalInSector += staffMember.quantity || 0;
-    });
-    staffBySectorMap[sector.name] = totalInSector;
-  });
-
-  // Transforma em dados para gráfico
-  const chartDataColaboradoresPorSetor: ChartData[] = Object.entries(
-    staffBySectorMap
-  ).map(([sectorName, totalQuantity], index) => ({
-    key: sectorName,
-    name: sectorName,
-    value: totalQuantity,
-    color: COLORS[index % COLORS.length],
-  }));
-
-  const staffByRoleMap: Record<string, number> = {};
-
-  detailedData.forEach((sector) => {
-    const staffArr = getStaffArray(sector);
-    staffArr.forEach((staffMember) => {
-      const { role, quantity } = staffMember;
-      staffByRoleMap[role] = (staffByRoleMap[role] || 0) + (quantity || 0);
-    });
-  });
-
-  const chartDataColaboradoresPorFuncao: ChartData[] = Object.entries(
-    staffByRoleMap
-  ).map(([role, totalQuantity], index) => ({
-    key: role,
-    name: role,
-    value: totalQuantity,
-    color: COLORS[index % COLORS.length],
-  }));
-
-  return (
-    <div className="space-y-12">
-      <div className="flex gap-4">
-        <InfoCard
-          title="Total de Funcionários"
-          value={totalStaff}
-          icon={<Building size={24} />}
-        />
-        <InfoCard
-          title="Custo Total"
-          value={formatAmountBRL(amountTotal)}
-          icon={<CircleDollarSign size={24} />}
-        />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">
-            Selecione o Setor
-          </label>
-          <Select value={selectedSector} onValueChange={setSelectedSector}>
-            <SelectTrigger>
-              <SelectValue placeholder="Escolha um setor..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Setores</SelectItem>
-              {sourceData.map((sector) => (
-                <SelectItem key={sector.id} value={sector.id}>
-                  {sector.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
-        <HorizontalBarChartComp
-          data={chartDataColaboradoresPorSetor}
-          title="Nº de colaboradores por Setor"
-        />
-        <HorizontalBarChartComp
-          data={chartDataColaboradoresPorFuncao}
-          title="Nº de colaboradores por função"
-        />
-      </div>
-      {selectedSector === "all" && (
-        <BargraphicChart
-          data={chartDataAtual}
-          title="Análise de Custo por Setor"
-        />
-      )}
-      {!isGlobalView && (
-        <RadarChartComponent
-          data={radarData}
-          title="Análise Qualitativa"
-          description=""
-        />
-      )}
-    </div>
+      {/* Card com a data da última atualização */}
+      <Card className="border bg-gray-50">
+        <CardContent className="pt-4 pb-4">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-gray-600">
+              Última Atualização:
+            </p>
+            <div className="text-sm text-gray-500">
+              {formatDate(lastUpdate)}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </>
   );
 };
 
@@ -701,111 +364,72 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
   props
 ) => {
   const { hospitalId } = useParams<{ hospitalId: string }>();
-  const [chartDataAtual, setChartDataAtual] = useState<HospitalSector | null>(
+  const [loading, setLoading] = useState(true);
+  const [snapshotData, setSnapshotData] = useState<SnapshotResponse | null>(
     null
   );
-  const [radarData, setRadarData] = useState<ChartDataItem[]>([]);
-  const [activeTab, setActiveTab] = useState("global"); // Valor inicial 'global'
-  const [loading, setLoading] = useState(true);
+  const [selectedSector, setSelectedSector] = useState<string>("all");
+  const [selectedHospitalId, setSelectedHospitalId] = useState<string>("all");
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
+  const [selectedRegionId, setSelectedRegionId] = useState<string>("all");
 
-  const loadData = async () => {
-    if (!hospitalId && !(props.isGlobalView && props.externalData)) {
-      console.warn(
-        "⚠️ Hospital ID não encontrado na URL e não é visão global com externalData, abortando loadData"
-      );
-      setLoading(false);
-      return;
+  // No modo global (rede), não existe seletor de setor
+  useEffect(() => {
+    if (props.isGlobalView && selectedSector !== "all") {
+      setSelectedSector("all");
     }
-    if (!hospitalId && props.isGlobalView && props.externalData) {
-    }
-
-    try {
-      setLoading(true);
-
-      // Buscar avaliações do hospital com categorias
-      if (hospitalId) {
-        try {
-          const avaliacoesData = await getCompletedEvaluationsWithCategories(
-            hospitalId
-          );
-
-          // Transformar dados para o radar chart
-          // Cada categoria aparece uma vez com o total_score da avaliação e a meta da categoria
-          const radarChartData: ChartDataItem[] = [];
-
-          avaliacoesData?.forEach((evaluation) => {
-            const totalScore = parseFloat(evaluation.total_score);
-
-            evaluation.categories?.forEach((cat: any) => {
-              radarChartData.push({
-                subject: cat.category_name,
-                atual: totalScore,
-                projetado: cat.category_meta,
-              });
-            });
-          });
-
-          setRadarData(radarChartData);
-        } catch (error) {
-          console.error("Erro ao buscar avaliações:", error);
-          setRadarData([]);
-        }
-      }
-
-      let dashboardData: any;
-      if (props.isGlobalView && props.externalData) {
-        // Normalize: externalData may be aggregated (items array) or single object with internation/assistance
-        if (Array.isArray(props.externalData)) {
-          const allIntern: any[] = [];
-          const allAssist: any[] = [];
-          props.externalData.forEach((it: any) => {
-            if (Array.isArray(it.internation))
-              allIntern.push(...it.internation);
-            if (Array.isArray(it.assistance)) allAssist.push(...it.assistance);
-          });
-
-          dashboardData = { internation: allIntern, assistance: allAssist };
-        } else if (
-          props.externalData.items &&
-          Array.isArray(props.externalData.items)
-        ) {
-          const allIntern: any[] = [];
-          const allAssist: any[] = [];
-          props.externalData.items.forEach((it: any) => {
-            if (Array.isArray(it.internation))
-              allIntern.push(...it.internation);
-            if (Array.isArray(it.assistance)) allAssist.push(...it.assistance);
-          });
-
-          dashboardData = { internation: allIntern, assistance: allAssist };
-        } else if (
-          props.externalData.internation ||
-          props.externalData.assistance
-        ) {
-          dashboardData = {
-            internation: props.externalData.internation || [],
-            assistance: props.externalData.assistance || [],
-          };
-        } else {
-          dashboardData = { internation: [], assistance: [] };
-        }
-      } else {
-        const snapshotData = await getAllSnapshotHospitalSectors(hospitalId); // Usa hospitalId da URL
-
-        dashboardData = snapshotData;
-      }
-
-      setChartDataAtual(dashboardData);
-      // Não sobrescrever radarData aqui, já foi setado com os dados reais das avaliações
-    } catch (error) {
-      console.error("❌ Erro ao carregar dados do dashboard:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [props.isGlobalView, selectedSector]);
 
   useEffect(() => {
-    loadData();
+    const normalizeToSnapshotResponse = (data: any): SnapshotResponse => {
+      return (data as any)?.snapshot
+        ? (data as SnapshotResponse)
+        : ({
+            snapshot: {
+              id: "external",
+              dados: data || {},
+              resumo: {
+                custoTotal: 0,
+                totalProfissionais: 0,
+              },
+            },
+          } as SnapshotResponse);
+    };
+
+    const fetchData = async () => {
+      // 1) Se veio externalData (ex: dashboard da rede), usar direto
+      if (props.externalData) {
+        setLoading(true);
+        setSnapshotData(normalizeToSnapshotResponse(props.externalData));
+        setLoading(false);
+        return;
+      }
+
+      // 2) Caso contrário, buscar por hospitalId (dashboard hospitalar)
+      if (!hospitalId) {
+        setSnapshotData(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const data = await getSnapshotHospitalSectors(hospitalId);
+        console.log(
+          "📊 [DashboardBaselineScreen] Dados brutos do snapshot:",
+          data
+        );
+
+        setSnapshotData(normalizeToSnapshotResponse(data));
+      } catch (error) {
+        console.error("❌ Erro ao carregar snapshot:", error);
+        setSnapshotData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [hospitalId, props.externalData]);
 
   if (loading) {
@@ -815,15 +439,16 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
           <CardTitle>{props.title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">Carregando dados...</p>
+          <div className="space-y-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-64 w-full" />
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  if (!chartDataAtual) {
+  if (!snapshotData) {
     return (
       <Card>
         <CardHeader>
@@ -832,7 +457,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
         <CardContent>
           <div className="flex items-center justify-center h-64">
             <p className="text-muted-foreground">
-              Ainda não há baseline disponível.
+              Nenhum baseline encontrado. Crie um snapshot primeiro.
             </p>
           </div>
         </CardContent>
@@ -840,64 +465,737 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     );
   }
 
-  return (
-    <>
-      {chartDataAtual && (
-        <Card className="transition-shadow hover:shadow-lg">
-          <CardHeader>
-            <CardTitle>{props.title}</CardTitle>
-            <CardDescription>Análise de desempenho</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* 3. Adicione `onValueChange` para atualizar o estado da aba */}
-            <Tabs
-              defaultValue="global"
-              className="w-full"
-              onValueChange={(value) => setActiveTab(value)}
-            >
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="global">Global</TabsTrigger>
-                <TabsTrigger value="internacao">
-                  Unid. de Internação
-                </TabsTrigger>
-                <TabsTrigger value="nao-internacao">
-                  Unidades de Não Internação
-                </TabsTrigger>
-              </TabsList>
+  // Placeholder lists (rotas definitivas virão depois)
+  const gruposDisponiveis: Array<{ id: string; name: string }> = [];
+  const regioesDisponiveis: Array<{ id: string; name: string }> = [];
 
-              {/* O conteúdo das abas permanece o mesmo */}
-              <TabsContent value="global" className="mt-4">
-                <GlobalTabContent
-                  sourceData={chartDataAtual}
-                  radarData={radarData}
-                  isGlobalView={props.isGlobalView}
-                />
-              </TabsContent>
-              <TabsContent value="internacao" className="mt-4">
-                <TabContentInternacao
-                  sourceData={chartDataAtual?.internation}
-                  radarData={radarData}
-                  isGlobalView={props.isGlobalView}
-                />
-              </TabsContent>
-              <TabsContent value="nao-internacao" className="mt-4">
-                <TabContentNoInternacao
-                  sourceData={chartDataAtual?.assistance}
-                  radarData={radarData}
-                  isGlobalView={props.isGlobalView}
-                />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      )}
-    </>
+  // Calcula totais do baseline (snapshot capturado no passado)
+  let custoBaseline = 0;
+  let profissionaisBaseline = 0;
+
+  // Lista de hospitais (apenas no modo global) e filtro por hospital
+  const hospitaisDisponiveis: Array<{ id: string; name: string }> = [];
+  if (props.isGlobalView) {
+    const map = new Map<string, string>();
+    const collectFromUnits = (units?: any[]) => {
+      units?.forEach((u: any) => {
+        const id = u?.hospitalId ?? u?.hospital?.id;
+        const name = u?.hospitalNome ?? u?.hospital?.nome;
+        if (id && name) map.set(id, name);
+      });
+    };
+    collectFromUnits(snapshotData.snapshot.dados.internation);
+    collectFromUnits(snapshotData.snapshot.dados.assistance);
+    collectFromUnits(snapshotData.snapshot.dados.neutral);
+
+    Array.from(map.entries()).forEach(([id, name]) => {
+      hospitaisDisponiveis.push({ id, name });
+    });
+    hospitaisDisponiveis.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  const filtrarPorHospital = <T,>(units?: T[]): T[] => {
+    if (!props.isGlobalView) return units || [];
+    if (selectedHospitalId === "all") return units || [];
+
+    return (units || []).filter((u: any) => {
+      const id = u?.hospitalId ?? u?.hospital?.id;
+      return id === selectedHospitalId;
+    });
+  };
+
+  const baselineInternationUnits = filtrarPorHospital<any>(
+    snapshotData.snapshot.dados.internation
+  );
+  const baselineAssistanceUnits = filtrarPorHospital<any>(
+    snapshotData.snapshot.dados.assistance
+  );
+  const baselineNeutralUnits = filtrarPorHospital<any>(
+    snapshotData.snapshot.dados.neutral
+  );
+
+  const staffLastUpdateLabel = (() => {
+    const dates: number[] = [];
+    snapshotData.situacaoAtual?.unidades?.forEach((u) => {
+      u.cargos?.forEach((c) => {
+        const t = c?.quantidadeAtualizadaEm
+          ? new Date(c.quantidadeAtualizadaEm).getTime()
+          : NaN;
+        if (Number.isFinite(t)) dates.push(t);
+      });
+    });
+    if (dates.length === 0) return "--";
+    const max = Math.max(...dates);
+    return new Date(max).toLocaleDateString("pt-BR");
+  })();
+
+  // Calcular baseline do snapshot
+  baselineInternationUnits.forEach((unit: any) => {
+    unit.staff?.forEach((s: any) => {
+      custoBaseline += (s.quantity || 0) * (s.unitCost || 0);
+      profissionaisBaseline += s.quantity || 0;
+    });
+  });
+
+  baselineAssistanceUnits.forEach((unit: any) => {
+    unit.staff?.forEach((s: any) => {
+      custoBaseline += (s.quantity || 0) * (s.unitCost || 0);
+      profissionaisBaseline += s.quantity || 0;
+    });
+  });
+
+  // Adicionar neutras ao baseline (costAmount vem em centavos)
+  baselineNeutralUnits.forEach((unit: any) => {
+    custoBaseline += (unit.costAmount || 0) / 100;
+  });
+
+  // Calcula totais atuais REAIS (situacaoAtual = estado atual do hospital)
+  const custoAtualReal = snapshotData.situacaoAtual
+    ? snapshotData.situacaoAtual.totais.custoTotal
+    : custoBaseline; // fallback para baseline se não houver situacaoAtual
+  const profissionaisAtuaisReal = snapshotData.situacaoAtual
+    ? snapshotData.situacaoAtual.totais.totalFuncionarios
+    : profissionaisBaseline; // fallback para baseline
+
+  console.log("📊 [DashboardBaselineScreen] Dados do Baseline:", {
+    custoBaseline,
+    profissionaisBaseline,
+  });
+
+  console.log("🕐 [DashboardBaselineScreen] Situação Atual Real:", {
+    custoAtualReal,
+    profissionaisAtuaisReal,
+  });
+
+  // Construir lista de setores para o seletor
+  const setoresDisponiveis: Array<{ id: string; name: string }> = [];
+
+  // No modo global, não teremos seletor de setor
+  if (props.isGlobalView) {
+    // Mantém vazio
+  } else if (snapshotData.situacaoAtual) {
+    // Usar situacaoAtual se disponível
+    snapshotData.situacaoAtual.unidades.forEach((unit) => {
+      setoresDisponiveis.push({ id: unit.unidadeId, name: unit.unidadeNome });
+    });
+  } else {
+    // Fallback para dados antigos
+    snapshotData.snapshot.dados.internation?.forEach((unit: any) => {
+      setoresDisponiveis.push({ id: unit.id, name: unit.name });
+    });
+
+    snapshotData.snapshot.dados.assistance?.forEach((unit: any) => {
+      setoresDisponiveis.push({ id: unit.id, name: unit.name });
+    });
+  }
+  // Função para calcular custo de um setor (mesma lógica do comparativo)
+  const calcularCustoSetor = (
+    custos: Record<string, number>,
+    quantidades: Record<string, number>
+  ) => {
+    let total = 0;
+    Object.keys(custos).forEach((cargoId) => {
+      const custoUnitario = custos[cargoId] || 0;
+      const quantidade = quantidades[cargoId] || 0;
+      total += custoUnitario * quantidade;
+    });
+    return total;
+  };
+
+  // Calcula totais projetados
+  let profissionaisProjetados = 0;
+  let custoProjetado = 0;
+  let profissionaisBaselineSetor = 0;
+  let custoBaselineSetor = 0;
+  let profissionaisAtualRealSetor = 0;
+  let custoAtualRealSetor = 0;
+
+  console.log("💰 [DashboardBaselineScreen] Calculando projetado...");
+
+  // Se temos situacaoAtual, usar para calcular situação atual real filtrada
+  if (snapshotData.situacaoAtual && selectedSector !== "all") {
+    const unidadeSelecionada = snapshotData.situacaoAtual.unidades.find(
+      (u) => u.unidadeId === selectedSector
+    );
+
+    if (unidadeSelecionada) {
+      custoAtualRealSetor = unidadeSelecionada.custoTotal;
+      profissionaisAtualRealSetor = unidadeSelecionada.totalFuncionarios;
+    }
+  }
+
+  // Se temos snapshot.dados, usar para calcular baseline do setor selecionado
+  if (snapshotData.snapshot.dados && selectedSector !== "all") {
+    // Processar baseline da unidade selecionada
+    const unidadeBaselineInt = snapshotData.snapshot.dados.internation?.find(
+      (u: any) => u.id === selectedSector
+    );
+    const unidadeBaselineAss = snapshotData.snapshot.dados.assistance?.find(
+      (u: any) => u.id === selectedSector
+    );
+
+    if (unidadeBaselineInt) {
+      unidadeBaselineInt.staff?.forEach((s: any) => {
+        custoBaselineSetor += (s.quantity || 0) * (s.unitCost || 0);
+        profissionaisBaselineSetor += s.quantity || 0;
+      });
+    }
+
+    if (unidadeBaselineAss) {
+      unidadeBaselineAss.staff?.forEach((s: any) => {
+        custoBaselineSetor += (s.quantity || 0) * (s.unitCost || 0);
+        profissionaisBaselineSetor += s.quantity || 0;
+      });
+    }
+  }
+
+  // Construir mapa de custos unitários
+  const custoPorCargo = new Map<string, number>();
+
+  if (snapshotData.situacaoAtual) {
+    // Usar situacaoAtual para obter custos unitários
+    snapshotData.situacaoAtual.unidades.forEach((unidade) => {
+      unidade.cargos.forEach((cargo) => {
+        custoPorCargo.set(cargo.cargoId, cargo.custoUnitario);
+      });
+    });
+  } else {
+    // Fallback para estrutura antiga
+    baselineInternationUnits.forEach((unit: any) => {
+      unit.staff?.forEach((s: any) => {
+        custoPorCargo.set(s.id, s.unitCost || 0);
+      });
+    });
+
+    baselineAssistanceUnits.forEach((unit: any) => {
+      unit.staff?.forEach((s: any) => {
+        custoPorCargo.set(s.id, s.unitCost || 0);
+      });
+    });
+  }
+
+  console.log(`📋 Total de cargos no mapa: ${custoPorCargo.size}`);
+
+  // Calcular custoBaselineSetor e profissionaisBaselineSetor se não foram calculados via situacaoAtual
+  if (!snapshotData.situacaoAtual || selectedSector === "all") {
+    // Processar unidades de internação do baseline
+    baselineInternationUnits.forEach((unit: any) => {
+      // Filtrar por setor selecionado
+      if (selectedSector !== "all" && unit.id !== selectedSector) return;
+
+      const quantidadesBaseline: Record<string, number> = {};
+      unit.staff?.forEach((s: any) => {
+        quantidadesBaseline[s.id] = s.quantity || 0;
+      });
+
+      const custosUnit: Record<string, number> = {};
+      unit.staff?.forEach((s: any) => {
+        custosUnit[s.id] = s.unitCost || 0;
+      });
+
+      custoBaselineSetor += calcularCustoSetor(custosUnit, quantidadesBaseline);
+      profissionaisBaselineSetor += Object.values(quantidadesBaseline).reduce(
+        (a, b) => a + b,
+        0
+      );
+    });
+
+    // Processar unidades de assistência do baseline
+    baselineAssistanceUnits.forEach((unit: any) => {
+      // Filtrar por setor selecionado
+      if (selectedSector !== "all" && unit.id !== selectedSector) return;
+
+      const quantidadesBaseline: Record<string, number> = {};
+      unit.staff?.forEach((s: any) => {
+        quantidadesBaseline[s.id] = s.quantity || 0;
+      });
+
+      const custosUnit: Record<string, number> = {};
+      unit.staff?.forEach((s: any) => {
+        custosUnit[s.id] = s.unitCost || 0;
+      });
+
+      custoBaselineSetor += calcularCustoSetor(custosUnit, quantidadesBaseline);
+      profissionaisBaselineSetor += Object.values(quantidadesBaseline).reduce(
+        (a, b) => a + b,
+        0
+      );
+    });
+  }
+
+  // Calcular projetado para internação
+  snapshotData.snapshot.dados.projetadoFinal?.internacao?.forEach((unidade) => {
+    // No modo global, filtrar por hospital
+    if (
+      props.isGlobalView &&
+      selectedHospitalId !== "all" &&
+      (unidade as any).hospitalId &&
+      (unidade as any).hospitalId !== selectedHospitalId
+    ) {
+      return;
+    }
+    // Filtrar por setor selecionado
+    if (selectedSector !== "all" && unidade.unidadeId !== selectedSector)
+      return;
+
+    console.log(`  🏥 Unidade Internação: ${unidade.unidadeNome}`);
+
+    // Usar custoTotalUnidade se disponível, senão calcular manualmente
+    if (unidade.custoTotalUnidade !== undefined) {
+      custoProjetado += unidade.custoTotalUnidade;
+      console.log(
+        `    Custo total da unidade: R$ ${unidade.custoTotalUnidade}`
+      );
+    } else {
+      // Fallback: calcular manualmente
+      unidade.cargos.forEach((cargo) => {
+        const custoUnit = custoPorCargo.get(cargo.cargoId) || 0;
+        const custoProj = cargo.projetadoFinal * custoUnit;
+        custoProjetado += custoProj;
+      });
+    }
+
+    // Somar quantidade de profissionais
+    unidade.cargos.forEach((cargo) => {
+      profissionaisProjetados += cargo.projetadoFinal;
+    });
+  });
+
+  // Calcular projetado para não-internação
+  snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.forEach(
+    (unidade) => {
+      // No modo global, filtrar por hospital
+      if (
+        props.isGlobalView &&
+        selectedHospitalId !== "all" &&
+        (unidade as any).hospitalId &&
+        (unidade as any).hospitalId !== selectedHospitalId
+      ) {
+        return;
+      }
+      // Filtrar por setor selecionado
+      if (selectedSector !== "all" && unidade.unidadeId !== selectedSector)
+        return;
+
+      console.log(`  🏥 Unidade Não-Internação: ${unidade.unidadeNome}`);
+
+      // Usar custoTotalUnidade se disponível, senão calcular manualmente
+      if (unidade.custoTotalUnidade !== undefined) {
+        custoProjetado += unidade.custoTotalUnidade;
+        console.log(
+          `    Custo total da unidade: R$ ${unidade.custoTotalUnidade}`
+        );
+      } else {
+        // Fallback: calcular manualmente
+        unidade.sitios.forEach((sitio) => {
+          sitio.cargos.forEach((cargo) => {
+            const custoUnit = custoPorCargo.get(cargo.cargoId) || 0;
+            const custoProj = cargo.projetadoFinal * custoUnit;
+            custoProjetado += custoProj;
+          });
+        });
+      }
+
+      // Somar quantidade de profissionais
+      unidade.sitios.forEach((sitio) => {
+        sitio.cargos.forEach((cargo) => {
+          profissionaisProjetados += cargo.projetadoFinal;
+        });
+      });
+    }
+  );
+
+  console.log(
+    "💚 [DashboardBaselineScreen] Adicionando custo das unidades neutras..."
+  );
+  // Adiciona custo das unidades neutras da situação atual (não têm projetado, mantém valor atual)
+  // Neutras são adicionadas apenas quando "all" está selecionado
+  if (selectedSector === "all") {
+    // Adicionar neutras ao projetado (mantém o valor)
+    snapshotData.situacaoAtual?.unidadesNeutras?.forEach((unit: any) => {
+      const custoNeutro = unit.custoTotal || 0;
+      console.log(
+        `  🏥 Unidade Neutra: ${unit.unidadeNome} - R$ ${custoNeutro}`
+      );
+      custoProjetado += custoNeutro;
+      // Neutras também estavam no baseline do snapshot
+      const unidadeNeutraBaseline = snapshotData.snapshot.dados.neutral?.find(
+        (n: any) => n.id === unit.unidadeId
+      );
+      if (unidadeNeutraBaseline) {
+        custoBaselineSetor += (unidadeNeutraBaseline.costAmount || 0) / 100;
+      }
+    });
+
+    // Adicionar neutras à situação atual real
+    snapshotData.situacaoAtual?.unidadesNeutras?.forEach((unit: any) => {
+      const custoNeutro = unit.custoTotal || 0;
+      custoAtualRealSetor += custoNeutro;
+    });
+  }
+
+  // Se não houver projetadoFinal (ex: dados externos ainda sem projeção), manter baseline
+  if (!snapshotData.snapshot.dados.projetadoFinal) {
+    const custoBaselineSelecionado =
+      selectedSector === "all" ? custoBaseline : custoBaselineSetor;
+    const profissionaisBaselineSelecionado =
+      selectedSector === "all"
+        ? profissionaisBaseline
+        : profissionaisBaselineSetor;
+
+    custoProjetado = custoBaselineSelecionado;
+    profissionaisProjetados = profissionaisBaselineSelecionado;
+  }
+
+  // Usar valores filtrados ou totais dependendo da seleção
+  const custoBaselineExibicao =
+    selectedSector === "all" ? custoBaseline : custoBaselineSetor;
+  const profissionaisBaselineExibicao =
+    selectedSector === "all"
+      ? profissionaisBaseline
+      : profissionaisBaselineSetor;
+
+  const custoAtualRealExibicao =
+    selectedSector === "all" ? custoAtualReal : custoAtualRealSetor;
+  const profissionaisAtualRealExibicao =
+    selectedSector === "all"
+      ? profissionaisAtuaisReal
+      : profissionaisAtualRealSetor;
+
+  // Calcula variações (Baseline -> Projetado)
+  // Variações calculadas com base no Atual Real vs Projetado (para os cards)
+  const variacaoCusto = custoProjetado - custoAtualRealExibicao;
+  const variacaoProfissionais =
+    profissionaisProjetados - profissionaisAtualRealExibicao;
+  const variacaoCustoPercentual =
+    custoAtualRealExibicao > 0
+      ? (variacaoCusto / custoAtualRealExibicao) * 100
+      : 0;
+  const variacaoProfissionaisPercentual =
+    profissionaisAtualRealExibicao > 0
+      ? (variacaoProfissionais / profissionaisAtualRealExibicao) * 100
+      : 0;
+
+  // Variações entre Baseline e Projetado (para o gráfico waterfall)
+  const variacaoProfissionaisBaselineParaProjetado =
+    profissionaisProjetados - profissionaisBaselineExibicao;
+
+  console.log("🔢 [DashboardBaselineScreen] Dados processados:", {
+    baseline: {
+      custo: custoBaselineExibicao,
+      profissionais: profissionaisBaselineExibicao,
+    },
+    projected: {
+      custo: custoProjetado,
+      profissionais: profissionaisProjetados,
+    },
+    atualReal: {
+      custo: custoAtualRealExibicao,
+      profissionais: profissionaisAtualRealExibicao,
+    },
+    variation: {
+      custo: variacaoCusto,
+      custoPercentual: variacaoCustoPercentual,
+      profissionais: variacaoProfissionais,
+      profissionaisPercentual: variacaoProfissionaisPercentual,
+    },
+  });
+
+  // Dados waterfall de custo (R$) - para aba Global (Atual Real -> Projetado)
+  const waterfallCustoDataGlobal: WaterfallDataItem[] = [
+    { name: "Atual", value: custoAtualRealExibicao },
+    { name: "Variação", value: custoProjetado - custoAtualRealExibicao },
+    { name: "Projetado\nFinal", value: custoProjetado },
+  ];
+
+  // Dados waterfall de quantidade - para aba Global (Atual Real -> Projetado)
+  const waterfallQuantidadeDataGlobal: WaterfallDataItem[] = [
+    { name: "Atual", value: profissionaisAtualRealExibicao },
+    {
+      name: "Variação",
+      value: profissionaisProjetados - profissionaisAtualRealExibicao,
+    },
+    { name: "Projetado", value: profissionaisProjetados },
+  ];
+
+  const rankingHospitaisCusto: BaselineRankingItem[] = [];
+  const rankingHospitaisQtd: BaselineRankingItem[] = [];
+
+  // Dados waterfall de custo (R$) - para aba Detalhamento (Baseline -> Projetado)
+  const waterfallCustoData: WaterfallDataItem[] = [
+    { name: "Baseline\nSnapshot", value: custoBaselineExibicao },
+    { name: "Variação", value: variacaoCusto },
+    { name: "Projetado\nFinal", value: custoProjetado },
+  ];
+
+  // Dados waterfall de quantidade - para aba Detalhamento (Atual -> Projetado)
+  const waterfallQuantidadeData: WaterfallDataItem[] = [
+    { name: "Atual", value: profissionaisAtualRealExibicao },
+    { name: "Variação", value: variacaoProfissionais },
+    { name: "Projetado", value: profissionaisProjetados },
+  ];
+
+  // Dados waterfall completo (Atual -> Baseline -> Projetado) para Detalhamento
+  // Formatar data do snapshot para o label
+  const baselineDate = snapshotData.snapshot.dataHora
+    ? new Date(snapshotData.snapshot.dataHora)
+        .toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "2-digit",
+        })
+        .replace(/\//g, ".")
+    : "";
+
+  // Criar dados processados manualmente para ter barras completas em Atual, Baseline e Projetado
+  const waterfallQuantidadeDataCompleto: WaterfallDataItem[] = [
+    {
+      name: "Atual",
+      value: profissionaisAtualRealExibicao,
+      range: [0, profissionaisAtualRealExibicao] as [number, number],
+      color: "#5CA6DD",
+    },
+    {
+      name: "Variação",
+      value: profissionaisBaselineExibicao - profissionaisAtualRealExibicao,
+      range: [
+        profissionaisAtualRealExibicao,
+        profissionaisBaselineExibicao,
+      ] as [number, number],
+      color:
+        profissionaisBaselineExibicao - profissionaisAtualRealExibicao >= 0
+          ? "#4ADE80"
+          : "#EF4444",
+    },
+    {
+      name: `Baseline\n(${baselineDate})`,
+      value: profissionaisBaselineExibicao,
+      range: [0, profissionaisBaselineExibicao] as [number, number],
+      color: "#93C5FD",
+    },
+    {
+      name: "Variação",
+      value: variacaoProfissionaisBaselineParaProjetado,
+      range: [profissionaisBaselineExibicao, profissionaisProjetados] as [
+        number,
+        number
+      ],
+      color:
+        variacaoProfissionaisBaselineParaProjetado >= 0 ? "#4ADE80" : "#EF4444",
+    },
+    {
+      name: "Projetado",
+      value: profissionaisProjetados,
+      range: [0, profissionaisProjetados] as [number, number],
+      color: "#003151",
+    },
+  ];
+
+  // Ranking por setores (%) - para o 3º gráfico
+  const setoresVariacao: Array<{
+    nome: string;
+    variacaoPercentual: number;
+    variacaoReais: number;
+  }> = [];
+
+  // Processa internação para ranking de setores (comparando Atual vs Projetado)
+  snapshotData.snapshot.dados.projetadoFinal?.internacao?.forEach((unidade) => {
+    // Buscar situação atual da unidade
+    const unidadeAtual = snapshotData.situacaoAtual?.unidades.find(
+      (u) => u.unidadeId === unidade.unidadeId
+    );
+
+    if (unidadeAtual) {
+      const custoAtualUnidade = unidadeAtual.custoTotal;
+
+      // Construir mapa de custos unitários desta unidade
+      const custosUnit: Record<string, number> = {};
+      unidadeAtual.cargos.forEach((cargo) => {
+        custosUnit[cargo.cargoId] = cargo.custoUnitario;
+      });
+
+      // Construir mapa de quantidades projetadas
+      const quantidadesProjetadas: Record<string, number> = {};
+      unidade.cargos.forEach((cargo) => {
+        quantidadesProjetadas[cargo.cargoId] = cargo.projetadoFinal;
+      });
+
+      const custoProjetadoUnidade = calcularCustoSetor(
+        custosUnit,
+        quantidadesProjetadas
+      );
+
+      const variacaoPerc =
+        custoAtualUnidade > 0
+          ? ((custoProjetadoUnidade - custoAtualUnidade) / custoAtualUnidade) *
+            100
+          : 0;
+
+      const variacaoReais = custoProjetadoUnidade - custoAtualUnidade;
+
+      console.log(`📊 [Ranking Setores] ${unidade.unidadeNome}:`, {
+        custoAtual: custoAtualUnidade,
+        custoProjetado: custoProjetadoUnidade,
+        variacaoReais: variacaoReais,
+        variacaoPerc: variacaoPerc,
+      });
+
+      setoresVariacao.push({
+        nome: unidade.unidadeNome,
+        variacaoPercentual: variacaoPerc,
+        variacaoReais: variacaoReais,
+      });
+    }
+  });
+
+  // Processa não-internação para ranking de setores (comparando Atual vs Projetado)
+  snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.forEach(
+    (unidade) => {
+      // Buscar situação atual da unidade
+      const unidadeAtual = snapshotData.situacaoAtual?.unidades.find(
+        (u) => u.unidadeId === unidade.unidadeId
+      );
+
+      if (unidadeAtual) {
+        const custoAtualUnidade = unidadeAtual.custoTotal;
+
+        // Construir mapa de custos unitários desta unidade
+        const custosUnit: Record<string, number> = {};
+        unidadeAtual.cargos.forEach((cargo) => {
+          custosUnit[cargo.cargoId] = cargo.custoUnitario;
+        });
+
+        // Construir mapa de quantidades projetadas (somando todos os sítios)
+        const quantidadesProjetadas: Record<string, number> = {};
+        unidade.sitios.forEach((sitio) => {
+          sitio.cargos.forEach((cargo) => {
+            quantidadesProjetadas[cargo.cargoId] =
+              (quantidadesProjetadas[cargo.cargoId] || 0) +
+              cargo.projetadoFinal;
+          });
+        });
+
+        const custoProjetadoUnidade = calcularCustoSetor(
+          custosUnit,
+          quantidadesProjetadas
+        );
+
+        const variacaoPerc =
+          custoAtualUnidade > 0
+            ? ((custoProjetadoUnidade - custoAtualUnidade) /
+                custoAtualUnidade) *
+              100
+            : 0;
+
+        const variacaoReais = custoProjetadoUnidade - custoAtualUnidade;
+
+        console.log(
+          `📊 [Ranking Setores - Não Internação] ${unidade.unidadeNome}:`,
+          {
+            custoAtual: custoAtualUnidade,
+            custoProjetado: custoProjetadoUnidade,
+            variacaoReais: variacaoReais,
+            variacaoPerc: variacaoPerc,
+          }
+        );
+
+        setoresVariacao.push({
+          nome: unidade.unidadeNome,
+          variacaoPercentual: variacaoPerc,
+          variacaoReais: variacaoReais,
+        });
+      }
+    }
+  );
+
+  const rankingSetores = setoresVariacao.sort(
+    (a, b) => b.variacaoPercentual - a.variacaoPercentual
+  );
+
+  // Paleta de cores do projeto
+  const projectColors = [
+    "#005D97",
+    "#0070B9",
+    "#89A7D6",
+    "#003151",
+    "#004A75",
+    "#268CCC",
+    "#5CA6DD",
+    "#D7E5F5",
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{props.title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="global" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="global">Global</TabsTrigger>
+            <TabsTrigger value="detalhamento">Detalhamento</TabsTrigger>
+          </TabsList>
+
+          {/* Aba Global */}
+          <TabsContent value="global" className="space-y-6">
+            <DashboardBaselineGlobalTab
+              isGlobalView={!!props.isGlobalView}
+              custoAtualReal={custoAtualRealExibicao}
+              custoProjetado={custoProjetado}
+              variacaoCustoReais={custoProjetado - custoAtualRealExibicao}
+              profissionaisAtuais={profissionaisAtualRealExibicao}
+              profissionaisProjetados={profissionaisProjetados}
+              InfoCard={InfoCard}
+              icons={{
+                atual: <Building2 className="h-8 w-8" />,
+                variacao: <TrendingUp className="h-8 w-8" />,
+                projetado: <Target className="h-8 w-8" />,
+                funcionarios: <Building2 className="h-8 w-8" />,
+                funcionariosProjetado: <Target className="h-8 w-8" />,
+              }}
+              selectedGroupId={selectedGroupId}
+              setSelectedGroupId={setSelectedGroupId}
+              groups={gruposDisponiveis}
+              selectedRegionId={selectedRegionId}
+              setSelectedRegionId={setSelectedRegionId}
+              regions={regioesDisponiveis}
+              selectedHospitalId={selectedHospitalId}
+              setSelectedHospitalId={setSelectedHospitalId}
+              hospitals={hospitaisDisponiveis}
+              staffLastUpdateLabel={staffLastUpdateLabel}
+              ReusableWaterfall={ReusableWaterfall}
+              waterfallCusto={waterfallCustoDataGlobal}
+              waterfallQuantidade={waterfallQuantidadeDataGlobal}
+              rankingCusto={rankingHospitaisCusto}
+              rankingQuantidade={rankingHospitaisQtd}
+            />
+          </TabsContent>
+
+          {/* Aba Detalhamento */}
+          <DashboardBaselineDetalhamento
+            snapshotData={snapshotData}
+            hospitalId={hospitalId}
+            selectedSector={selectedSector}
+            setSelectedSector={setSelectedSector}
+            setoresDisponiveis={setoresDisponiveis}
+            hideSectorSelector={props.isGlobalView}
+            profissionaisBaseline={profissionaisBaselineExibicao}
+            custoBaseline={custoBaselineExibicao}
+            profissionaisProjetados={profissionaisProjetados}
+            custoProjetado={custoProjetado}
+            profissionaisAtuaisReal={profissionaisAtualRealExibicao}
+            custoAtualReal={custoAtualRealExibicao}
+            variacaoCustoPercentual={variacaoCustoPercentual}
+            variacaoProfissionaisPercentual={variacaoProfissionaisPercentual}
+            variacaoCusto={variacaoCusto}
+            variacaoProfissionais={variacaoProfissionais}
+            waterfallQuantidadeData={waterfallQuantidadeData}
+            waterfallQuantidadeDataCompleto={waterfallQuantidadeDataCompleto}
+            axisTick={axisTick}
+            ReusableWaterfall={ReusableWaterfall}
+          />
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };
-
-interface ChartData {
-  [key: string]: string | number | undefined;
-  name: string;
-  value: number;
-  color?: string;
-}

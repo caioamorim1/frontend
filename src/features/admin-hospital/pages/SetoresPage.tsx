@@ -3,23 +3,28 @@ import { useParams, Link } from "react-router-dom";
 import {
   getUnidadesInternacao,
   getUnidadesNaoInternacao,
+  getUnidadesNeutras,
   createUnidadeInternacao,
   createUnidadeNaoInternacao,
+  createUnidadeNeutra,
   updateUnidadeInternacao,
   updateUnidadeNaoInternacao,
+  updateUnidadeNeutra,
   deleteUnidadeInternacao,
   deleteUnidadeNaoInternacao,
+  deleteUnidadeNeutra,
   getScpMetodos,
   Unidade,
   ScpMetodo,
   createSnapshotHospitalSectors,
 } from "@/lib/api";
-import { Trash2, Edit, Hospital, Building2 } from "lucide-react";
+import { Trash2, Edit, Hospital, Building2, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label"; // Importando o Label
+import CurrencyInput from "@/components/shared/CurrencyInput";
 import {
   Select,
   SelectContent,
@@ -49,7 +54,7 @@ export default function SetoresPage() {
 
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [tipoUnidade, setTipoUnidade] = useState<
-    "internacao" | "nao-internacao" | null
+    "internacao" | "nao-internacao" | "neutro" | null
   >(null);
   const [editingUnidade, setEditingUnidade] = useState<Unidade | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -59,6 +64,8 @@ export default function SetoresPage() {
   const [numeroLeitos, setNumeroLeitos] = useState(0);
   const [scpMetodoId, setScpMetodoId] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [custoTotal, setCustoTotal] = useState("");
+  const [status, setStatus] = useState("inativo");
 
   const handleGenerateBaselineConfirm = async () => {
     if (!hospitalId) return;
@@ -116,12 +123,14 @@ export default function SetoresPage() {
     if (!hospitalId) return;
     setLoading(true);
     try {
-      const [internacaoData, naoInternacaoData, scpData] = await Promise.all([
-        getUnidadesInternacao(hospitalId),
-        getUnidadesNaoInternacao(hospitalId),
-        getScpMetodos(),
-      ]);
-      setUnidades([...internacaoData, ...naoInternacaoData]);
+      const [internacaoData, naoInternacaoData, neutrasData, scpData] =
+        await Promise.all([
+          getUnidadesInternacao(hospitalId),
+          getUnidadesNaoInternacao(hospitalId),
+          getUnidadesNeutras(hospitalId),
+          getScpMetodos(),
+        ]);
+      setUnidades([...internacaoData, ...naoInternacaoData, ...neutrasData]);
       setScpMetodos(scpData);
     } catch (err) {
       showAlert("destructive", "Erro", "Falha ao carregar os setores.");
@@ -139,6 +148,8 @@ export default function SetoresPage() {
     setNumeroLeitos(0);
     setScpMetodoId("");
     setDescricao("");
+    setCustoTotal("");
+    setStatus("inativo");
     setTipoUnidade(null);
     setIsFormVisible(false);
     setEditingUnidade(null);
@@ -160,8 +171,12 @@ export default function SetoresPage() {
       // Map scpMetodoKey (stored on unidade) to the actual scp metodo id so the Select shows correctly
       const resolved = resolveScpMetodoId(unidade, scpMetodos);
       setScpMetodoId(resolved);
-    } else {
+    } else if (unidade.tipo === "nao-internacao") {
       setDescricao(unidade.descricao || "");
+    } else if (unidade.tipo === "neutro") {
+      setDescricao(unidade.descricao || "");
+      setCustoTotal(unidade.custoTotal?.toString() || "0");
+      setStatus("inativo");
     }
 
     setIsFormVisible(true);
@@ -189,12 +204,19 @@ export default function SetoresPage() {
             horas_extra_reais: "0.00",
             horas_extra_projetadas: "0",
           });
-        } else {
+        } else if (tipoUnidade === "nao-internacao") {
           await updateUnidadeNaoInternacao(editingUnidade.id, {
             nome,
             descricao,
             horas_extra_reais: "0.00",
             horas_extra_projetadas: "0",
+          });
+        } else if (tipoUnidade === "neutro") {
+          await updateUnidadeNeutra(editingUnidade.id, {
+            nome,
+            custoTotal: parseFloat(custoTotal) || 0,
+            status,
+            descricao,
           });
         }
       } else {
@@ -216,7 +238,7 @@ export default function SetoresPage() {
             horas_extra_projetadas: "0",
             cargos_unidade: [], // Inicia sem cargos
           });
-        } else {
+        } else if (tipoUnidade === "nao-internacao") {
           await createUnidadeNaoInternacao({
             hospitalId,
             nome,
@@ -224,6 +246,14 @@ export default function SetoresPage() {
             horas_extra_reais: "0.00",
             horas_extra_projetadas: "0",
             cargos_unidade: [], // Inicia sem cargos..
+          });
+        } else if (tipoUnidade === "neutro") {
+          await createUnidadeNeutra({
+            hospitalId,
+            nome,
+            custoTotal: parseFloat(custoTotal) || 0,
+            status,
+            descricao,
           });
         }
       }
@@ -255,8 +285,10 @@ export default function SetoresPage() {
         try {
           if (unidade.tipo === "internacao") {
             await deleteUnidadeInternacao(unidade.id);
-          } else {
+          } else if (unidade.tipo === "nao-internacao") {
             await deleteUnidadeNaoInternacao(unidade.id);
+          } else if (unidade.tipo === "neutro") {
+            await deleteUnidadeNeutra(unidade.id);
           }
           fetchData();
           showAlert("success", "Sucesso", "Setor excluído com sucesso.");
@@ -273,7 +305,9 @@ export default function SetoresPage() {
     return (
       unidade.nome.toLowerCase().includes(search) ||
       (unidade.tipo === "internacao" && "internação".includes(search)) ||
-      (unidade.tipo === "nao-internacao" && "não internação".includes(search))
+      (unidade.tipo === "nao-internacao" &&
+        "não internação".includes(search)) ||
+      (unidade.tipo === "neutro" && "neutro".includes(search))
     );
   });
 
@@ -331,6 +365,14 @@ export default function SetoresPage() {
                 >
                   <Building2 className="h-8 w-8 text-secondary mb-2" />
                   <span>Unidade de Não Internação</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setTipoUnidade("neutro")}
+                  className="flex-1 h-24 flex-col"
+                >
+                  <DollarSign className="h-8 w-8 text-secondary mb-2" />
+                  <span>Setor Neutro</span>
                 </Button>
               </div>
             ) : (
@@ -412,6 +454,34 @@ export default function SetoresPage() {
                   </div>
                 )}
 
+                {tipoUnidade === "neutro" && (
+                  <>
+                    <div className="flex flex-col">
+                      <Label htmlFor="custoTotal">
+                        Custo Total Mensal (R$)
+                      </Label>
+                      <CurrencyInput
+                        value={custoTotal}
+                        onChange={(val) => setCustoTotal(val)}
+                        placeholder="R$ 0,00"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="descricao">Descrição (Opcional)</Label>
+                      <Textarea
+                        id="descricao"
+                        name="descricao"
+                        value={descricao}
+                        onChange={(e) => setDescricao(e.target.value)}
+                        placeholder="Descreva brevemente o setor..."
+                        rows={3}
+                        className="mt-1"
+                      />
+                    </div>
+                  </>
+                )}
+
                 <div className="flex justify-end gap-4 pt-4 border-t">
                   <Button type="button" variant="ghost" onClick={resetForm}>
                     {editingUnidade ? "Cancelar Edição" : "Voltar"}
@@ -443,21 +513,23 @@ export default function SetoresPage() {
                   filteredUnidades.map((unidade) => (
                     <TableRow key={unidade.id}>
                       <TableCell className="font-medium">
-                        <span className="text-gray-800">
-                          {unidade.nome}
-                        </span>
+                        <span className="text-gray-800">{unidade.nome}</span>
                       </TableCell>
                       <TableCell>
                         <span
                           className={`px-2 py-1 text-xs font-semibold rounded-full ${
                             unidade.tipo === "internacao"
                               ? "bg-blue-100 text-blue-800"
-                              : "bg-purple-100 text-purple-800"
+                              : unidade.tipo === "nao-internacao"
+                              ? "bg-purple-100 text-purple-800"
+                              : "bg-gray-100 text-gray-800"
                           }`}
                         >
                           {unidade.tipo === "internacao"
                             ? "Internação"
-                            : "Não Internação"}
+                            : unidade.tipo === "nao-internacao"
+                            ? "Não Internação"
+                            : "Neutro"}
                         </span>
                       </TableCell>
                       <TableCell className="text-right space-x-2">

@@ -6,6 +6,7 @@ import {
   UnidadeInternacao,
   ScpSchema,
   createSessao,
+  updateSessao,
 } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -48,6 +49,8 @@ interface AvaliacaoScpModalProps {
   prontuario: string;
   hospitalId: string;
   onSuccess: () => void;
+  sessaoId?: string;
+  respostasIniciais?: Record<string, number>;
 }
 
 export default function AvaliacaoScpModal({
@@ -58,6 +61,8 @@ export default function AvaliacaoScpModal({
   prontuario,
   hospitalId,
   onSuccess,
+  sessaoId,
+  respostasIniciais,
 }: AvaliacaoScpModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -110,10 +115,11 @@ export default function AvaliacaoScpModal({
         questions: questionsWithShuffledOptions,
       });
       // Reset respostas e índice quando o modal abre
-      setRespostas({});
+      // Se tiver respostas iniciais (modo edição), carrega elas
+      setRespostas(respostasIniciais || {});
       setCurrentQuestionIndex(0);
     }
-  }, [isOpen, schema]);
+  }, [isOpen, schema, respostasIniciais]);
 
   const handleOptionSelect = (questionKey: string, value: number) => {
     setRespostas((prev) => ({ ...prev, [questionKey]: value }));
@@ -149,21 +155,38 @@ export default function AvaliacaoScpModal({
       return;
     }
     try {
-      await createSessao({
-        unidadeId: unidade.id,
-        prontuario: prontuario,
-        scp: unidade.scpMetodoKey,
-        leitoId,
-        colaboradorId: user.id,
-        itens: respostas,
-      });
-      toast({ title: "Sucesso!", description: "Avaliação salva com sucesso." });
+      if (sessaoId) {
+        // Modo edição
+        await updateSessao(sessaoId, {
+          itens: respostas,
+        });
+        toast({
+          title: "Sucesso!",
+          description: "Avaliação atualizada com sucesso.",
+        });
+      } else {
+        // Modo criação
+        await createSessao({
+          unidadeId: unidade.id,
+          prontuario: prontuario,
+          scp: unidade.scpMetodoKey,
+          leitoId,
+          colaboradorId: user.id,
+          itens: respostas,
+        });
+        toast({
+          title: "Sucesso!",
+          description: "Avaliação salva com sucesso.",
+        });
+      }
       onSuccess();
       onClose();
     } catch (err) {
       toast({
         title: "Erro",
-        description: "Não foi possível salvar a avaliação.",
+        description: sessaoId
+          ? "Não foi possível atualizar a avaliação."
+          : "Não foi possível salvar a avaliação.",
         variant: "destructive",
       });
     }

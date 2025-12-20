@@ -56,7 +56,9 @@ export default function BaselineTabBySitio({
 
       try {
         const data = await getSnapshotHospitalSectors(hospitalId);
+        console.log("📊 [BaselineTabBySitio] Resposta completa da API:", data);
         const dados = (data as any).snapshot.dados;
+        console.log("📊 [BaselineTabBySitio] Dados do snapshot:", dados);
 
         setSnapshotData(dados);
       } catch (err: any) {

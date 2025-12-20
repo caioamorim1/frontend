@@ -31,6 +31,186 @@ export default function BaselinePage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
+  const toNumber = (value: any): number => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+  };
+
+  const formatCurrency = (value: number) =>
+    value.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+  const computeTotalsFromDados = (
+    dados: any,
+    unitCostDivisor: number
+  ): { baseline: number; projected: number } => {
+    if (!dados) return { baseline: 0, projected: 0 };
+
+    const unitCost = (raw: any) => (toNumber(raw) || 0) / unitCostDivisor;
+
+    // 1) Baseline (snapshot atual)
+    let baseline = 0;
+    const sumBaseline = (units?: any[]) => {
+      units?.forEach((unit: any) => {
+        unit?.staff?.forEach((s: any) => {
+          baseline += (toNumber(s?.quantity) || 0) * unitCost(s?.unitCost);
+        });
+      });
+    };
+    sumBaseline(dados.internation);
+    sumBaseline(dados.assistance);
+
+    // Neutral: costAmount geralmente vem em centavos
+    dados.neutral?.forEach((unit: any) => {
+      baseline += (toNumber(unit?.costAmount) || 0) / 100;
+    });
+
+    // 2) Projetado (projetadoFinal)
+    let projected = 0;
+
+    // Mapear custo unitário por cargo a partir do baseline
+    const unitCostByCargo = new Map<string, number>();
+    const collectUnitCosts = (units?: any[]) => {
+      units?.forEach((unit: any) => {
+        unit?.staff?.forEach((s: any) => {
+          const id = s?.cargoId ?? s?.id;
+          if (!id) return;
+          unitCostByCargo.set(String(id), unitCost(s?.unitCost));
+        });
+      });
+    };
+    collectUnitCosts(dados.internation);
+    collectUnitCosts(dados.assistance);
+
+    // Internação
+    dados.projetadoFinal?.internacao?.forEach((unidade: any) => {
+      if (typeof unidade?.custoTotalUnidade === "number") {
+        projected += unidade.custoTotalUnidade;
+        return;
+      }
+
+      unidade?.cargos?.forEach((cargo: any) => {
+        const cargoId = String(cargo?.cargoId ?? "");
+        const qtd = toNumber(cargo?.projetadoFinal);
+        const uc = unitCostByCargo.get(cargoId) || 0;
+        projected += qtd * uc;
+      });
+    });
+
+    // Não internação
+    dados.projetadoFinal?.naoInternacao?.forEach((unidade: any) => {
+      if (typeof unidade?.custoTotalUnidade === "number") {
+        projected += unidade.custoTotalUnidade;
+        return;
+      }
+
+      unidade?.sitios?.forEach((sitio: any) => {
+        sitio?.cargos?.forEach((cargo: any) => {
+          const cargoId = String(cargo?.cargoId ?? "");
+          const qtd = toNumber(cargo?.projetadoFinal);
+          const uc = unitCostByCargo.get(cargoId) || 0;
+          projected += qtd * uc;
+        });
+      });
+    });
+
+    // Neutral: não tem projetadoFinal, então mantém o custo baseline
+    dados.neutral?.forEach((unit: any) => {
+      projected += (toNumber(unit?.costAmount) || 0) / 100;
+    });
+
+    return { baseline, projected };
+  };
+
+  const getResumoNormalizado = (snapshot: Snapshot) => {
+    const resumo: any = snapshot?.resumo || {};
+
+    const custoTotalRaw = toNumber(resumo.custoTotal);
+    const custoProjetadoRaw = toNumber(resumo.custoTotalProjetado);
+
+    const dados = (snapshot as any).dados;
+
+    // Detectar escala do unitCost (às vezes vem em centavos)
+    const totalsUnitCost1 = computeTotalsFromDados(dados, 1);
+    const totalsUnitCost100 = computeTotalsFromDados(dados, 100);
+
+    const resumoCandidates = [
+      { scale: 1, custo: custoTotalRaw, custoProj: custoProjetadoRaw },
+      {
+        scale: 100,
+        custo: custoTotalRaw / 100,
+        custoProj: custoProjetadoRaw / 100,
+      },
+    ];
+
+    const dadosCandidates = [
+      { unitCostDivisor: 1, value: totalsUnitCost1.baseline },
+      { unitCostDivisor: 100, value: totalsUnitCost100.baseline },
+    ].filter((c) => c.value > 0);
+
+    let chosenResumoScale = 1;
+    let chosenUnitCostDivisor = 1;
+
+    if (dadosCandidates.length > 0 && custoTotalRaw > 0) {
+      let best = {
+        diff: Number.POSITIVE_INFINITY,
+        resumoScale: 1,
+        unitCostDivisor: 1,
+      };
+
+      for (const r of resumoCandidates) {
+        for (const d of dadosCandidates) {
+          const diff = Math.abs(r.custo - d.value);
+          if (diff < best.diff) {
+            best = {
+              diff,
+              resumoScale: r.scale,
+              unitCostDivisor: d.unitCostDivisor,
+            };
+          }
+        }
+      }
+
+      chosenResumoScale = best.resumoScale;
+      chosenUnitCostDivisor = best.unitCostDivisor;
+    }
+
+    const custoTotalFromResumo =
+      chosenResumoScale === 100 ? custoTotalRaw / 100 : custoTotalRaw;
+    const custoTotalProjetadoFromResumo =
+      chosenResumoScale === 100 ? custoProjetadoRaw / 100 : custoProjetadoRaw;
+
+    const computed = computeTotalsFromDados(dados, chosenUnitCostDivisor);
+
+    // Preferir baseline calculado a partir de dados, pois o resumo pode não
+    // incluir unidades neutras (ou vir em escala inconsistente).
+    const custoTotal =
+      computed.baseline > 0 ? computed.baseline : custoTotalFromResumo;
+
+    // Preferir projetado calculado a partir de dados, se existir.
+    // (O campo resumo.custoTotalProjetado pode não vir, ou vir em escala errada.)
+    const custoTotalProjetado =
+      computed.projected > 0
+        ? computed.projected
+        : custoTotalProjetadoFromResumo;
+
+    return {
+      custoTotal,
+      custoTotalProjetado,
+      totalProfissionais: toNumber(resumo.totalProfissionais),
+      totalUnidadesInternacao: toNumber(resumo.totalUnidadesInternacao),
+      totalUnidadesAssistencia: toNumber(resumo.totalUnidadesAssistencia),
+      hasProjetado:
+        Number.isFinite(custoTotalProjetado) && custoTotalProjetado > 0,
+    };
+  };
+
   // Estado para criar novo baseline
   const [nomeBaseline, setNomeBaseline] = useState("");
 
@@ -40,92 +220,31 @@ export default function BaselinePage() {
 
   // Função para calcular a variação de custo de um snapshot
   const calcularVariacaoCusto = (snapshot: Snapshot) => {
-    if (!snapshot?.dados) return null;
+    console.log(
+      "📊 [BaselinePage] Calculando variação de custo. Snapshot:",
+      snapshot
+    );
 
-    let custoAtualTotal = 0;
-    let custoProjetadoTotal = 0;
+    if (!snapshot?.resumo) {
+      console.log("⚠️ [BaselinePage] Snapshot sem resumo");
+      return null;
+    }
 
-    // Processar unidades de internação
-    const internacao = snapshot.dados.internation || [];
-    const projetadoInternacao = snapshot.dados.projetadoFinal?.internacao || [];
+    console.log("📊 [BaselinePage] Resumo do snapshot:", snapshot.resumo);
 
-    internacao.forEach((unidade: any) => {
-      // Custo atual da unidade
-      const custoAtual = unidade.costAmount || 0;
-      custoAtualTotal += custoAtual;
+    const resumo = getResumoNormalizado(snapshot);
+    const custoAtualTotal = resumo.custoTotal || 0;
+    const custoProjetadoTotal = resumo.custoTotalProjetado || 0;
+    const variacao = custoProjetadoTotal - custoAtualTotal;
+    const percentualVariacao =
+      custoAtualTotal > 0 ? (variacao / custoAtualTotal) * 100 : 0;
 
-      // Encontrar dados projetados desta unidade
-      const unidadeProjetada = projetadoInternacao.find(
-        (up: any) => up.unidadeId === unidade.id
-      );
-
-      if (unidadeProjetada && unidadeProjetada.cargos) {
-        // Calcular custo projetado baseado nos cargos
-        let custoProjetadoUnidade = 0;
-        
-        unidadeProjetada.cargos.forEach((cargoProj: any) => {
-          // Encontrar o cargo no staff atual para pegar o unitCost
-          const cargoAtual = unidade.staff?.find(
-            (s: any) => s.id === cargoProj.cargoId
-          );
-          
-          if (cargoAtual) {
-            const unitCost = cargoAtual.unitCost || 0;
-            const quantidadeProjetada = cargoProj.projetadoFinal || 0;
-            custoProjetadoUnidade += unitCost * quantidadeProjetada;
-          }
-        });
-        
-        custoProjetadoTotal += custoProjetadoUnidade;
-      } else {
-        // Se não há projetado, mantém o custo atual
-        custoProjetadoTotal += custoAtual;
-      }
+    console.log("📊 [BaselinePage] Resultados do cálculo:", {
+      custoAtualTotal,
+      custoProjetadoTotal,
+      variacao,
+      percentualVariacao,
     });
-
-    // Processar unidades de não-internação (assistência)
-    const assistance = snapshot.dados.assistance || [];
-    const projetadoAssistencia = snapshot.dados.projetadoFinal?.naoInternacao || [];
-
-    assistance.forEach((unidade: any) => {
-      const custoAtual = unidade.costAmount || 0;
-      custoAtualTotal += custoAtual;
-
-      const unidadeProjetada = projetadoAssistencia.find(
-        (up: any) => up.unidadeId === unidade.id
-      );
-
-      if (unidadeProjetada && unidadeProjetada.sitios) {
-        let custoProjetadoUnidade = 0;
-        
-        unidadeProjetada.sitios.forEach((sitio: any) => {
-          sitio.cargos?.forEach((cargoProj: any) => {
-            // Encontrar o cargo no staff atual
-            const sitioAtual = unidade.functionalSites?.find(
-              (fs: any) => fs.id === sitio.sitioId
-            );
-            const cargoAtual = sitioAtual?.staff?.find(
-              (s: any) => s.id === cargoProj.cargoId
-            );
-            
-            if (cargoAtual) {
-              const unitCost = cargoAtual.unitCost || 0;
-              const quantidadeProjetada = cargoProj.projetadoFinal || 0;
-              custoProjetadoUnidade += unitCost * quantidadeProjetada;
-            }
-          });
-        });
-        
-        custoProjetadoTotal += custoProjetadoUnidade;
-      } else {
-        custoProjetadoTotal += custoAtual;
-      }
-    });
-
-    const variacao = custoProjetadoTotal - (custoAtualTotal / 100);
-    const percentualVariacao = custoAtualTotal > 0 
-      ? (variacao / (custoAtualTotal / 100)) * 100 
-      : 0;
 
     return {
       custoAtual: custoAtualTotal,
@@ -152,8 +271,7 @@ export default function BaselinePage() {
       const snapshotSelecionado = snapshotsData.snapshots?.find(
         (s) => s.selecionado === true
       );
-  
-      
+
       if (snapshotSelecionado) {
         setSelectedSnapshotId(snapshotSelecionado.id);
       }
@@ -291,7 +409,8 @@ export default function BaselinePage() {
             <div className="space-y-3">
               {snapshots.map((snapshot) => {
                 const variacaoCusto = calcularVariacaoCusto(snapshot);
-                
+                const resumoNorm = getResumoNormalizado(snapshot);
+
                 return (
                   <div
                     key={snapshot.id}
@@ -312,16 +431,12 @@ export default function BaselinePage() {
                         <div className="flex gap-4 mt-2 text-sm">
                           <span className="text-muted-foreground">
                             Profissionais:{" "}
-                            <strong>{snapshot.resumo.totalProfissionais}</strong>
+                            <strong>{resumoNorm.totalProfissionais}</strong>
                           </span>
                           <span className="text-muted-foreground">
                             Custo Atual:{" "}
                             <strong>
-                              R${" "}
-                              {(snapshot.resumo.custoTotal / 100).toLocaleString('pt-BR', { 
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2 
-                              })}
+                              R$ {formatCurrency(resumoNorm.custoTotal)}
                             </strong>
                           </span>
                           {variacaoCusto && (
@@ -329,21 +444,24 @@ export default function BaselinePage() {
                               <span className="text-muted-foreground">
                                 Custo Projetado:{" "}
                                 <strong>
-                                  R$ {variacaoCusto.custoProjetado.toLocaleString('pt-BR', { 
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2 
-                                  })}
+                                  R${" "}
+                                  {formatCurrency(variacaoCusto.custoProjetado)}
                                 </strong>
                               </span>
                               <span className="text-muted-foreground">
                                 Variação:{" "}
                                 <strong>
-                                  {variacaoCusto.variacao > 0 ? '+' : ''}
-                                  R$ {Math.abs(variacaoCusto.variacao).toLocaleString('pt-BR', { 
+                                  {variacaoCusto.variacao > 0 ? "+" : ""}
+                                  R${" "}
+                                  {Math.abs(
+                                    variacaoCusto.variacao
+                                  ).toLocaleString("pt-BR", {
                                     minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2 
-                                  })}
-                                  {' '}({variacaoCusto.variacao > 0 ? '+' : ''}{variacaoCusto.percentualVariacao.toFixed(2)}%)
+                                    maximumFractionDigits: 2,
+                                  })}{" "}
+                                  ({variacaoCusto.variacao > 0 ? "+" : ""}
+                                  {variacaoCusto.percentualVariacao.toFixed(2)}
+                                  %)
                                 </strong>
                               </span>
                             </>
@@ -351,8 +469,8 @@ export default function BaselinePage() {
                           <span className="text-muted-foreground">
                             Unidades:{" "}
                             <strong>
-                              {snapshot.resumo.totalUnidadesInternacao +
-                                snapshot.resumo.totalUnidadesAssistencia}
+                              {resumoNorm.totalUnidadesInternacao +
+                                resumoNorm.totalUnidadesAssistencia}
                             </strong>
                           </span>
                         </div>
@@ -360,7 +478,9 @@ export default function BaselinePage() {
                     </div>
                     <Button
                       variant={
-                        selectedSnapshotId === snapshot.id ? "default" : "outline"
+                        selectedSnapshotId === snapshot.id
+                          ? "default"
+                          : "outline"
                       }
                       size="sm"
                       onClick={() => handleSelecionarBaseline(snapshot.id)}

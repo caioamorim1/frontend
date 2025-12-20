@@ -43,7 +43,7 @@ export default function SetorDetailPage() {
   } | null>(null);
   const [travadoControle, setTravadoControle] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = async (keepCurrentTab = false) => {
     if (!setorId) return;
     setLoading(true);
     setError(null);
@@ -53,7 +53,9 @@ export default function SetorDetailPage() {
       const unidadeData = await getUnidadeById(setorId);
 
       if (unidadeData.tipo === "internacao") {
-        setActiveTab("dimensionamento");
+        if (!keepCurrentTab) {
+          setActiveTab("dimensionamento");
+        }
         const [sessoesData, controlePeriodo] = await Promise.all([
           getSessoesAtivasByUnidadeId(setorId),
           getControlePeriodoByUnidadeId(setorId).catch((error) => {
@@ -76,7 +78,9 @@ export default function SetorDetailPage() {
         }
         setTravadoControle(Boolean(controlePeriodo?.travado));
       } else {
-        setActiveTab("analise-financeira");
+        if (!keepCurrentTab) {
+          setActiveTab("analise-financeira");
+        }
         const sitiosDetalhados = await getSitiosFuncionaisByUnidadeId(setorId);
         const unidadeCompleta = {
           ...unidadeData,
@@ -140,10 +144,10 @@ export default function SetorDetailPage() {
     }
 
     // Para unidades de internação, usar cargos_unidade (lógica antiga)
-    if (!unidade.cargos_unidade) return [];
+    if (!(unidade as any).cargos_unidade) return [];
 
     // @ts-ignore
-    return unidade.cargos_unidade.map((cu) => ({
+    return (unidade as any).cargos_unidade.map((cu: any) => ({
       ...cu,
       cargo: {
         ...cu.cargo,
@@ -192,7 +196,7 @@ export default function SetorDetailPage() {
       </div>
 
       <CardInfo
-        unidade={unidade}
+        unidade={unidade as any}
         sessoes={sessoes}
         initialRange={dateRange}
         initialTravado={travadoControle}
@@ -226,7 +230,7 @@ export default function SetorDetailPage() {
         <AtualTab
           unidade={unidade}
           hospitalId={hospitalId}
-          onUpdate={fetchData}
+          onUpdate={() => fetchData(true)}
         />
       )}
 
@@ -245,6 +249,9 @@ export default function SetorDetailPage() {
             <ProjetadoTab
               unidade={unidade as UnidadeInternacao}
               dateRange={dateRange ?? undefined}
+              onDateRangeChange={(range) => {
+                setDateRange(range);
+              }}
             />
           )}
         </>

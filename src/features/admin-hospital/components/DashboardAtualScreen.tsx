@@ -276,7 +276,7 @@ const GlobalTabContent: React.FC<{
   entityId,
   isGlobalView,
 }) => {
-  const { internation, assistance } = sourceData;
+  const { internation, assistance, neutral } = sourceData;
 
   const occupationData = useMemo(() => {
     if (!internation || internation.length === 0) {
@@ -361,6 +361,7 @@ const GlobalTabContent: React.FC<{
   // Verificações de segurança para evitar erros com null/undefined
   const safeInternation = internation || [];
   const safeAssistance = assistance || [];
+  const safeNeutral = neutral || [];
 
   const totalStaffInternation = safeInternation.reduce(
     (acc, sector) => acc + sumStaff(sector),
@@ -380,8 +381,14 @@ const GlobalTabContent: React.FC<{
     0
   );
 
+  const amountTotalNeutral = safeNeutral.reduce(
+    (acc, sector) => acc + parseCostUtil(sector.costAmount),
+    0
+  );
+
   const totalStaff = totalStaffInternation + totalStaffAssistance;
-  const amountTotal = amountTotalInternation + amountTotalAssistance;
+  const amountTotal =
+    amountTotalInternation + amountTotalAssistance + amountTotalNeutral;
 
   // Usar escala azul monocromática para todos (remover cores por hospital)
   const chartDataInternation: ChartData[] = safeInternation.map((item: any) => {
@@ -436,9 +443,36 @@ const GlobalTabContent: React.FC<{
     };
   });
 
+  const chartDataNeutral: ChartData[] = safeNeutral.map((item: any) => {
+    const costValue = parseCostUtil(item.costAmount);
+
+    return {
+      key: item.id,
+      name: item.hospitalName
+        ? `${item.hospitalName} - ${item.name}`
+        : item.name,
+      value: costValue,
+      color: generateBlueMonochromaticScale(
+        costValue,
+        0,
+        Math.max(
+          ...safeNeutral.map((i) => {
+            const val =
+              typeof i.costAmount === "string"
+                ? parseFloat(i.costAmount) || 0
+                : i.costAmount || 0;
+            return val;
+          }),
+          1
+        )
+      ),
+    };
+  });
+
   const chartDataAtual: ChartData[] = [
     ...chartDataInternation,
     ...chartDataAssistance,
+    ...chartDataNeutral,
   ].sort((a, b) => b.value - a.value);
 
   return (

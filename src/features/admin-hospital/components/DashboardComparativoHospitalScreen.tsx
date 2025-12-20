@@ -99,11 +99,23 @@ export const DashboardComparativoHospitalScreen: React.FC<{
             quadroProjetadoSnapshot: sector.quadroProjetadoSnapshot || {},
             diferencas: sector.diferencas || {},
           })),
+          neutral: (externalData.sectors.neutral || []).map((sector: any) => ({
+            id: sector.id || sector.name,
+            name: sector.name,
+            tipo: "NEUTRAL" as const,
+            quadroAtualReal: {},
+            custosAtualReal: { total: sector.custoAtualReal || 0 },
+            quadroAtualSnapshot: {},
+            custosAtualSnapshot: { total: sector.custoAtualSnapshot || 0 },
+            quadroProjetadoSnapshot: {},
+            diferencas: { custo: sector.diferencaCusto || 0 },
+          })),
         };
 
         console.log("📊 [Comparativo] Setores normalizados:", {
           internation: normalizedSectors.internation.length,
           assistance: normalizedSectors.assistance.length,
+          neutral: normalizedSectors.neutral.length,
           exemploInternacao: normalizedSectors.internation[0],
         });
 
@@ -133,6 +145,11 @@ export const DashboardComparativoHospitalScreen: React.FC<{
           includeProjected: true,
         });
 
+        console.log(
+          "📡 [API Comparativo] Resposta da rota /comparative:",
+          resp
+        );
+
         if (!mounted) return;
 
         setComparativeData(resp);
@@ -152,37 +169,38 @@ export const DashboardComparativoHospitalScreen: React.FC<{
 
   // Processar dados comparativos da nova estrutura
   const processedData = useMemo(() => {
-    console.log(
-      "📊 [Comparativo] processedData - comparativeData:",
-      comparativeData
-    );
-
     if (!comparativeData) {
-      console.log("📊 [Comparativo] comparativeData é null/undefined");
       return null;
     }
 
     const { sectors } = comparativeData;
-    console.log("📊 [Comparativo] sectors:", sectors);
 
     // Determinar quais setores usar baseado na aba ativa
     let baseSectors: NewSectorData[] = [];
     if (activeTab === "global") {
-      baseSectors = [...sectors.internation, ...sectors.assistance];
+      baseSectors = [
+        ...sectors.internation,
+        ...sectors.assistance,
+        ...(sectors.neutral || []),
+      ];
     } else if (activeTab === "internacao") {
       baseSectors = sectors.internation;
     } else {
       baseSectors = sectors.assistance;
     }
 
-    console.log("📊 [Comparativo] baseSectors:", {
-      activeTab,
-      count: baseSectors.length,
-      sectors: baseSectors,
-    });
+    // Criar lista de setores para o dropdown (excluindo unidades neutras)
+    const setorList = baseSectors
+      .filter((s) => (s as any).tipo !== "NEUTRAL")
+      .map((s) => ({ id: s.id, name: s.name }));
 
-    // Criar lista de setores para o dropdown
-    const setorList = baseSectors.map((s) => ({ id: s.id, name: s.name }));
+    const selectedSectorName =
+      selectedSector === "all"
+        ? null
+        : setorList.find((s) => s.id === selectedSector)?.name || null;
+    const selectedSectorNameLower = selectedSectorName
+      ? selectedSectorName.trim().toLowerCase()
+      : null;
 
     // Filtrar setores baseado na seleção
     const filteredSectors =
@@ -191,29 +209,23 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         : baseSectors.filter((s) => s.id === selectedSector);
 
     // Funções auxiliares para somar valores de objetos Record<string, number>
-    const somarValores = (obj: Record<string, number>) => {
+    const somarValores = (obj: Record<string, number> | null | undefined) => {
+      if (!obj) return 0;
       return Object.values(obj).reduce((sum, val) => sum + val, 0);
     };
 
     // Calcular custo total do setor: custo unitário × quantidade de cada cargo
     const calcularCustoSetor = (
-      custos: Record<string, number>,
-      quantidades: Record<string, number>
+      custos: Record<string, number> | null | undefined,
+      quantidades: Record<string, number> | null | undefined
     ) => {
+      if (!custos || !quantidades) return 0;
       let total = 0;
       Object.keys(custos).forEach((cargo) => {
         const custoUnitario = custos[cargo] || 0;
         const quantidade = quantidades[cargo] || 0;
         total += custoUnitario * quantidade;
-        console.log(
-          `    🧮 Cargo: ${cargo}, CustoUnit: R$${custoUnitario.toFixed(
-            2
-          )}, Qtd: ${quantidade}, Total: R$${(
-            custoUnitario * quantidade
-          ).toFixed(2)}`
-        );
       });
-      console.log(`  💰 Total do setor: R$${total.toFixed(2)}`);
       return total;
     };
 
@@ -244,7 +256,10 @@ export const DashboardComparativoHospitalScreen: React.FC<{
           ? sectorsFromAtual
           : sectorsFromAtual.filter(
               (s) =>
-                s.name?.trim().toLowerCase() === selectedSector.toLowerCase()
+                s.id === selectedSector ||
+                s.unidadeId === selectedSector ||
+                (!!selectedSectorNameLower &&
+                  s.name?.trim().toLowerCase() === selectedSectorNameLower)
             );
 
       // Somar quantidade de staff
@@ -276,14 +291,13 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     let custoAtualReal = 0;
 
     if (atualData) {
-      console.log("  ✅ Usando dados da aba Atual (atualData):", atualData);
-
       // Determinar quais setores usar baseado na aba ativa
       let sectorsFromAtual: any[] = [];
       if (activeTab === "global") {
         sectorsFromAtual = [
           ...(atualData.internation || []),
           ...(atualData.assistance || []),
+          ...(atualData.neutral || []),
         ];
       } else if (activeTab === "internacao") {
         sectorsFromAtual = atualData.internation || [];
@@ -297,30 +311,23 @@ export const DashboardComparativoHospitalScreen: React.FC<{
           ? sectorsFromAtual
           : sectorsFromAtual.filter(
               (s) =>
+                s.id === selectedSector ||
                 s.name?.trim().toLowerCase() === selectedSector.toLowerCase()
             );
 
       // Somar costAmount diretamente
       custoAtualReal = filteredFromAtual.reduce((sum, sector) => {
         const cost = parseFloat(sector.costAmount || "0");
-        console.log(`  💰 Setor ${sector.name}: R$${cost.toFixed(2)}`);
         return sum + cost;
       }, 0);
     } else {
       // Fallback: usar cálculo antigo (para modo hospital)
       custoAtualReal = filteredSectors.reduce((sum, sector, index) => {
-        console.log(
-          `  🔵 Setor [${index}] ${sector.name} - Tipo: ${sector.tipo}`
-        );
-        console.log(
-          `    custosAtualReal:`,
-          sector.custosAtualReal || "undefined"
-        );
-        console.log(
-          `    custosAtualSnapshot:`,
-          sector.custosAtualSnapshot || "undefined"
-        );
-        console.log(`    quadroAtualReal:`, sector.quadroAtualReal);
+        // Para unidades neutras, usar custoAtualReal diretamente
+        if ((sector as any).tipo === "NEUTRAL") {
+          const custoNeutro = (sector as any).custoAtualReal || 0;
+          return sum + custoNeutro;
+        }
 
         const custosUsados =
           sector.custosAtualReal || sector.custosAtualSnapshot;
@@ -330,38 +337,27 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       }, 0);
     }
 
-    console.log(
-      `✅ [Comparativo] Custo Atual Real Total: R$${custoAtualReal.toFixed(2)}`
-    );
-
     // BARRA 1: Baseline (quadroAtualSnapshot - primeira barra do waterfall)
     const pessoalAtualSnapshot = filteredSectors.reduce(
       (sum, sector) => sum + somarValores(sector.quadroAtualSnapshot),
       0
     );
 
-    console.log("💰 [Comparativo] Calculando Custo Baseline:");
     // Custo Baseline: custoUnitário × quantidade para cada cargo, somado por setor
     const custoAtualSnapshot = filteredSectors.reduce((sum, sector, index) => {
-      console.log(
-        `  🟡 Setor [${index}] ${sector.name} - Tipo: ${sector.tipo}`
-      );
-      console.log(`    custosAtualSnapshot:`, sector.custosAtualSnapshot);
-      console.log(`    quadroAtualSnapshot:`, sector.quadroAtualSnapshot);
+      // Para unidades neutras, usar custoAtualSnapshot diretamente (dividir por 100 pois vem como 5000000 ao invés de 50000)
+      if ((sector as any).tipo === "NEUTRAL") {
+        const custoNeutro = ((sector as any).custoAtualSnapshot || 0) / 100;
+        return sum + custoNeutro;
+      }
 
-      const resultado =
-        sum +
-        calcularCustoSetor(
-          sector.custosAtualSnapshot,
-          sector.quadroAtualSnapshot
-        );
+      const custoSetor = calcularCustoSetor(
+        sector.custosAtualSnapshot,
+        sector.quadroAtualSnapshot
+      );
+      const resultado = sum + custoSetor;
       return resultado;
     }, 0);
-    console.log(
-      `✅ [Comparativo] Custo Baseline Total: R$${custoAtualSnapshot.toFixed(
-        2
-      )}`
-    );
 
     // BARRA 2: Projetado (quadroProjetadoSnapshot - barra final do waterfall)
     const pessoalProjetadoSnapshot = filteredSectors.reduce(
@@ -381,6 +377,16 @@ export const DashboardComparativoHospitalScreen: React.FC<{
           `    quadroProjetadoSnapshot:`,
           sector.quadroProjetadoSnapshot
         );
+
+        // Para unidades neutras, usar custoAtualSnapshot diretamente (não há projeção de custo diferente)
+        // Dividir por 100 pois vem como 5000000 ao invés de 50000
+        if ((sector as any).tipo === "NEUTRAL") {
+          const custoNeutro = ((sector as any).custoAtualSnapshot || 0) / 100;
+          console.log(
+            `    💚 Setor NEUTRO - Custo projetado (= snapshot): R$${custoNeutro}`
+          );
+          return sum + custoNeutro;
+        }
 
         const resultado =
           sum +
@@ -458,53 +464,60 @@ export const DashboardComparativoHospitalScreen: React.FC<{
 
       filteredSectors.forEach((sector) => {
         // Processar atual real (tempo real do banco)
-        Object.keys(sector.quadroAtualReal).forEach((cargo) => {
-          const qtdReal = sector.quadroAtualReal[cargo] || 0;
-          const custoUnitario =
-            (sector.custosAtualReal || sector.custosAtualSnapshot)[cargo] || 0;
-          const custoTotal = qtdReal * custoUnitario;
+        if (sector.quadroAtualReal) {
+          Object.keys(sector.quadroAtualReal).forEach((cargo) => {
+            const qtdReal = sector.quadroAtualReal[cargo] || 0;
+            const custoUnitario =
+              (sector.custosAtualReal || sector.custosAtualSnapshot)?.[cargo] ||
+              0;
+            const custoTotal = qtdReal * custoUnitario;
 
-          const atual = mapaFuncaoAtualReal.get(cargo) || {
-            quantidade: 0,
-            custo: 0,
-          };
-          mapaFuncaoAtualReal.set(cargo, {
-            quantidade: atual.quantidade + qtdReal,
-            custo: atual.custo + custoTotal,
+            const atual = mapaFuncaoAtualReal.get(cargo) || {
+              quantidade: 0,
+              custo: 0,
+            };
+            mapaFuncaoAtualReal.set(cargo, {
+              quantidade: atual.quantidade + qtdReal,
+              custo: atual.custo + custoTotal,
+            });
           });
-        });
+        }
 
         // Processar baseline
-        Object.keys(sector.quadroAtualSnapshot).forEach((cargo) => {
-          const qtdAtual = sector.quadroAtualSnapshot[cargo] || 0;
-          const custoUnitario = sector.custosAtualSnapshot[cargo] || 0;
-          const custoTotal = qtdAtual * custoUnitario;
+        if (sector.quadroAtualSnapshot) {
+          Object.keys(sector.quadroAtualSnapshot).forEach((cargo) => {
+            const qtdAtual = sector.quadroAtualSnapshot[cargo] || 0;
+            const custoUnitario = sector.custosAtualSnapshot[cargo] || 0;
+            const custoTotal = qtdAtual * custoUnitario;
 
-          const atual = mapaFuncaoBaseline.get(cargo) || {
-            quantidade: 0,
-            custo: 0,
-          };
-          mapaFuncaoBaseline.set(cargo, {
-            quantidade: atual.quantidade + qtdAtual,
-            custo: atual.custo + custoTotal,
+            const atual = mapaFuncaoBaseline.get(cargo) || {
+              quantidade: 0,
+              custo: 0,
+            };
+            mapaFuncaoBaseline.set(cargo, {
+              quantidade: atual.quantidade + qtdAtual,
+              custo: atual.custo + custoTotal,
+            });
           });
-        });
+        }
 
         // Processar projetado
-        Object.keys(sector.quadroProjetadoSnapshot).forEach((cargo) => {
-          const qtdProj = sector.quadroProjetadoSnapshot[cargo] || 0;
-          const custoUnitario = sector.custosAtualSnapshot[cargo] || 0;
-          const custoTotal = qtdProj * custoUnitario;
+        if (sector.quadroProjetadoSnapshot) {
+          Object.keys(sector.quadroProjetadoSnapshot).forEach((cargo) => {
+            const qtdProj = sector.quadroProjetadoSnapshot[cargo] || 0;
+            const custoUnitario = sector.custosAtualSnapshot?.[cargo] || 0;
+            const custoTotal = qtdProj * custoUnitario;
 
-          const atual = mapaFuncaoProjetado.get(cargo) || {
-            quantidade: 0,
-            custo: 0,
-          };
-          mapaFuncaoProjetado.set(cargo, {
-            quantidade: atual.quantidade + qtdProj,
-            custo: atual.custo + custoTotal,
+            const atual = mapaFuncaoProjetado.get(cargo) || {
+              quantidade: 0,
+              custo: 0,
+            };
+            mapaFuncaoProjetado.set(cargo, {
+              quantidade: atual.quantidade + qtdProj,
+              custo: atual.custo + custoTotal,
+            });
           });
-        });
+        }
       });
 
       // Construir arrays para os gráficos (formato waterfall)
@@ -636,8 +649,9 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       variacaoPercentual,
       setorList,
       dadosPorFuncao, // Adicionar dados por função
+      selectedSectorName,
     };
-  }, [comparativeData, activeTab, selectedSector]);
+  }, [comparativeData, atualData, activeTab, selectedSector]);
 
   console.log("📊 [Comparativo] Resultado processedData:", processedData);
   console.log("📊 [Comparativo] Estado loading:", loading);
@@ -668,7 +682,11 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     variacaoPercentual,
     setorList,
     dadosPorFuncao,
+    selectedSectorName,
   } = processedData;
+
+  const selectedSectorLabel =
+    selectedSector !== "all" ? selectedSectorName || selectedSector : null;
 
   const renderContent = () => (
     <div className="space-y-6">
@@ -723,7 +741,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
           <GroupedBarByRole
             title={`Custo por Função${
-              selectedSector !== "all" ? ` – ${selectedSector}` : ""
+              selectedSectorLabel ? ` – ${selectedSectorLabel}` : ""
             }`}
             data={dadosPorFuncao.custoPorFuncao}
             unit="currency"
@@ -731,7 +749,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
           />
           <GroupedBarByRole
             title={`Quantidade por Função${
-              selectedSector !== "all" ? ` – ${selectedSector}` : ""
+              selectedSectorLabel ? ` – ${selectedSectorLabel}` : ""
             }`}
             data={dadosPorFuncao.quantidadePorFuncao}
             unit="people"

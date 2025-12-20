@@ -46,6 +46,7 @@ export interface HospitalComparativeResponse {
   sectors: {
     internation: NewSectorData[];
     assistance: NewSectorData[];
+    neutral?: NewSectorData[];
   };
 }
 
@@ -97,6 +98,7 @@ export interface HospitalProjectedResponse {
   items?: Array<any>;
   internation?: any[];
   assistance?: any[];
+  neutral?: any[];
 }
 
 export async function getHospitalProjectedSectors(
@@ -196,6 +198,40 @@ export async function getNetworkOccupationAnalysis(
     `/hospital-sectors/rede/${redeId}/occupation-analysis`
   );
   return res.data as OccupationAnalysisResponse;
+}
+
+// --- Occupation Dashboard (4 meses histórico) ---
+export interface OccupationHistoryMonth {
+  month: string; // "2025-09"
+  monthLabel: string; // "Setembro/2025"
+  taxaOcupacao: number; // Já em %
+}
+
+export interface SectorOccupationDashboard {
+  sectorId: string;
+  sectorName: string;
+  sectorType: string;
+  ocupacaoMaximaAtendivel: number; // Já em %
+  historico4Meses: OccupationHistoryMonth[];
+}
+
+export interface OccupationDashboardResponse {
+  hospitalId: string;
+  hospitalName: string;
+  sectors: SectorOccupationDashboard[];
+  summary: {
+    ocupacaoMaximaAtendivel: number;
+    historico4Meses: OccupationHistoryMonth[];
+  };
+}
+
+export async function getHospitalOccupationDashboard(
+  hospitalId: string
+): Promise<OccupationDashboardResponse> {
+  const res = await api.get(
+    `/hospital-sectors/${hospitalId}/occupation-dashboard`
+  );
+  return res.data as OccupationDashboardResponse;
 }
 
 // --- Password Reset APIs ---
@@ -384,7 +420,18 @@ export interface UnidadeNaoInternacao {
   horas_extra_projetadas?: string;
   cargos_unidade?: CargoUnidade[];
 }
-export type Unidade = UnidadeInternacao | UnidadeNaoInternacao;
+export interface UnidadeNeutra {
+  id: string;
+  nome: string;
+  tipo: "neutro";
+  hospitalId: string;
+  custoTotal?: number;
+  status?: string;
+  descricao?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+export type Unidade = UnidadeInternacao | UnidadeNaoInternacao | UnidadeNeutra;
 
 export type CargoUnidade = {
   id: string; // Adicionado ID para referência
@@ -411,10 +458,23 @@ export type CreateUnidadeNaoInternacaoDTO = {
   horas_extra_projetadas?: string;
   cargos_unidade: { cargoId: string; quantidade_funcionarios: number }[];
 };
+export type CreateUnidadeNeutraDTO = {
+  hospitalId: string;
+  nome: string;
+  custoTotal: number;
+  status?: string;
+  descricao?: string;
+};
 
 export type UpdateUnidadeInternacaoDTO = Partial<CreateUnidadeInternacaoDTO>;
 export type UpdateUnidadeNaoInternacaoDTO =
   Partial<CreateUnidadeNaoInternacaoDTO>;
+export type UpdateUnidadeNeutraDTO = {
+  nome?: string;
+  custoTotal?: number;
+  status?: string;
+  descricao?: string;
+};
 
 export interface Usuario {
   id: string;
@@ -422,6 +482,7 @@ export interface Usuario {
   email: string;
   cpf?: string;
   permissao: "ADMIN" | "GESTOR" | "COMUM";
+  coren?: string;
 }
 export interface CreateUsuarioDTO {
   hospitalId: string;
@@ -430,6 +491,7 @@ export interface CreateUsuarioDTO {
   cpf?: string;
   permissao: "ADMIN" | "GESTOR" | "COMUM";
   senha?: string;
+  coren?: string;
 }
 export type UpdateUsuarioDTO = Partial<
   Omit<CreateUsuarioDTO, "hospitalId" | "senha">
@@ -786,11 +848,18 @@ export interface AssistanceSector {
   costAmount: string;
   staff: StaffMember[];
 }
-
+export interface NeutralSector {
+  id: string;
+  name: string;
+  descr: string | null;
+  costAmount: number;
+  status: string;
+}
 export interface HospitalSectorsData {
   id: string;
   internation: InternationSector[];
   assistance: AssistanceSector[];
+  neutral: NeutralSector[];
 }
 
 // --- INTERFACES PARA DIMENSIONAMENTO (BASEADO NO DTO DO BACKEND) ---
@@ -1235,6 +1304,15 @@ export const getUnidadesNaoInternacao = async (
     hospitalId,
   }));
 };
+export const getUnidadesNeutras = async (
+  hospitalId: string
+): Promise<UnidadeNeutra[]> => {
+  const response = await api.get(`/unidades-neutras/hospital/${hospitalId}`);
+  return response.data.data.map((u: any) => ({
+    ...u,
+    tipo: "neutro",
+  }));
+};
 export const createUnidadeInternacao = async (
   data: CreateUnidadeInternacaoDTO
 ): Promise<UnidadeInternacao> => {
@@ -1245,6 +1323,12 @@ export const createUnidadeNaoInternacao = async (
   data: CreateUnidadeNaoInternacaoDTO
 ): Promise<UnidadeNaoInternacao> => {
   const response = await api.post("/unidades-nao-internacao", data);
+  return response.data;
+};
+export const createUnidadeNeutra = async (
+  data: CreateUnidadeNeutraDTO
+): Promise<UnidadeNeutra> => {
+  const response = await api.post("/unidades-neutras", data);
   return response.data;
 };
 
@@ -1264,6 +1348,13 @@ export const updateUnidadeNaoInternacao = async (
 
   return response.data;
 };
+export const updateUnidadeNeutra = async (
+  setorId: string,
+  data: UpdateUnidadeNeutraDTO
+): Promise<UnidadeNeutra> => {
+  const response = await api.put(`/unidades-neutras/${setorId}`, data);
+  return response.data;
+};
 
 export const deleteUnidadeInternacao = async (
   setorId: string
@@ -1274,6 +1365,9 @@ export const deleteUnidadeNaoInternacao = async (
   setorId: string
 ): Promise<void> => {
   await api.delete(`/unidades-nao-internacao/${setorId}`);
+};
+export const deleteUnidadeNeutra = async (setorId: string): Promise<void> => {
+  await api.delete(`/unidades-neutras/${setorId}`);
 };
 
 // MÉTODOS SCP
@@ -1455,9 +1549,32 @@ export const createSessao = async (
   const response = await api.post(`/avaliacoes/sessao`, data);
   return response.data;
 };
+export const updateSessao = async (
+  sessaoId: string,
+  data: Partial<UpdateSessaoDTO>
+): Promise<SessaoAtiva> => {
+  const response = await api.put(`/avaliacoes/sessao/${sessaoId}`, data);
+  return response.data;
+};
 export const liberarSessao = async (sessaoId: string): Promise<void> => {
   await api.post(`/avaliacoes/sessao/${sessaoId}/liberar`);
 };
+
+export interface UltimoProntuarioResponse {
+  prontuario: string | null;
+  dataAplicacao: string | null;
+  avaliacaoId: string | null;
+}
+
+export const getUltimoProntuarioLeito = async (
+  leitoId: string
+): Promise<UltimoProntuarioResponse> => {
+  const response = await api.get(
+    `/avaliacoes/leito/${leitoId}/ultimo-prontuario`
+  );
+  return response.data;
+};
+
 export const changePassword = async (
   colaboradorId: string,
   novaSenha: string

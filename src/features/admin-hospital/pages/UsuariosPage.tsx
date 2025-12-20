@@ -41,6 +41,7 @@ export default function UsuariosPage() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [formData, setFormData] = useState<Partial<Usuario>>(initialFormState);
   const [tipoUsuario, setTipoUsuario] = useState<TipoUsuario>("COMUM");
+  const [coren, setCoren] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
   const fetchUsuarios = async () => {
@@ -70,12 +71,14 @@ export default function UsuariosPage() {
     setTipoUsuario(
       usuario.permissao === "GESTOR" ? "GESTOR_ESTRATEGICO" : "COMUM"
     );
+    setCoren(usuario.coren || "");
     setIsFormVisible(true);
   };
 
   const handleAddNew = () => {
     setFormData(initialFormState);
     setTipoUsuario("COMUM");
+    setCoren("");
     setIsFormVisible(true);
   };
 
@@ -83,6 +86,7 @@ export default function UsuariosPage() {
     setIsFormVisible(false);
     setFormData(initialFormState);
     setTipoUsuario("COMUM");
+    setCoren("");
   };
 
   const handleChange = (
@@ -116,6 +120,7 @@ export default function UsuariosPage() {
           email: formData.email,
           cpf: cpfDigits || undefined,
           permissao: permissaoBackend,
+          coren: tipoUsuario === "AVALIADOR" ? coren || undefined : undefined,
         };
         await updateUsuario(formData.id, updateData);
       } else {
@@ -130,6 +135,7 @@ export default function UsuariosPage() {
           cpf: cpfDigits || undefined,
           permissao: permissaoBackend,
           senha: senhaInicial,
+          coren: tipoUsuario === "AVALIADOR" ? coren || undefined : undefined,
         };
         await createUsuario(createData);
       }
@@ -262,6 +268,16 @@ export default function UsuariosPage() {
                 <option value="GESTOR_TATICO">Gestor Tático</option>
                 <option value="GESTOR_ESTRATEGICO">Gestor Estratégico</option>
               </select>
+              {tipoUsuario === "AVALIADOR" && (
+                <input
+                  name="coren"
+                  value={coren}
+                  onChange={(e) => setCoren(e.target.value)}
+                  placeholder="COREN (obrigatório para Avaliador)"
+                  required
+                  className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
+                />
+              )}
             </div>
             <div className="flex justify-end mt-4">
               <button
