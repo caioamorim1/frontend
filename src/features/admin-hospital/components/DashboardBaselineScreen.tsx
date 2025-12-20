@@ -25,10 +25,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getSnapshotHospitalSectors } from "@/lib/api";
 import { Building2, TrendingUp, Target } from "lucide-react";
 import { DashboardBaselineDetalhamento } from "./DashboardBaselineDetalhamento";
+import { DashboardBaselineDetalhamentoRede } from "./DashboardBaselineDetalhamentoRede";
+import { DashboardBaselineDetalhamentoRedeApi } from "./DashboardBaselineDetalhamentoRedeApi";
 import {
   DashboardBaselineGlobalTab,
   type BaselineRankingItem,
 } from "./DashboardBaselineGlobalTab";
+import { DashboardBaselineGlobalTabRede } from "./DashboardBaselineGlobalTabRede";
 
 // Estrutura de dados para waterfall
 export interface WaterfallDataItem {
@@ -111,9 +114,9 @@ const ReusableWaterfall: React.FC<{
       </div>
     );
   const yDomain = [
-    0,
-    Math.max(...chartData.map((d) => Math.max(...d.range, 0))) * 1.1,
-  ];
+    (dataMin: number) => (dataMin < 0 ? dataMin * 1.4 : 0),
+    (dataMax: number) => (dataMax > 0 ? dataMax * 1.4 : 0),
+  ] as [(dataMin: number) => number, (dataMax: number) => number];
 
   return (
     <ResponsiveContainer width="100%" height={350}>
@@ -368,10 +371,18 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
   const [snapshotData, setSnapshotData] = useState<SnapshotResponse | null>(
     null
   );
+  const [activeTab, setActiveTab] = useState<"global" | "detalhamento">(
+    "global"
+  );
   const [selectedSector, setSelectedSector] = useState<string>("all");
   const [selectedHospitalId, setSelectedHospitalId] = useState<string>("all");
   const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
   const [selectedRegionId, setSelectedRegionId] = useState<string>("all");
+
+  const redeDashboardData =
+    props.isGlobalView && (props.externalData as any)?.rede
+      ? (props.externalData as any)
+      : null;
 
   // No modo global (rede), não existe seletor de setor
   useEffect(() => {
@@ -397,7 +408,14 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     };
 
     const fetchData = async () => {
-      // 1) Se veio externalData (ex: dashboard da rede), usar direto
+      // 1) Se veio payload consolidado do dashboard da REDE, não normaliza para SnapshotResponse.
+      if (redeDashboardData) {
+        setSnapshotData(null);
+        setLoading(false);
+        return;
+      }
+
+      // 2) Se veio externalData no formato antigo (snapshot.dados), usar direto
       if (props.externalData) {
         setLoading(true);
         setSnapshotData(normalizeToSnapshotResponse(props.externalData));
@@ -405,7 +423,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
         return;
       }
 
-      // 2) Caso contrário, buscar por hospitalId (dashboard hospitalar)
+      // 3) Caso contrário, buscar por hospitalId (dashboard hospitalar)
       if (!hospitalId) {
         setSnapshotData(null);
         setLoading(false);
@@ -430,7 +448,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     };
 
     fetchData();
-  }, [hospitalId, props.externalData]);
+  }, [hospitalId, props.externalData, redeDashboardData]);
 
   if (loading) {
     return (
@@ -448,7 +466,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     );
   }
 
-  if (!snapshotData) {
+  if (!redeDashboardData && !snapshotData) {
     return (
       <Card>
         <CardHeader>
@@ -460,6 +478,253 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
               Nenhum baseline encontrado. Crie um snapshot primeiro.
             </p>
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // =========================
+  // REDE (payload /snapshot/dashboard)
+  // =========================
+  if (redeDashboardData) {
+    const redeNode = redeDashboardData.rede;
+    const grupos = Array.isArray(redeNode?.grupos) ? redeNode.grupos : [];
+
+    const gruposDisponiveis = grupos.map((g: any) => ({
+      id: String(g.grupoId ?? g.id),
+      name: String(g.grupoNome ?? g.nome ?? g.name ?? "Grupo"),
+    }));
+
+    const grupoSelecionado =
+      selectedGroupId !== "all"
+        ? grupos.find((g: any) => String(g.grupoId ?? g.id) === selectedGroupId)
+        : null;
+
+    const regioes = Array.isArray(grupoSelecionado?.regioes)
+      ? grupoSelecionado.regioes
+      : [];
+    const regioesDisponiveis = regioes.map((r: any) => ({
+      id: String(r.regiaoId ?? r.id),
+      name: String(r.regiaoNome ?? r.nome ?? r.name ?? "Região"),
+    }));
+
+    const regiaoSelecionada =
+      selectedRegionId !== "all"
+        ? regioes.find(
+            (r: any) => String(r.regiaoId ?? r.id) === selectedRegionId
+          )
+        : null;
+
+    const hospitais = (() => {
+      if (regiaoSelecionada?.hospitais) return regiaoSelecionada.hospitais;
+      if (grupoSelecionado?.regioes) {
+        return (grupoSelecionado.regioes as any[]).flatMap(
+          (r) => r?.hospitais || []
+        );
+      }
+      return grupos.flatMap((g: any) =>
+        (g?.regioes || []).flatMap((r: any) => r?.hospitais || [])
+      );
+    })();
+
+    const hospitaisDisponiveis = (hospitais as any[]).map((h: any) => ({
+      id: String(h.hospitalId ?? h.id),
+      name: String(h.hospitalNome ?? h.nome ?? h.name ?? "Hospital"),
+    }));
+
+    const hospitalSelecionado =
+      selectedHospitalId !== "all"
+        ? (hospitais as any[]).find(
+            (h) => String(h.hospitalId ?? h.id) === selectedHospitalId
+          )
+        : null;
+
+    const globalNode =
+      hospitalSelecionado?.global ||
+      regiaoSelecionada?.global ||
+      grupoSelecionado?.global ||
+      redeNode?.global ||
+      {};
+
+    const globalNodeWithHospitals = {
+      ...(globalNode as any),
+      hospitais: regiaoSelecionada?.hospitais || hospitais,
+    };
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{props.title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => {
+              setActiveTab(v as any);
+              if (v === "global") setSelectedSector("all");
+            }}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="global">Global</TabsTrigger>
+              <TabsTrigger value="detalhamento">Detalhamento</TabsTrigger>
+            </TabsList>
+
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Atualização do nº de colaboradores em:
+              </p>
+
+              {activeTab === "global" ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Filtrar por Grupo
+                    </label>
+                    <Select
+                      value={selectedGroupId}
+                      onValueChange={(val) => {
+                        setSelectedGroupId(val);
+                        setSelectedRegionId("all");
+                        setSelectedHospitalId("all");
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Visão Geral" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Visão Geral</SelectItem>
+                        {gruposDisponiveis.map((g) => (
+                          <SelectItem key={g.id} value={g.id}>
+                            {g.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Filtrar por Região
+                    </label>
+                    <Select
+                      value={selectedRegionId}
+                      onValueChange={(val) => {
+                        setSelectedRegionId(val);
+                        setSelectedHospitalId("all");
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Visão Geral" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Visão Geral</SelectItem>
+                        {regioesDisponiveis.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Filtrar por Hospital
+                    </label>
+                    <Select
+                      value={selectedHospitalId}
+                      onValueChange={setSelectedHospitalId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Visão Geral" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Visão Geral</SelectItem>
+                        {hospitaisDisponiveis.map((h) => (
+                          <SelectItem key={h.id} value={h.id}>
+                            {h.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2 md:col-span-1">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Filtrar por Hospital
+                    </label>
+                    <Select
+                      value={selectedHospitalId}
+                      onValueChange={setSelectedHospitalId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Visão Geral" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Visão Geral</SelectItem>
+                        {hospitaisDisponiveis.map((h) => (
+                          <SelectItem key={h.id} value={h.id}>
+                            {h.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <TabsContent value="global" className="space-y-6 mt-4">
+              <DashboardBaselineGlobalTabRede
+                globalData={globalNodeWithHospitals}
+                InfoCard={InfoCard}
+                icons={{
+                  atual: <Building2 className="h-8 w-8" />,
+                  variacao: <TrendingUp className="h-8 w-8" />,
+                  projetado: <Target className="h-8 w-8" />,
+                  funcionarios: <Building2 className="h-8 w-8" />,
+                  funcionariosProjetado: <Target className="h-8 w-8" />,
+                }}
+                ReusableWaterfall={ReusableWaterfall}
+              />
+            </TabsContent>
+
+            <TabsContent value="detalhamento" className="space-y-6 mt-4">
+              <DashboardBaselineDetalhamentoRedeApi
+                selectedHospitalId={selectedHospitalId}
+                redeId={
+                  String(redeNode?.redeId ?? redeNode?.id ?? "") || undefined
+                }
+                hospital={hospitalSelecionado}
+                hospitais={hospitais as any[]}
+                scopeTitle={
+                  selectedHospitalId !== "all"
+                    ? undefined
+                    : selectedRegionId !== "all"
+                    ? `Região: ${String(
+                        regiaoSelecionada?.regiaoNome ??
+                          regiaoSelecionada?.nome ??
+                          ""
+                      )}`
+                    : selectedGroupId !== "all"
+                    ? `Grupo: ${String(
+                        grupoSelecionado?.grupoNome ??
+                          grupoSelecionado?.nome ??
+                          ""
+                      )}`
+                    : `Rede: ${String(
+                        redeNode?.redeNome ??
+                          redeNode?.nome ??
+                          redeNode?.name ??
+                          ""
+                      )}`
+                }
+              />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     );
@@ -1130,70 +1395,236 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
         <CardTitle>{props.title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="global" className="w-full">
+        {/* Layout modo rede: os 5 cards ficam dentro da Aba Global (componente rede) */}
+
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => {
+            const nextTab = value as "global" | "detalhamento";
+            setActiveTab(nextTab);
+
+            // Quando entrar na tab Global, sempre limpar filtro de setor.
+            // Isso evita a Global herdar um setor previamente selecionado no Detalhamento.
+            if (nextTab === "global" && selectedSector !== "all") {
+              setSelectedSector("all");
+            }
+          }}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="global">Global</TabsTrigger>
             <TabsTrigger value="detalhamento">Detalhamento</TabsTrigger>
           </TabsList>
 
+          {/* Modo rede: abaixo do seletor Global/Detalhamento */}
+          {props.isGlobalView ? (
+            <div className="space-y-4 mb-6">
+              <div className="text-sm text-muted-foreground font-medium">
+                Atualização do nº de colaboradores em: {staffLastUpdateLabel}
+              </div>
+
+              {activeTab === "global" ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Filtrar por Grupo
+                    </label>
+                    <Select
+                      value={selectedGroupId}
+                      onValueChange={setSelectedGroupId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Visão Geral" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Visão Geral</SelectItem>
+                        {gruposDisponiveis.map((g) => (
+                          <SelectItem key={g.id} value={g.id}>
+                            {g.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Filtrar por Região
+                    </label>
+                    <Select
+                      value={selectedRegionId}
+                      onValueChange={setSelectedRegionId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Visão Geral" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Visão Geral</SelectItem>
+                        {regioesDisponiveis.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Filtrar por Hospital
+                    </label>
+                    <Select
+                      value={selectedHospitalId}
+                      onValueChange={setSelectedHospitalId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Visão Geral" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Visão Geral</SelectItem>
+                        {hospitaisDisponiveis.map((h) => (
+                          <SelectItem key={h.id} value={h.id}>
+                            {h.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2 md:col-span-1">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Filtrar por Hospital
+                    </label>
+                    <Select
+                      value={selectedHospitalId}
+                      onValueChange={setSelectedHospitalId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Visão Geral" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Visão Geral</SelectItem>
+                        {hospitaisDisponiveis.map((h) => (
+                          <SelectItem key={h.id} value={h.id}>
+                            {h.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
+
           {/* Aba Global */}
           <TabsContent value="global" className="space-y-6">
-            <DashboardBaselineGlobalTab
-              isGlobalView={!!props.isGlobalView}
-              custoAtualReal={custoAtualRealExibicao}
-              custoProjetado={custoProjetado}
-              variacaoCustoReais={custoProjetado - custoAtualRealExibicao}
-              profissionaisAtuais={profissionaisAtualRealExibicao}
-              profissionaisProjetados={profissionaisProjetados}
-              InfoCard={InfoCard}
-              icons={{
-                atual: <Building2 className="h-8 w-8" />,
-                variacao: <TrendingUp className="h-8 w-8" />,
-                projetado: <Target className="h-8 w-8" />,
-                funcionarios: <Building2 className="h-8 w-8" />,
-                funcionariosProjetado: <Target className="h-8 w-8" />,
-              }}
-              selectedGroupId={selectedGroupId}
-              setSelectedGroupId={setSelectedGroupId}
-              groups={gruposDisponiveis}
-              selectedRegionId={selectedRegionId}
-              setSelectedRegionId={setSelectedRegionId}
-              regions={regioesDisponiveis}
-              selectedHospitalId={selectedHospitalId}
-              setSelectedHospitalId={setSelectedHospitalId}
-              hospitals={hospitaisDisponiveis}
-              staffLastUpdateLabel={staffLastUpdateLabel}
-              ReusableWaterfall={ReusableWaterfall}
-              waterfallCusto={waterfallCustoDataGlobal}
-              waterfallQuantidade={waterfallQuantidadeDataGlobal}
-              rankingCusto={rankingHospitaisCusto}
-              rankingQuantidade={rankingHospitaisQtd}
-            />
+            {props.isGlobalView ? (
+              <DashboardBaselineGlobalTabRede
+                custoAtualReal={custoAtualRealExibicao}
+                custoProjetado={custoProjetado}
+                variacaoCustoReais={custoProjetado - custoAtualRealExibicao}
+                profissionaisAtuais={profissionaisAtualRealExibicao}
+                profissionaisProjetados={profissionaisProjetados}
+                InfoCard={InfoCard}
+                icons={{
+                  atual: <Building2 className="h-8 w-8" />,
+                  variacao: <TrendingUp className="h-8 w-8" />,
+                  projetado: <Target className="h-8 w-8" />,
+                  funcionarios: <Building2 className="h-8 w-8" />,
+                  funcionariosProjetado: <Target className="h-8 w-8" />,
+                }}
+                ReusableWaterfall={ReusableWaterfall}
+                waterfallCusto={waterfallCustoDataGlobal}
+                waterfallQuantidade={waterfallQuantidadeDataGlobal}
+                rankingCusto={rankingHospitaisCusto as any}
+                rankingQuantidade={rankingHospitaisQtd as any}
+              />
+            ) : (
+              <DashboardBaselineGlobalTab
+                isGlobalView={!!props.isGlobalView}
+                custoAtualReal={custoAtualRealExibicao}
+                custoProjetado={custoProjetado}
+                variacaoCustoReais={custoProjetado - custoAtualRealExibicao}
+                profissionaisAtuais={profissionaisAtualRealExibicao}
+                profissionaisProjetados={profissionaisProjetados}
+                InfoCard={InfoCard}
+                icons={{
+                  atual: <Building2 className="h-8 w-8" />,
+                  variacao: <TrendingUp className="h-8 w-8" />,
+                  projetado: <Target className="h-8 w-8" />,
+                  funcionarios: <Building2 className="h-8 w-8" />,
+                  funcionariosProjetado: <Target className="h-8 w-8" />,
+                }}
+                selectedGroupId={selectedGroupId}
+                setSelectedGroupId={setSelectedGroupId}
+                groups={gruposDisponiveis}
+                selectedRegionId={selectedRegionId}
+                setSelectedRegionId={setSelectedRegionId}
+                regions={regioesDisponiveis}
+                selectedHospitalId={selectedHospitalId}
+                setSelectedHospitalId={setSelectedHospitalId}
+                hospitals={hospitaisDisponiveis}
+                staffLastUpdateLabel={staffLastUpdateLabel}
+                ReusableWaterfall={ReusableWaterfall}
+                waterfallCusto={waterfallCustoDataGlobal}
+                waterfallQuantidade={waterfallQuantidadeDataGlobal}
+                rankingCusto={rankingHospitaisCusto}
+                rankingQuantidade={rankingHospitaisQtd}
+                rankingSetores={rankingSetores as any}
+              />
+            )}
           </TabsContent>
 
           {/* Aba Detalhamento */}
-          <DashboardBaselineDetalhamento
-            snapshotData={snapshotData}
-            hospitalId={hospitalId}
-            selectedSector={selectedSector}
-            setSelectedSector={setSelectedSector}
-            setoresDisponiveis={setoresDisponiveis}
-            hideSectorSelector={props.isGlobalView}
-            profissionaisBaseline={profissionaisBaselineExibicao}
-            custoBaseline={custoBaselineExibicao}
-            profissionaisProjetados={profissionaisProjetados}
-            custoProjetado={custoProjetado}
-            profissionaisAtuaisReal={profissionaisAtualRealExibicao}
-            custoAtualReal={custoAtualRealExibicao}
-            variacaoCustoPercentual={variacaoCustoPercentual}
-            variacaoProfissionaisPercentual={variacaoProfissionaisPercentual}
-            variacaoCusto={variacaoCusto}
-            variacaoProfissionais={variacaoProfissionais}
-            waterfallQuantidadeData={waterfallQuantidadeData}
-            waterfallQuantidadeDataCompleto={waterfallQuantidadeDataCompleto}
-            axisTick={axisTick}
-            ReusableWaterfall={ReusableWaterfall}
-          />
+          {props.isGlobalView ? (
+            <DashboardBaselineDetalhamentoRede
+              snapshotData={snapshotData}
+              hospitalId={hospitalId}
+              selectedSector={selectedSector}
+              setSelectedSector={setSelectedSector}
+              setoresDisponiveis={setoresDisponiveis}
+              profissionaisBaseline={profissionaisBaselineExibicao}
+              custoBaseline={custoBaselineExibicao}
+              profissionaisProjetados={profissionaisProjetados}
+              custoProjetado={custoProjetado}
+              profissionaisAtuaisReal={profissionaisAtualRealExibicao}
+              custoAtualReal={custoAtualRealExibicao}
+              variacaoCustoPercentual={variacaoCustoPercentual}
+              variacaoProfissionaisPercentual={variacaoProfissionaisPercentual}
+              variacaoCusto={variacaoCusto}
+              variacaoProfissionais={variacaoProfissionais}
+              waterfallQuantidadeData={waterfallQuantidadeData}
+              waterfallQuantidadeDataCompleto={waterfallQuantidadeDataCompleto}
+              axisTick={axisTick}
+              ReusableWaterfall={ReusableWaterfall}
+            />
+          ) : (
+            <DashboardBaselineDetalhamento
+              snapshotData={snapshotData}
+              hospitalId={hospitalId}
+              selectedSector={selectedSector}
+              setSelectedSector={setSelectedSector}
+              setoresDisponiveis={setoresDisponiveis}
+              hideSectorSelector={false}
+              profissionaisBaseline={profissionaisBaselineExibicao}
+              custoBaseline={custoBaselineExibicao}
+              profissionaisProjetados={profissionaisProjetados}
+              custoProjetado={custoProjetado}
+              profissionaisAtuaisReal={profissionaisAtualRealExibicao}
+              custoAtualReal={custoAtualRealExibicao}
+              variacaoCustoPercentual={variacaoCustoPercentual}
+              variacaoProfissionaisPercentual={variacaoProfissionaisPercentual}
+              variacaoCusto={variacaoCusto}
+              variacaoProfissionais={variacaoProfissionais}
+              waterfallQuantidadeData={waterfallQuantidadeData}
+              waterfallQuantidadeDataCompleto={waterfallQuantidadeDataCompleto}
+              axisTick={axisTick}
+              ReusableWaterfall={ReusableWaterfall}
+            />
+          )}
         </Tabs>
       </CardContent>
     </Card>

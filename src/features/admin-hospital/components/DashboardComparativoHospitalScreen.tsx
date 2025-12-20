@@ -404,11 +404,18 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       )}`
     );
 
-    // Variação (diferencas - já vem calculado da API!)
-    const variacaoPessoal = filteredSectors.reduce(
+    // Variação de pessoal deve ser coerente com as barras do waterfall (Baseline -> Projetado)
+    // Em modo rede, `diferencas` pode conter valores monetários (custo), o que distorce o gráfico.
+    const variacaoPessoalFromTotals =
+      pessoalProjetadoSnapshot - pessoalAtualSnapshot;
+
+    // Mantém cálculo antigo apenas para debug (não usar para plotar)
+    const variacaoPessoalFromDiferencas = filteredSectors.reduce(
       (sum, sector) => sum + somarValores(sector.diferencas),
       0
     );
+
+    const variacaoPessoal = variacaoPessoalFromTotals;
 
     const variacaoCusto = custoProjetadoSnapshot - custoAtualSnapshot;
 
@@ -445,6 +452,23 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     ];
 
     console.log("📊 [Gráfico] Dados Waterfall Pessoal:", personnelWaterfall);
+
+    if (import.meta.env.DEV && activeTab === "global") {
+      console.log("🐛 [Comparativo][Global][Pessoal] Debug", {
+        isGlobalView,
+        selectedSector,
+        selectedSectorName,
+        selectedSectorNameLower,
+        filteredSectorsCount: filteredSectors.length,
+        pessoalAtualReal,
+        pessoalAtualSnapshot,
+        pessoalProjetadoSnapshot,
+        variacaoPessoal,
+        variacaoPessoalFromTotals,
+        variacaoPessoalFromDiferencas,
+        personnelWaterfall,
+      });
+    }
 
     // Processar dados por função (cargo) para os gráficos GroupedBarByRole
     const dadosPorFuncao = (() => {
