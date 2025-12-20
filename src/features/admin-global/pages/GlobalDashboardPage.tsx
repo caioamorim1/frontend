@@ -12,7 +12,7 @@ import { clearSectorsCache } from "@/mocks/functionSectores";
 // Importando as APIs
 import {
   getRedes,
-  getSnapshotSelectedByGroup,
+  getSnapshotDashboard,
   getNetworkSectors,
   getNetworkProjectedSectors,
   getNetworkComparative,
@@ -62,7 +62,7 @@ export default function GlobalDashboardPage() {
     clearSectorsCache();
   }, [redeId]);
 
-  // ✅ Buscar snapshots selecionados da rede (já vêm agregados do backend)
+  // ✅ Baseline (rede) via rota consolidada do backend
   useEffect(() => {
     const fetchBaselineData = async () => {
       if (!redeId) {
@@ -71,98 +71,9 @@ export default function GlobalDashboardPage() {
       }
 
       try {
-        // Buscar snapshots de todos os hospitais da rede
-        const snapshots = await getSnapshotSelectedByGroup("rede", redeId);
-        console.log("📊 Snapshots recebidos da rede:", {
-          totalSnapshots: snapshots.length,
-          hospitais: snapshots.map((s) => s.hospital.nome),
-        });
-
-        // Agregar dados de internação e não-internação de todos os hospitais
-        const allInternation: any[] = [];
-        const allAssistance: any[] = [];
-        const allNeutral: any[] = [];
-
-        snapshots.forEach((snapshot) => {
-          const hospitalAny = snapshot.hospital as any;
-          const dadosAny = snapshot.dados as any;
-
-          if (snapshot.dados?.internation) {
-            // Normalizar valores de costAmount (centavos -> reais)
-            const normalizedInternation = snapshot.dados.internation.map(
-              (unit: any) => ({
-                ...unit,
-                hospitalId: snapshot.hospital?.id,
-                hospitalNome: snapshot.hospital?.nome,
-                regiaoId: hospitalAny?.regiao?.id,
-                regiaoNome: hospitalAny?.regiao?.nome,
-                grupoId: hospitalAny?.regiao?.grupo?.id,
-                grupoNome: hospitalAny?.regiao?.grupo?.nome,
-                costAmount: unit.costAmount ? unit.costAmount / 100 : 0,
-                staff:
-                  unit.staff?.map((s: any) => ({
-                    ...s,
-                    unitCost: s.unitCost ? s.unitCost / 100 : 0,
-                    totalCost: s.totalCost ? s.totalCost / 100 : 0,
-                  })) || [],
-              })
-            );
-            allInternation.push(...normalizedInternation);
-          }
-          if (snapshot.dados?.assistance) {
-            // Normalizar valores de costAmount (centavos -> reais)
-            const normalizedAssistance = snapshot.dados.assistance.map(
-              (unit: any) => ({
-                ...unit,
-                hospitalId: snapshot.hospital?.id,
-                hospitalNome: snapshot.hospital?.nome,
-                regiaoId: hospitalAny?.regiao?.id,
-                regiaoNome: hospitalAny?.regiao?.nome,
-                grupoId: hospitalAny?.regiao?.grupo?.id,
-                grupoNome: hospitalAny?.regiao?.grupo?.nome,
-                costAmount: unit.costAmount ? unit.costAmount / 100 : 0,
-                staff:
-                  unit.staff?.map((s: any) => ({
-                    ...s,
-                    unitCost: s.unitCost ? s.unitCost / 100 : 0,
-                    totalCost: s.totalCost ? s.totalCost / 100 : 0,
-                  })) || [],
-              })
-            );
-            allAssistance.push(...normalizedAssistance);
-          }
-
-          if (dadosAny?.neutral) {
-            // Neutral: manter costAmount em centavos aqui, pois o DashboardBaselineScreen
-            // já trata como centavos (divide por 100) no baseline.
-            const normalizedNeutral = dadosAny.neutral.map((unit: any) => ({
-              ...unit,
-              hospitalId: snapshot.hospital?.id,
-              hospitalNome: snapshot.hospital?.nome,
-              regiaoId: hospitalAny?.regiao?.id,
-              regiaoNome: hospitalAny?.regiao?.nome,
-              grupoId: hospitalAny?.regiao?.grupo?.id,
-              grupoNome: hospitalAny?.regiao?.grupo?.nome,
-            }));
-            allNeutral.push(...normalizedNeutral);
-          }
-        });
-
-        // Dados no formato que o DashboardBaselineScreen espera
-        const aggregatedData = {
-          internation: allInternation,
-          assistance: allAssistance,
-          neutral: allNeutral,
-        };
-
-        console.log("✅ Dados agregados e normalizados:", {
-          totalUnidadesInternacao: allInternation.length,
-          totalUnidadesNaoInternacao: allAssistance.length,
-          totalUnidadesNeutras: allNeutral.length,
-          exemploInternacao: allInternation[0],
-        });
-
-        setBaselineData(aggregatedData);
+        const dashboard = await getSnapshotDashboard("rede", redeId);
+        console.log("📊 Baseline (rede) via /snapshot/dashboard:", dashboard);
+        setBaselineData(dashboard);
       } catch (error) {
         console.error("❌ Erro ao buscar dados da rede:", error);
         setBaselineData(null);

@@ -30,7 +30,7 @@ import {
   type OccupationDashboardResponse,
 } from "@/lib/api";
 
-interface DashboardBaselineDetalhamentoProps {
+interface DashboardBaselineDetalhamentoRedeProps {
   snapshotData: any;
   hospitalId?: string;
   selectedSector: string;
@@ -60,15 +60,15 @@ interface DashboardBaselineDetalhamentoProps {
   }>;
 }
 
-export const DashboardBaselineDetalhamento: React.FC<
-  DashboardBaselineDetalhamentoProps
+export const DashboardBaselineDetalhamentoRede: React.FC<
+  DashboardBaselineDetalhamentoRedeProps
 > = ({
   snapshotData,
   hospitalId,
   selectedSector,
   setSelectedSector,
   setoresDisponiveis,
-  hideSectorSelector,
+  hideSectorSelector = true,
   profissionaisBaseline,
   custoBaseline,
   profissionaisProjetados,
@@ -84,23 +84,17 @@ export const DashboardBaselineDetalhamento: React.FC<
   axisTick,
   ReusableWaterfall,
 }) => {
-  const waterfallYAxisDomain = [
-    (dataMin: number) => (dataMin < 0 ? dataMin * 1.4 : 0),
-    (dataMax: number) => (dataMax > 0 ? dataMax * 1.4 : 0),
-  ] as [(dataMin: number) => number, (dataMax: number) => number];
-
   // State para dados de ocupação
   const [occupationData, setOccupationData] =
     useState<OccupationDashboardResponse | null>(null);
   const [loadingOccupation, setLoadingOccupation] = useState(true);
 
-  const [analysisTab, setAnalysisTab] = useState<"custo" | "pessoal">("custo");
-
-  const formatCurrency = (value: number) =>
-    `R$ ${Number(value || 0).toLocaleString("pt-BR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+  // No modo rede, não existe filtro por setor: sempre mantém "all".
+  useEffect(() => {
+    if (selectedSector !== "all") {
+      setSelectedSector("all");
+    }
+  }, [selectedSector, setSelectedSector]);
 
   // Buscar dados de ocupação
   useEffect(() => {
@@ -224,143 +218,69 @@ export const DashboardBaselineDetalhamento: React.FC<
     <TabsContent value="detalhamento" className="space-y-6">
       {/* Cards de informação do Detalhamento */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {analysisTab === "pessoal" ? (
-          <>
-            <Card className="border">
-              <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Variação (%)
-                  </p>
-                  <div
-                    className={`text-2xl font-bold ${
-                      variacaoProfissionaisPercentual === 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {variacaoProfissionaisPercentual >= 0 ? "+" : ""}
-                    {variacaoProfissionaisPercentual.toFixed(1)}%
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <Card className="border">
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-600">Variação (%)</p>
+              <div
+                className={`text-2xl font-bold ${
+                  variacaoCustoPercentual === 0
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                {variacaoCustoPercentual >= 0 ? "+" : ""}
+                {variacaoCustoPercentual.toFixed(1)}%
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card className="border">
-              <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Variação (Qtd)
-                  </p>
-                  <div
-                    className={`text-2xl font-bold ${
-                      variacaoProfissionaisPercentual === 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {variacaoProfissionais >= 0 ? "+" : ""}
-                    {variacaoProfissionais}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <Card className="border">
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-600">
+                Variação (Qtd)
+              </p>
+              <div
+                className={`text-2xl font-bold ${
+                  variacaoProfissionaisPercentual === 0
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                {variacaoProfissionais >= 0 ? "+" : ""}
+                {variacaoProfissionais}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card className="border">
-              <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Total de Funcionários
-                  </p>
-                  <div className="text-2xl font-bold">
-                    {profissionaisAtuaisReal}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <Card className="border">
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-600">
+                Total de Funcionários
+              </p>
+              <div className="text-2xl font-bold">
+                {profissionaisAtuaisReal}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card className="border">
-              <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Total de Funcionários Projetado
-                  </p>
-                  <div className="text-2xl font-bold">
-                    {profissionaisProjetados}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        ) : (
-          <>
-            <Card className="border">
-              <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Variação monetária (%)
-                  </p>
-                  <div
-                    className={`text-2xl font-bold ${
-                      variacaoCustoPercentual === 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {variacaoCustoPercentual >= 0 ? "+" : ""}
-                    {variacaoCustoPercentual.toFixed(1)}%
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border">
-              <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Variação monetária (R$)
-                  </p>
-                  <div
-                    className={`text-2xl font-bold ${
-                      variacaoCustoPercentual === 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {variacaoCusto >= 0 ? "+" : "-"}
-                    {formatCurrency(Math.abs(variacaoCusto))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border">
-              <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Total custo atual
-                  </p>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(custoAtualReal)}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border">
-              <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Total custo projetado
-                  </p>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(custoProjetado)}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
+        <Card className="border">
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-600">
+                Total de Funcionários Projetado
+              </p>
+              <div className="text-2xl font-bold">
+                {profissionaisProjetados}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="border">
           <CardContent className="pt-6">
@@ -409,11 +329,7 @@ export const DashboardBaselineDetalhamento: React.FC<
       ) : null}
 
       {/* Tabs de Análise */}
-      <Tabs
-        value={analysisTab}
-        onValueChange={(value) => setAnalysisTab(value as "custo" | "pessoal")}
-        className="w-full"
-      >
+      <Tabs defaultValue="custo" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="custo">Análise de Custo</TabsTrigger>
           <TabsTrigger value="pessoal">Análise de Pessoal</TabsTrigger>
@@ -596,7 +512,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                       textAnchor="end"
                       height={90}
                     />
-                    <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+                    <YAxis tick={axisTick} />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -970,7 +886,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                       textAnchor="end"
                       height={90}
                     />
-                    <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+                    <YAxis tick={axisTick} />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -1441,7 +1357,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                       textAnchor="end"
                       height={90}
                     />
-                    <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+                    <YAxis tick={axisTick} />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -2157,7 +2073,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                       textAnchor="end"
                       height={90}
                     />
-                    <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+                    <YAxis tick={axisTick} />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -2371,7 +2287,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                       textAnchor="end"
                       height={90}
                     />
-                    <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+                    <YAxis tick={axisTick} />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -2719,7 +2635,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                       textAnchor="end"
                       height={90}
                     />
-                    <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+                    <YAxis tick={axisTick} />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {

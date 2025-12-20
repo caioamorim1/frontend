@@ -78,6 +78,7 @@ export const DashboardBaselineGlobalTab: React.FC<{
 
   rankingCusto: BaselineRankingItem[];
   rankingQuantidade: BaselineRankingItem[];
+  rankingSetores?: BaselineRankingItem[];
 }> = ({
   isGlobalView,
   custoAtualReal,
@@ -102,6 +103,7 @@ export const DashboardBaselineGlobalTab: React.FC<{
   waterfallQuantidade,
   rankingCusto,
   rankingQuantidade,
+  rankingSetores,
 }) => {
   const axisTick = {
     fontSize: 12,
@@ -147,151 +149,37 @@ export const DashboardBaselineGlobalTab: React.FC<{
 
   return (
     <div className="space-y-6">
-      {/* Cards principais (modo rede = 5 cards) */}
-      <div
-        className={`grid grid-cols-1 gap-4 ${
-          isGlobalView ? "md:grid-cols-5" : "md:grid-cols-3"
-        }`}
-      >
-        <InfoCard
-          title={
-            isGlobalView
-              ? "Custo Total ATUAL R$ (Mensal)"
-              : "Situação Atual Real"
-          }
-          value={`R$ ${custoAtualReal.toLocaleString("pt-BR")}`}
-          subtitle={isGlobalView ? "" : `${profissionaisAtuais} colaboradores`}
-          icon={icons.atual}
-          variant="primary"
-        />
+      {/* Cards e filtros do modo rede ficam no BaselineScreen (compartilhados entre abas) */}
+      {!isGlobalView ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <InfoCard
+            title="Situação Atual Real"
+            value={`R$ ${custoAtualReal.toLocaleString("pt-BR")}`}
+            subtitle={`${profissionaisAtuais} colaboradores`}
+            icon={icons.atual}
+            variant="primary"
+          />
 
-        <InfoCard
-          title={isGlobalView ? "Variação (R$)" : "Variação"}
-          value={`R$ ${Math.abs(variacaoCustoReais).toLocaleString("pt-BR", {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          })}`}
-          subtitle={
-            isGlobalView
-              ? variacaoCustoReais > 0
-                ? "Aumento"
-                : variacaoCustoReais < 0
-                ? "Redução"
-                : "Estável"
-              : `${
-                  profissionaisProjetados - profissionaisAtuais >= 0 ? "+" : ""
-                }${profissionaisProjetados - profissionaisAtuais} colaboradores`
-          }
-          icon={icons.variacao}
-          variant="warning"
-        />
+          <InfoCard
+            title="Variação"
+            value={`R$ ${Math.abs(variacaoCustoReais).toLocaleString("pt-BR", {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            })}`}
+            subtitle={`${
+              profissionaisProjetados - profissionaisAtuais >= 0 ? "+" : ""
+            }${profissionaisProjetados - profissionaisAtuais} colaboradores`}
+            icon={icons.variacao}
+            variant="warning"
+          />
 
-        <InfoCard
-          title={
-            isGlobalView
-              ? "Custo Total PROJETADO R$ (Mensal)"
-              : "Custo Projetado"
-          }
-          value={`R$ ${custoProjetado.toLocaleString("pt-BR")}`}
-          subtitle={
-            isGlobalView ? "" : `${profissionaisProjetados} colaboradores`
-          }
-          icon={icons.projetado}
-          variant="success"
-        />
-
-        {isGlobalView ? (
-          <>
-            <InfoCard
-              title="Total de Funcionários"
-              value={String(profissionaisAtuais)}
-              subtitle=""
-              icon={icons.funcionarios}
-              variant="primary"
-            />
-            <InfoCard
-              title="Total de Funcionários Projetado"
-              value={String(profissionaisProjetados)}
-              subtitle=""
-              icon={icons.funcionariosProjetado}
-              variant="success"
-            />
-          </>
-        ) : null}
-      </div>
-
-      {/* Texto de atualização (modo rede) */}
-      {isGlobalView ? (
-        <div className="text-sm text-muted-foreground font-medium">
-          Atualização do nº de colaboradores em: {staffLastUpdateLabel}
-        </div>
-      ) : null}
-
-      {/* Filtros (modo rede) */}
-      {isGlobalView ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Filtrar por Grupo
-            </label>
-            <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Visão Geral" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Visão Geral</SelectItem>
-                {groups.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>
-                    {g.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Filtrar por Região
-            </label>
-            <Select
-              value={selectedRegionId}
-              onValueChange={setSelectedRegionId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Visão Geral" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Visão Geral</SelectItem>
-                {regions.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>
-                    {r.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Filtrar por Hospital
-            </label>
-            <Select
-              value={selectedHospitalId}
-              onValueChange={setSelectedHospitalId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Visão Geral" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Visão Geral</SelectItem>
-                {hospitals.map((h) => (
-                  <SelectItem key={h.id} value={h.id}>
-                    {h.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <InfoCard
+            title="Custo Projetado"
+            value={`R$ ${custoProjetado.toLocaleString("pt-BR")}`}
+            subtitle={`${profissionaisProjetados} colaboradores`}
+            icon={icons.projetado}
+            variant="success"
+          />
         </div>
       ) : null}
 
@@ -393,9 +281,20 @@ export const DashboardBaselineGlobalTab: React.FC<{
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-[350px] text-muted-foreground">
-                Use o modo hospital para este ranking.
-              </div>
+              {renderRanking(
+                "Ranking por SETORES (%)",
+                rankingSetores || [],
+                (value: any, _name: string, props: any) => {
+                  const variacaoReais = props?.payload?.variacaoReais;
+                  if (typeof variacaoReais === "number") {
+                    return `R$ ${variacaoReais.toLocaleString("pt-BR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}`;
+                  }
+                  return `${Number(value).toFixed(1)}%`;
+                }
+              )}
             </CardContent>
           </Card>
         </div>

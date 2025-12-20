@@ -234,6 +234,33 @@ export async function getHospitalOccupationDashboard(
   return res.data as OccupationDashboardResponse;
 }
 
+// --- Occupation Dashboard (4 meses histórico) - REDE ---
+export interface NetworkOccupationDashboardHospitalItem {
+  hospitalId: string;
+  hospitalName: string;
+  ocupacaoMaximaAtendivel: number;
+  historico4Meses: OccupationHistoryMonth[];
+}
+
+export interface NetworkOccupationDashboardResponse {
+  redeId: string;
+  redeName: string;
+  hospitais: NetworkOccupationDashboardHospitalItem[];
+  global: {
+    ocupacaoMaximaAtendivel: number;
+    historico4Meses: OccupationHistoryMonth[];
+  };
+}
+
+export async function getNetworkOccupationDashboard(
+  redeId: string
+): Promise<NetworkOccupationDashboardResponse> {
+  const res = await api.get(
+    `/hospital-sectors/rede/${redeId}/occupation-dashboard`
+  );
+  return res.data as NetworkOccupationDashboardResponse;
+}
+
 // --- Password Reset APIs ---
 export interface PasswordResetRequestResponse {
   success: boolean;
@@ -2297,6 +2324,25 @@ export async function getSnapshotSelectedByGroup(
   id: string
 ): Promise<SnapshotSelecionadoItem[]> {
   const response = await api.get("/snapshot/selected-by-group", {
+    params: { tipo, id },
+  });
+  return response.data;
+}
+
+// ===== SNAPSHOT DASHBOARD (REDE/GRUPO/REGIÃO/HOSPITAL) =====
+
+export type SnapshotDashboardTipo = "rede" | "grupo" | "regiao" | "hospital";
+
+/**
+ * Busca a resposta consolidada do dashboard de snapshot.
+ * Observação: o backend retorna um payload aninhado (rede -> grupos -> regiões -> hospitais)
+ * com seções `global` e `detalhamento` prontas para o frontend.
+ */
+export async function getSnapshotDashboard(
+  tipo: SnapshotDashboardTipo,
+  id: string
+): Promise<any> {
+  const response = await api.get("/snapshot/dashboard", {
     params: { tipo, id },
   });
   return response.data;
