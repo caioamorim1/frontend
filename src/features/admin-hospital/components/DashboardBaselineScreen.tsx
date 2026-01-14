@@ -22,7 +22,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getSnapshotHospitalSectors } from "@/lib/api";
+import {
+  getSnapshotHospitalSectors,
+  getUltimaAtualizacaoCargoHospital,
+} from "@/lib/api";
 import { Building2, TrendingUp, Target } from "lucide-react";
 import { DashboardBaselineDetalhamento } from "./DashboardBaselineDetalhamento";
 import { DashboardBaselineDetalhamentoRede } from "./DashboardBaselineDetalhamentoRede";
@@ -40,6 +43,8 @@ export interface WaterfallDataItem {
   // Campos opcionais usados em alguns gráficos/tooltips
   range?: [number, number];
   color?: string;
+  isDelta?: boolean;
+  pctFromBase?: number;
   qtd?: number;
   custoReais?: number;
 }
@@ -51,6 +56,7 @@ const axisTick = {
 
 // Processamento de dados waterfall
 const processWaterfallData = (data: WaterfallDataItem[]) => {
+  const baseValue = data?.[0]?.value ?? 0;
   let cumulative = 0;
   return data.map((item, index) => {
     const isStart = index === 0;
@@ -58,6 +64,7 @@ const processWaterfallData = (data: WaterfallDataItem[]) => {
     const isTransition = !isStart && !isEnd;
     let color = "#003151";
     let range: [number, number];
+    let pctFromBase: number | undefined;
     if (isStart) {
       range = [0, item.value];
       cumulative = item.value;
@@ -66,11 +73,20 @@ const processWaterfallData = (data: WaterfallDataItem[]) => {
       cumulative += item.value;
       range = [startValue, cumulative];
       color = item.value < 0 ? "hsl(var(--destructive))" : "#0b6f88";
+      pctFromBase =
+        baseValue !== 0 ? (Number(item.value) / Number(baseValue)) * 100 : 0;
     } else {
       range = [0, item.value];
       color = "#003151";
     }
-    return { name: item.name, value: item.value, range: range, color: color };
+    return {
+      name: item.name,
+      value: item.value,
+      range,
+      color,
+      isDelta: isTransition,
+      pctFromBase,
+    };
   });
 };
 
@@ -78,16 +94,31 @@ const processWaterfallData = (data: WaterfallDataItem[]) => {
 const CustomTooltip = ({ active, payload, label, isCurrency }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
-    const isTotal =
-      data.name === payload[0].payload.name[0] ||
-      data.name === payload[0].payload.name[payload[0].payload.name.length - 1];
+    const isTotal = !data?.isDelta;
     const displayValue = isCurrency
       ? data.value.toLocaleString("pt-BR", {
           style: "currency",
           currency: "BRL",
           minimumFractionDigits: 0,
         })
-      : data.value;
+      : Number(data.value).toLocaleString("pt-BR");
+
+    const pct = typeof data?.pctFromBase === "number" ? data.pctFromBase : null;
+    const showPct = !isTotal && pct !== null;
+    const pctLabel =
+      pct === null
+        ? "--"
+        : `${Math.abs(pct).toLocaleString("pt-BR", {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1,
+          })}%`;
+
+    const directionLabel =
+      Number(data.value) > 0
+        ? "Aumento"
+        : Number(data.value) < 0
+        ? "Redução"
+        : "Estável";
     return (
       <div className="bg-background border p-3 rounded-lg shadow-lg text-sm">
         <p className="font-bold text-foreground mb-1">{label}</p>
@@ -95,6 +126,11 @@ const CustomTooltip = ({ active, payload, label, isCurrency }: any) => {
           {isTotal ? "Valor: " : "Variação: "}
           <span className="font-semibold">{displayValue}</span>
         </p>
+        {showPct ? (
+          <p className="text-muted-foreground">
+            {directionLabel}: <span className="font-semibold">{pctLabel}</span>
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -109,7 +145,7 @@ const ReusableWaterfall: React.FC<{
   const chartData = processWaterfallData(data);
   if (!data || data.length <= 1)
     return (
-      <div className="flex items-center justify-center h-[350px] text-muted-foreground">
+      <div className="flex items-center justify-center h-[390px] text-muted-foreground">
         Dados insuficientes para análise.
       </div>
     );
@@ -118,54 +154,65 @@ const ReusableWaterfall: React.FC<{
     (dataMax: number) => (dataMax > 0 ? dataMax * 1.4 : 0),
   ] as [(dataMin: number) => number, (dataMax: number) => number];
 
+  const formatNumberPtBr = (n: number) =>
+    new Intl.NumberFormat("pt-BR", {
+      maximumFractionDigits: 0,
+    }).format(n);
+
   return (
-    <ResponsiveContainer width="100%" height={350}>
-      <BarChart
-        data={chartData}
-        margin={{ top: 8, right: 20, left: 20, bottom: 80 }}
-      >
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis
-          dataKey="name"
-          tick={axisTick}
-          interval={0}
-          angle={-45}
-          textAnchor="end"
-          height={90}
-        />
-        <YAxis
-          domain={yDomain}
-          tick={axisTick}
-          tickFormatter={(v) =>
-            unit === "currency" ? `R$ ${(v / 1000).toFixed(0)}k` : v.toString()
-          }
-        />
-        <Tooltip content={<CustomTooltip isCurrency={unit === "currency"} />} />
-        <Bar dataKey="range">
-          {chartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.color} />
-          ))}
-        </Bar>
-        {chartData.map((entry, index) => {
-          if (index > 0 && index < chartData.length - 1) {
-            const prevEntry = chartData[index - 1];
-            return (
-              <ReferenceLine
-                key={`line-${index}`}
-                y={prevEntry.range[1]}
-                segment={[
-                  { x: prevEntry.name, y: prevEntry.range[1] },
-                  { x: entry.name, y: entry.range[0] },
-                ]}
-                stroke="hsl(var(--muted-foreground))"
-                strokeDasharray="2 2"
-              />
-            );
-          }
-          return null;
-        })}
-      </BarChart>
-    </ResponsiveContainer>
+    <div className="box-border pt-3" style={{ height: 390 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={chartData}
+          margin={{ top: 22, right: 12, left: 12, bottom: 98 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
+            dataKey="name"
+            tick={axisTick}
+            interval={0}
+            angle={-40}
+            textAnchor="end"
+            height={105}
+          />
+          <YAxis
+            domain={yDomain}
+            tick={axisTick}
+            tickFormatter={(v) =>
+              unit === "currency"
+                ? `R$ ${formatNumberPtBr(Math.round(v / 1000))}k`
+                : formatNumberPtBr(Math.round(v))
+            }
+          />
+          <Tooltip
+            content={<CustomTooltip isCurrency={unit === "currency"} />}
+          />
+          <Bar dataKey="range">
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Bar>
+          {chartData.map((entry, index) => {
+            if (index > 0 && index < chartData.length - 1) {
+              const prevEntry = chartData[index - 1];
+              return (
+                <ReferenceLine
+                  key={`line-${index}`}
+                  y={prevEntry.range[1]}
+                  segment={[
+                    { x: prevEntry.name, y: prevEntry.range[1] },
+                    { x: entry.name, y: entry.range[0] },
+                  ]}
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeDasharray="2 2"
+                />
+              );
+            }
+            return null;
+          })}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 };
 
@@ -276,13 +323,21 @@ const InfoCard: React.FC<{
   return (
     <Card className={variantStyles[variant]}>
       <CardContent className="pt-6">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <h3 className="text-2xl font-bold mt-2">{value}</h3>
-            <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-muted-foreground break-words">
+              {title}
+            </p>
+            <h3 className="mt-2 font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)]">
+              {value}
+            </h3>
+            {subtitle ? (
+              <p className="mt-1 text-sm text-muted-foreground leading-snug break-words">
+                {subtitle}
+              </p>
+            ) : null}
           </div>
-          <div className="ml-4 text-muted-foreground">{icon}</div>
+          <div className="shrink-0 text-muted-foreground">{icon}</div>
         </div>
       </CardContent>
     </Card>
@@ -378,6 +433,8 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
   const [selectedHospitalId, setSelectedHospitalId] = useState<string>("all");
   const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
   const [selectedRegionId, setSelectedRegionId] = useState<string>("all");
+  const [staffLastUpdateLabel, setStaffLastUpdateLabel] =
+    useState<string>("--");
 
   const redeDashboardData =
     props.isGlobalView && (props.externalData as any)?.rede
@@ -449,6 +506,63 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
 
     fetchData();
   }, [hospitalId, props.externalData, redeDashboardData]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const computeFromSnapshot = (): string => {
+      const dates: number[] = [];
+      snapshotData?.situacaoAtual?.unidades?.forEach((u) => {
+        u.cargos?.forEach((c) => {
+          const t = c?.quantidadeAtualizadaEm
+            ? new Date(c.quantidadeAtualizadaEm).getTime()
+            : NaN;
+          if (Number.isFinite(t)) dates.push(t);
+        });
+      });
+      if (dates.length === 0) return "--";
+      const max = Math.max(...dates);
+      return new Date(max).toLocaleDateString("pt-BR");
+    };
+
+    const fetchLastUpdate = async () => {
+      const targetHospitalId = props.isGlobalView
+        ? selectedHospitalId !== "all"
+          ? selectedHospitalId
+          : null
+        : hospitalId ?? null;
+
+      if (!targetHospitalId) {
+        setStaffLastUpdateLabel(computeFromSnapshot());
+        return;
+      }
+
+      try {
+        const payload = await getUltimaAtualizacaoCargoHospital(
+          targetHospitalId
+        );
+        const iso = payload?.ultimaAtualizacao;
+        if (iso) {
+          const dt = new Date(iso);
+          const label = Number.isNaN(dt.getTime())
+            ? "--"
+            : dt.toLocaleDateString("pt-BR");
+
+          if (!cancelled) setStaffLastUpdateLabel(label);
+          return;
+        }
+
+        if (!cancelled) setStaffLastUpdateLabel(computeFromSnapshot());
+      } catch (e) {
+        if (!cancelled) setStaffLastUpdateLabel(computeFromSnapshot());
+      }
+    };
+
+    fetchLastUpdate();
+    return () => {
+      cancelled = true;
+    };
+  }, [hospitalId, props.isGlobalView, selectedHospitalId, snapshotData]);
 
   if (loading) {
     return (
@@ -778,21 +892,6 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
   const baselineNeutralUnits = filtrarPorHospital<any>(
     snapshotData.snapshot.dados.neutral
   );
-
-  const staffLastUpdateLabel = (() => {
-    const dates: number[] = [];
-    snapshotData.situacaoAtual?.unidades?.forEach((u) => {
-      u.cargos?.forEach((c) => {
-        const t = c?.quantidadeAtualizadaEm
-          ? new Date(c.quantidadeAtualizadaEm).getTime()
-          : NaN;
-        if (Number.isFinite(t)) dates.push(t);
-      });
-    });
-    if (dates.length === 0) return "--";
-    const max = Math.max(...dates);
-    return new Date(max).toLocaleDateString("pt-BR");
-  })();
 
   // Calcular baseline do snapshot
   baselineInternationUnits.forEach((unit: any) => {
@@ -1170,7 +1269,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
   const waterfallCustoDataGlobal: WaterfallDataItem[] = [
     { name: "Atual", value: custoAtualRealExibicao },
     { name: "Variação", value: custoProjetado - custoAtualRealExibicao },
-    { name: "Projetado\nFinal", value: custoProjetado },
+    { name: "Projetado", value: custoProjetado },
   ];
 
   // Dados waterfall de quantidade - para aba Global (Atual Real -> Projetado)
@@ -1190,7 +1289,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
   const waterfallCustoData: WaterfallDataItem[] = [
     { name: "Baseline\nSnapshot", value: custoBaselineExibicao },
     { name: "Variação", value: variacaoCusto },
-    { name: "Projetado\nFinal", value: custoProjetado },
+    { name: "Projetado", value: custoProjetado },
   ];
 
   // Dados waterfall de quantidade - para aba Detalhamento (Atual -> Projetado)
@@ -1373,9 +1472,15 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     }
   );
 
-  const rankingSetores = setoresVariacao.sort(
-    (a, b) => b.variacaoPercentual - a.variacaoPercentual
-  );
+  // Ordenação: negativos primeiro; dentro do grupo, maior desvio (|%|) primeiro
+  // Ex.: -55%, -12%, +30%, +5%
+  const rankingSetores = setoresVariacao.sort((a, b) => {
+    const aNeg = a.variacaoPercentual < 0;
+    const bNeg = b.variacaoPercentual < 0;
+    if (aNeg !== bNeg) return aNeg ? -1 : 1;
+
+    return Math.abs(b.variacaoPercentual) - Math.abs(a.variacaoPercentual);
+  });
 
   // Paleta de cores do projeto
   const projectColors = [

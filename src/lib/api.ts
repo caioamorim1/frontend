@@ -19,6 +19,39 @@ export type {
 };
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:3110";
+
+const getApiOrigin = (): string => {
+  const base = String(API_BASE_URL || "");
+
+  try {
+    return new URL(base).origin;
+  } catch {
+    // ignore
+  }
+
+  // If VITE_API_URL is set to a relative path like "/api", prefer current origin.
+  if (base.startsWith("/")) {
+    if (typeof window !== "undefined" && window.location?.origin) {
+      return window.location.origin;
+    }
+    return "";
+  }
+
+  return base.replace(/\/$/, "");
+};
+
+/**
+ * Builds an absolute URL for backend-served files (e.g. "/uploads/..."),
+ * using the same host as API_BASE_URL even if it includes a path like "/api".
+ */
+export const buildFileUrl = (path?: string): string => {
+  if (!path) return "";
+  if (/^https?:\/\//i.test(path)) return path;
+
+  const origin = getApiOrigin().replace(/\/$/, "");
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${origin}${normalizedPath}`;
+};
 // --- New: comparative endpoint for hospital (frontend helper) ---
 export interface NewSectorData {
   id: string;
@@ -993,6 +1026,24 @@ export const getHospitais = async (): Promise<Hospital[]> => {
 export const getHospitalById = async (id: string): Promise<Hospital> => {
   const response = await api.get(`/hospitais/${id}`);
   return response.data;
+};
+
+export interface UltimaAtualizacaoCargoHospital {
+  ultimaAtualizacao: string | null;
+}
+
+export const getUltimaAtualizacaoCargoHospital = async (
+  hospitalId: string
+): Promise<UltimaAtualizacaoCargoHospital> => {
+  const response = await api.get(
+    `/hospitais/${hospitalId}/ultima-atualizacao-cargo`
+  );
+
+  // Alguns endpoints do backend retornam o payload diretamente, outros envolvem em { data: ... }
+  const payload = (response.data?.data ?? response.data) as any;
+  return {
+    ultimaAtualizacao: payload?.ultimaAtualizacao ?? null,
+  };
 };
 export const createHospital = async (
   data: CreateHospitalDTO | FormData

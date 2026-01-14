@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { Link } from "react-router-dom";
 import {
+  buildFileUrl,
   getHospitais,
   createHospital,
   updateHospital,
@@ -101,7 +102,7 @@ export default function HospitaisPage() {
 
     // Se o hospital tem foto, carregar preview
     if (hospital.foto) {
-      setFotoPreview(`http://localhost:3110${hospital.foto}`);
+      setFotoPreview(buildFileUrl(hospital.foto));
     } else {
       setFotoPreview(null);
     }

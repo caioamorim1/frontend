@@ -338,7 +338,7 @@ export const DashboardBaselineDetalhamento: React.FC<
               <CardContent className="pt-6">
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-gray-600">
-                    Total custo atual
+                    Custo Total Atual
                   </p>
                   <div className="text-2xl font-bold">
                     {formatCurrency(custoAtualReal)}
@@ -351,7 +351,7 @@ export const DashboardBaselineDetalhamento: React.FC<
               <CardContent className="pt-6">
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-gray-600">
-                    Total custo projetado
+                    Custo Total Projetado
                   </p>
                   <div className="text-2xl font-bold">
                     {formatCurrency(custoProjetado)}

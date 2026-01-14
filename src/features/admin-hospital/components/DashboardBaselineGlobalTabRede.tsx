@@ -247,6 +247,13 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
     ) ??
     toNumber(custoProjetadoResolved, 0) - toNumber(custoAtualRealResolved, 0);
 
+  const variacaoCustoPercentualResolved =
+    toNumber(custoAtualRealResolved, 0) !== 0
+      ? (toNumber(variacaoCustoReaisResolved, 0) /
+          toNumber(custoAtualRealResolved, 0)) *
+        100
+      : 0;
+
   const profissionaisAtuaisResolved =
     firstFiniteNumber(
       profissionaisAtuais,
@@ -282,6 +289,40 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
       staff?.projetado?.totalColaboradores,
       globalData?.profissionaisProjetados
     ) ?? 0;
+
+  const variacaoQuantidadeResolved =
+    toNumber(profissionaisProjetadosResolved, 0) -
+    toNumber(profissionaisAtuaisResolved, 0);
+  const variacaoQuantidadePercentual =
+    toNumber(profissionaisAtuaisResolved, 0) !== 0
+      ? (variacaoQuantidadeResolved /
+          toNumber(profissionaisAtuaisResolved, 0)) *
+        100
+      : 0;
+
+  const formatArrowPct = (delta: number, pct: number) => {
+    if (!Number.isFinite(delta) || delta === 0) return "Estável";
+    const arrow = delta > 0 ? "↑" : "↓";
+    const pctLabel = Number.isFinite(pct)
+      ? `${Math.abs(pct).toLocaleString("pt-BR", {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })}%`
+      : "--";
+    return `${arrow} ${pctLabel}`;
+  };
+
+  const formatVariationPctLabel = (delta: number, pct: number) => {
+    if (delta === 0) return "Estável";
+    const direction = delta > 0 ? "Aumento" : "Redução";
+    const pctLabel = Number.isFinite(pct)
+      ? `${Math.abs(pct).toLocaleString("pt-BR", {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })}%`
+      : "--";
+    return `${direction}: ${pctLabel}`;
+  };
 
   const waterfallCustoResolved =
     (waterfallCusto && waterfallCusto.length > 0
@@ -367,36 +408,57 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
       );
     }
 
+    const computedHeight = Math.min(560, Math.max(380, data.length * 44));
+    const maxLabelLen = Math.max(
+      0,
+      ...data.map((d) => (d?.nome ? String(d.nome).length : 0))
+    );
+    const yAxisWidth = Math.min(
+      200,
+      Math.max(90, Math.ceil(maxLabelLen * 7.2))
+    );
+
     return (
-      <ResponsiveContainer width="100%" height={350}>
-        <BarChart data={data} layout="vertical" margin={{ left: 120 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis type="number" tick={axisTick} />
-          <YAxis type="category" dataKey="nome" width={110} tick={axisTick} />
-          <Tooltip formatter={tooltipFormatter} />
-          <Bar dataKey="variacaoPercentual">
-            {data.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={
-                  entry.variacaoPercentual < 0
-                    ? "rgb(220,38,38)"
-                    : "rgb(22,163,74)"
-                }
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      <div style={{ height: computedHeight }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            layout="vertical"
+            margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis type="number" tick={axisTick} />
+            <YAxis
+              type="category"
+              dataKey="nome"
+              width={yAxisWidth}
+              tick={axisTick}
+            />
+            <Tooltip formatter={tooltipFormatter} />
+            <Bar dataKey="variacaoPercentual" barSize={18}>
+              {data.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={
+                    entry.variacaoPercentual < 0
+                      ? "rgb(220,38,38)"
+                      : "rgb(22,163,74)"
+                  }
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     );
   };
 
   return (
     <div className="space-y-6">
       {/* Cards (modo rede) */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
         <InfoCard
-          title="Custo Total ATUAL R$ (Mensal)"
+          title="Custo Total Atual"
           value={`R$ ${toNumber(custoAtualRealResolved, 0).toLocaleString(
             "pt-BR"
           )}`}
@@ -415,9 +477,15 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
           })}`}
           subtitle={
             toNumber(variacaoCustoReaisResolved, 0) > 0
-              ? "Aumento"
+              ? formatArrowPct(
+                  toNumber(variacaoCustoReaisResolved, 0),
+                  toNumber(variacaoCustoPercentualResolved, 0)
+                )
               : toNumber(variacaoCustoReaisResolved, 0) < 0
-              ? "Redução"
+              ? formatArrowPct(
+                  toNumber(variacaoCustoReaisResolved, 0),
+                  toNumber(variacaoCustoPercentualResolved, 0)
+                )
               : "Estável"
           }
           icon={icons.variacao}
@@ -425,7 +493,7 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
         />
 
         <InfoCard
-          title="Custo Total PROJETADO R$ (Mensal)"
+          title="Custo Total Projetado"
           value={`R$ ${toNumber(custoProjetadoResolved, 0).toLocaleString(
             "pt-BR"
           )}`}
@@ -443,6 +511,26 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
         />
 
         <InfoCard
+          title="Variação (Qtd)"
+          value={String(Math.abs(toNumber(variacaoQuantidadeResolved, 0)))}
+          subtitle={
+            toNumber(variacaoQuantidadeResolved, 0) > 0
+              ? formatArrowPct(
+                  toNumber(variacaoQuantidadeResolved, 0),
+                  toNumber(variacaoQuantidadePercentual, 0)
+                )
+              : toNumber(variacaoQuantidadeResolved, 0) < 0
+              ? formatArrowPct(
+                  toNumber(variacaoQuantidadeResolved, 0),
+                  toNumber(variacaoQuantidadePercentual, 0)
+                )
+              : "Estável"
+          }
+          icon={icons.variacao}
+          variant="warning"
+        />
+
+        <InfoCard
           title="Total de Funcionários Projetado"
           value={String(toNumber(profissionaisProjetadosResolved, 0))}
           subtitle=""
@@ -457,8 +545,14 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
           <CardHeader>
             <CardTitle className="text-base">Variação R$ (Mensal)</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-2 pb-4">
             <ReusableWaterfall data={waterfallCustoDisplay} unit="currency" />
+            <div className="mt-2 text-center text-sm text-muted-foreground">
+              {formatVariationPctLabel(
+                toNumber(variacaoCustoReaisResolved, 0),
+                toNumber(variacaoCustoPercentualResolved, 0)
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -466,11 +560,17 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
           <CardHeader>
             <CardTitle className="text-base">Variação Quantidade</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-2 pb-4">
             <ReusableWaterfall
               data={waterfallQuantidadeDisplay}
               unit="people"
             />
+            <div className="mt-2 text-center text-sm text-muted-foreground">
+              {formatVariationPctLabel(
+                toNumber(variacaoQuantidadeResolved, 0),
+                toNumber(variacaoQuantidadePercentual, 0)
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -482,7 +582,7 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
               Ranking da Variação dos Hospitais (R$) (%)
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 pb-4">
             {renderRanking(
               "Ranking da Variação dos Hospitais (R$) (%)",
               rankingCustoResolved,
@@ -506,7 +606,7 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
               Ranking da Variação dos Hospitais (Qtd) (%)
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 pb-4">
             {renderRanking(
               "Ranking da Variação dos Hospitais (Qtd) (%)",
               rankingQuantidadeResolved,

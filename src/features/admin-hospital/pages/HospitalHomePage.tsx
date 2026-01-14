@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { getHospitalById, Hospital } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { HospitalHeader } from "@/components/shared/HospitalHeader";
 import {
   Building2,
   Users,
@@ -10,7 +11,6 @@ import {
   Settings,
   Bed,
   ClipboardList,
-  Clock,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -179,27 +179,11 @@ export default function HospitalHomePage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-primary/80 rounded-lg p-8 text-white shadow-lg">
-        <div className="flex items-center gap-6">
-          {hospital?.foto && (
-            <div className="flex-shrink-0">
-              <img
-                src={`http://localhost:3110${hospital.foto}`}
-                alt={`Logo ${hospital.nome}`}
-                className="w-24 h-24 object-contain bg-white rounded-lg p-2"
-              />
-            </div>
-          )}
-          <div className="flex-1">
-            <h1 className="text-4xl font-bold mb-2">
-              {hospital?.nome || "Hospital"}
-            </h1>
-            <p className="text-lg opacity-90">
-              Bem vindo, {user?.nome || "@USER"}
-            </p>
-          </div>
-        </div>
-      </div>
+      <HospitalHeader
+        hospitalName={hospital?.nome}
+        hospitalPhoto={hospital?.foto}
+        userName={user?.nome}
+      />
 
       {/* Recentes Section */}
       <div>
