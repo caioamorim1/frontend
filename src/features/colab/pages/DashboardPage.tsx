@@ -1,22 +1,30 @@
 // src/features/colab/pages/DashboardPage.tsx
-
-import { Sheet } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardAtualScreen } from "@/features/admin-hospital/components/DashboardAtualScreen";
 import { DashboardBaselineScreen } from "@/features/admin-hospital/components/DashboardBaselineScreen";
 import { DashboardProjetadoScreen } from "@/features/admin-hospital/components/DashboardProjetadoScreen";
-// ✅ NOVO IMPORT
 import { DashboardComparativoHospitalScreen } from "@/features/admin-hospital/components/DashboardComparativoHospitalScreen";
 import { useEffect, useState } from "react";
 import { clearSectorsCache } from "@/mocks/functionSectores";
 import { useParams } from "react-router-dom";
-import { getSnapshotHospitalSectors, getHospitalSectors } from "@/lib/api";
+import {
+  getHospitalById,
+  getHospitalSectors,
+  getSnapshotHospitalSectors,
+  Hospital,
+} from "@/lib/api";
+import { HospitalHeader } from "@/components/shared/HospitalHeader";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function HospitalDashboardPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
+  const { user } = useAuth();
+  const [hospital, setHospital] = useState<Hospital | null>(null);
   const [hasBaseline, setHasBaseline] = useState(false);
   const [checkingBaseline, setCheckingBaseline] = useState(true);
   const [atualData, setAtualData] = useState<any>(null);
+
+  const effectiveHospitalId = hospitalId || user?.hospital?.id;
 
   useEffect(() => {
     clearSectorsCache();
@@ -24,14 +32,16 @@ export default function HospitalDashboardPage() {
 
   useEffect(() => {
     const checkBaseline = async () => {
-      if (!hospitalId) {
+      if (!effectiveHospitalId) {
         setCheckingBaseline(false);
         return;
       }
 
       try {
         // Tenta buscar o snapshot selecionado
-        const snapshotData = await getSnapshotHospitalSectors(hospitalId);
+        const snapshotData = await getSnapshotHospitalSectors(
+          effectiveHospitalId
+        );
 
         // A API retorna {snapshot: {...}} onde os dados estão em snapshot.dados
         const snapshot = (snapshotData as any).snapshot || snapshotData;
@@ -53,24 +63,40 @@ export default function HospitalDashboardPage() {
     };
 
     checkBaseline();
-  }, [hospitalId]);
+  }, [effectiveHospitalId]);
+
+  // Buscar dados do hospital para header
+  useEffect(() => {
+    const fetchHospital = async () => {
+      if (!effectiveHospitalId) return;
+      try {
+        const data = await getHospitalById(effectiveHospitalId);
+        setHospital(data);
+      } catch (error) {
+        console.error(" Erro ao buscar hospital:", error);
+        setHospital(null);
+      }
+    };
+
+    fetchHospital();
+  }, [effectiveHospitalId]);
 
   // Buscar dados atuais para o comparativo
   useEffect(() => {
     const fetchAtualData = async () => {
-      if (!hospitalId) return;
+      if (!effectiveHospitalId) return;
 
       try {
-        const data = await getHospitalSectors(hospitalId);
-        console.log("📊 [Dashboard Hospital] Dados atuais carregados:", data);
+        const data = await getHospitalSectors(effectiveHospitalId);
+        console.log(" [Dashboard Hospital] Dados atuais carregados:", data);
         setAtualData(data);
       } catch (error) {
-        console.error("❌ Erro ao buscar dados atuais:", error);
+        console.error("Erro ao buscar dados atuais:", error);
       }
     };
 
     fetchAtualData();
-  }, [hospitalId]);
+  }, [effectiveHospitalId]);
 
   if (checkingBaseline) {
     return <div>Carregando...</div>;
@@ -78,14 +104,13 @@ export default function HospitalDashboardPage() {
 
   return (
     <div className="space-y-8 pb-10">
-      <div>
-        <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
-          <Sheet /> Dashboard Hospitalar
-        </h1>
-        <p className="text-muted-foreground">
-          Visualização dos gráficos com base nos dados fornecidos na planilha.
-        </p>
-      </div>
+      {/* Header */}
+      <HospitalHeader
+        hospitalName={hospital?.nome}
+        hospitalPhoto={hospital?.foto}
+        userName={user?.nome}
+        subtitle="Dashboard do Hospital"
+      />
 
       <Tabs defaultValue={hasBaseline ? "baseline" : "atual"}>
         <TabsList
@@ -119,7 +144,6 @@ export default function HospitalDashboardPage() {
           </div>
         </TabsContent>
 
-        {/* ✅ CONTEÚDO DA ABA "COMPARATIVO" ATUALIZADO */}
         <TabsContent value="comparativo">
           <div className="grid grid-cols-1 gap-6 mt-6">
             <DashboardComparativoHospitalScreen

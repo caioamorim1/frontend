@@ -44,7 +44,6 @@ export default function DimensionamentoTab({
         try {
           const saved = await getProjetadoFinalInternacao(unidade.id);
 
-          
           if (saved?.cargos?.length) {
             const savedMap = new Map<string, number>();
             saved.cargos.forEach((c: any) => {
@@ -56,16 +55,12 @@ export default function DimensionamentoTab({
               quantidadeProjetada:
                 savedMap.get(l.cargoId) ?? l.quantidadeProjetada,
             }));
-            
-     
-            
+
             setTabelaData(ajustada);
           } else {
-
             setTabelaData(data?.tabela ?? []);
           }
         } catch (e) {
-
           // Se não houver salvo (ex.: 404), usa dados originais
           setTabelaData(data?.tabela ?? []);
         }
@@ -145,7 +140,7 @@ export default function DimensionamentoTab({
       <Card>
         <CardHeader>
           <CardTitle>Dados Atuais</CardTitle>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-500 mt-2">
+          <div className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm text-gray-500 mt-2">
             <div>
               <p>
                 <strong>Período de Análise:</strong> {formatDate(periodoInicio)}{" "}
@@ -157,29 +152,6 @@ export default function DimensionamentoTab({
               <p>
                 <strong>Taxa de Ocupação Atual:</strong>{" "}
                 {taxaOcupacaoAtual.toFixed(2)}%
-              </p>
-            </div>
-            <div>
-              <p>
-                <strong>Taxa de Ocupação Média (Período):</strong>{" "}
-                {(() => {
-                  const totalLeitos =
-                    analiseData?.agregados?.totalLeitosDia ?? 0;
-                  const totalAvaliacoes =
-                    analiseData?.agregados?.totalAvaliacoes ?? 0;
-                  const taxaMedia =
-                    totalLeitos > 0 ? (totalAvaliacoes / totalLeitos) * 100 : 0;
-                  return taxaMedia.toFixed(2);
-                })()}
-                %
-              </p>
-              <p>
-                <strong>Total Leitos-Dia:</strong>{" "}
-                {analiseData?.agregados?.totalLeitosDia ?? 0}
-              </p>
-              <p>
-                <strong>Total Avaliações:</strong>{" "}
-                {analiseData?.agregados?.totalAvaliacoes ?? 0}
               </p>
             </div>
           </div>
