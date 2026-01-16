@@ -266,7 +266,7 @@ export const DashboardComparativoGlobalScreen: React.FC<{
             <TabsTrigger value="global">Global</TabsTrigger>
             <TabsTrigger value="internacao">Unid. de Internação</TabsTrigger>
             <TabsTrigger value="nao-internacao">
-              Unidades de Não Internação
+              Unid. de Não Internação
             </TabsTrigger>
           </TabsList>
           <TabsContent value="global" className="mt-6">

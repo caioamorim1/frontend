@@ -94,13 +94,9 @@ export const DashboardComparativoScreen: React.FC<{
       try {
         setLoading(true);
 
-
         const resp = await getHospitalComparative(hospitalId);
 
-
         if (!mounted) return;
-
-        
 
         setComparativeData(resp);
       } catch (err) {
@@ -230,8 +226,6 @@ export const DashboardComparativoScreen: React.FC<{
       { name: "Projetado", value: pessoalProjetadoSnapshot },
     ];
 
-   
-
     return {
       financialWaterfall,
       personnelWaterfall,
@@ -346,7 +340,7 @@ export const DashboardComparativoScreen: React.FC<{
             <TabsTrigger value="global">Global</TabsTrigger>
             <TabsTrigger value="internacao">Unid. de Internação</TabsTrigger>
             <TabsTrigger value="nao-internacao">
-              Unidades de Não Internação
+              Unid. de Não Internação
             </TabsTrigger>
           </TabsList>
           <TabsContent value="global" className="mt-6">

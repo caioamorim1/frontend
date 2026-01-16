@@ -4,6 +4,7 @@ import {
   getUnidadeById,
   getSessoesAtivasByUnidadeId,
   updateLeito,
+  darAltaLeito,
   UnidadeInternacao,
   Leito,
   SessaoAtiva,
@@ -179,8 +180,17 @@ const EvaluationDetailsModal: FC<{
   sessao: SessaoAtiva | null;
   onClose: () => void;
   onEdit: (sessao: SessaoAtiva) => void;
-}> = ({ sessao, onClose, onEdit }) => {
+  onDischarge: (sessao: SessaoAtiva, motivo?: string) => Promise<void>;
+}> = ({ sessao, onClose, onEdit, onDischarge }) => {
   if (!sessao) return null;
+
+  const [motivo, setMotivo] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setMotivo("");
+    setIsSubmitting(false);
+  }, [sessao.id]);
 
   // A API não retorna a data da avaliação na SessaoAtiva. Se retornar no futuro, basta substituir aqui.
 
@@ -215,11 +225,41 @@ const EvaluationDetailsModal: FC<{
               </p>
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>
-              Fechar
-            </Button>
-            <Button onClick={() => onEdit(sessao)}>Editar Avaliação</Button>
+          <div className="space-y-2 pt-4 border-t">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Motivo da alta (opcional)
+              </p>
+              <Textarea
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                placeholder="Ex.: Alta hospitalar, transferência, etc."
+                className="mt-1"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={onClose}>
+                Fechar
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={isSubmitting}
+                onClick={async () => {
+                  try {
+                    setIsSubmitting(true);
+                    const trimmed = motivo.trim();
+                    await onDischarge(sessao, trimmed ? trimmed : undefined);
+                  } catch {
+                    // Mensagem de erro é tratada no handler do componente pai.
+                  } finally {
+                    setIsSubmitting(false);
+                  }
+                }}
+              >
+                Dar alta
+              </Button>
+              <Button onClick={() => onEdit(sessao)}>Editar Avaliação</Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -479,6 +519,22 @@ export default function VisaoLeitosPage() {
     setActionModalState({ isOpen: false, leito: null, action: null });
   };
 
+  const handleDischarge = async (sessao: SessaoAtiva, motivo?: string) => {
+    try {
+      await darAltaLeito(sessao.leito.id, motivo ? { motivo } : undefined);
+      showAlert(
+        "success",
+        "Alta realizada",
+        `Leito ${sessao.leito.numero} liberado com sucesso.`
+      );
+      setDetailsModalSessao(null);
+      fetchData();
+    } catch (err) {
+      showAlert("destructive", "Erro", "Não foi possível dar alta no leito.");
+      throw err;
+    }
+  };
+
   const sessoesPorLeitoId = useMemo(
     () => new Map(sessoes.map((s) => [s.leito.id, s])),
     [sessoes]
@@ -542,6 +598,7 @@ export default function VisaoLeitosPage() {
           setDetailsModalSessao(null);
           setEditAvaliacaoModalState({ isOpen: true, sessao });
         }}
+        onDischarge={handleDischarge}
       />
 
       <div className="space-y-4">

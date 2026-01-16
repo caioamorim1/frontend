@@ -39,6 +39,8 @@ type RankingItem = {
   variacaoReais?: number;
 };
 
+type RankingTooltipKind = "currency" | "people";
+
 const toNumber = (value: unknown, fallback = 0) => {
   const n = typeof value === "number" ? value : Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -576,9 +578,58 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
       maximumFractionDigits: 2,
     })}`;
 
+  const formatPctPtBr = (value: number) =>
+    `${Number(value || 0).toLocaleString("pt-BR", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    })}%`;
+
+  const RankingTooltipContent: React.FC<
+    {
+      kind: RankingTooltipKind;
+    } & {
+      active?: boolean;
+      payload?: any[];
+    }
+  > = ({ kind, active, payload }) => {
+    if (!active || !Array.isArray(payload) || payload.length === 0) return null;
+
+    const entry = payload?.[0]?.payload as RankingItem | undefined;
+    if (!entry) return null;
+
+    const pct = toNumber(entry.variacaoPercentual, 0);
+    const delta =
+      entry.variacaoReais !== undefined
+        ? toNumber(entry.variacaoReais, 0)
+        : undefined;
+
+    const deltaLabel =
+      delta === undefined
+        ? "--"
+        : kind === "currency"
+        ? formatCurrency(delta)
+        : `${Math.round(delta).toLocaleString("pt-BR")}`;
+
+    return (
+      <div className="rounded-md border bg-background px-3 py-2 shadow-sm">
+        <div className="text-sm font-medium text-foreground">
+          {String(entry.nome ?? "-")}
+        </div>
+        <div className="mt-1 text-sm text-muted-foreground">
+          Percentual:{" "}
+          <span className="text-foreground">{formatPctPtBr(pct)}</span>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          {kind === "currency" ? "Monetário" : "Quantidade"}:{" "}
+          <span className="text-foreground">{deltaLabel}</span>
+        </div>
+      </div>
+    );
+  };
+
   const renderRanking = (
     data: RankingItem[],
-    tooltipFormatter: (value: any, name: string, props: any) => any
+    tooltipKind: RankingTooltipKind
   ) => {
     if (!data || data.length === 0) {
       return (
@@ -588,27 +639,48 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
       );
     }
 
+    const computedHeight = Math.min(560, Math.max(380, data.length * 44));
+    const maxLabelLen = Math.max(
+      0,
+      ...data.map((d) => (d?.nome ? String(d.nome).length : 0))
+    );
+    const yAxisWidth = Math.min(
+      200,
+      Math.max(90, Math.ceil(maxLabelLen * 7.2))
+    );
+
     return (
-      <ResponsiveContainer width="100%" height={350}>
-        <BarChart data={data} layout="vertical" margin={{ left: 140 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis type="number" tick={axisTick} />
-          <YAxis type="category" dataKey="nome" width={130} tick={axisTick} />
-          <Tooltip formatter={tooltipFormatter} />
-          <Bar dataKey="variacaoPercentual">
-            {data.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={
-                  entry.variacaoPercentual < 0
-                    ? "rgb(220,38,38)"
-                    : "rgb(22,163,74)"
-                }
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      <div style={{ height: computedHeight }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            layout="vertical"
+            margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis type="number" tick={axisTick} />
+            <YAxis
+              type="category"
+              dataKey="nome"
+              width={yAxisWidth}
+              tick={axisTick}
+            />
+            <Tooltip content={<RankingTooltipContent kind={tooltipKind} />} />
+            <Bar dataKey="variacaoPercentual" barSize={18}>
+              {data.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={
+                    entry.variacaoPercentual < 0
+                      ? "rgb(220,38,38)"
+                      : "rgb(22,163,74)"
+                  }
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     );
   };
 
@@ -1924,20 +1996,8 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                   Ranking da Variação dos Setores (%)
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                {renderRanking(
-                  rankingUnidadesCusto,
-                  (value: any, _name: string, props: any) => {
-                    const variacaoReaisLocal = props?.payload?.variacaoReais;
-                    if (typeof variacaoReaisLocal === "number") {
-                      return `R$ ${variacaoReaisLocal.toLocaleString("pt-BR", {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      })}`;
-                    }
-                    return `${Number(value).toFixed(1)}%`;
-                  }
-                )}
+              <CardContent className="px-2 pb-4">
+                {renderRanking(rankingUnidadesCusto, "currency")}
               </CardContent>
             </Card>
 
@@ -1970,17 +2030,8 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                   Ranking da Variação dos Setores (QTD)
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                {renderRanking(
-                  rankingUnidadesQuantidade,
-                  (value: any, _name: string, props: any) => {
-                    const variacaoQtdLocal = props?.payload?.variacaoReais;
-                    if (typeof variacaoQtdLocal === "number") {
-                      return `${variacaoQtdLocal}`;
-                    }
-                    return `${Number(value).toFixed(1)}%`;
-                  }
-                )}
+              <CardContent className="px-2 pb-4">
+                {renderRanking(rankingUnidadesQuantidade, "people")}
               </CardContent>
             </Card>
 

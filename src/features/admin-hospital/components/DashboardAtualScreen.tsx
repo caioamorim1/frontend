@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { DollarSign, Users, Building, CircleDollarSign } from "lucide-react";
 import RadarChartComponent from "./graphicsComponents/RadarChart";
-import { getCompletedEvaluationsWithCategories } from "@/lib/api";
+import { getQualitativeAggregatesByCategory } from "@/lib/api";
 import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import { HorizontalBarChartComp } from "./graphicsComponents/HorizontalBarChartComp";
 import BargraphicChart from "./graphicsComponents/BarChartComp";
@@ -519,6 +519,7 @@ const TabContentInternacao: React.FC<{
   entityId?: string; // 🆕
   hospitalId?: string; // 🆕 usar rota oficial na aba de Internação
   isGlobalView?: boolean; // 🆕 Flag para indicar se é visão global
+  qualitativeAggregates?: any; // Dados completos de agregação qualitativa
 }> = ({
   sourceData,
   radarData,
@@ -526,8 +527,34 @@ const TabContentInternacao: React.FC<{
   entityId,
   hospitalId,
   isGlobalView,
+  qualitativeAggregates,
 }) => {
   const [selectedSector, setSelectedSector] = useState<string>("all");
+
+  // Gerar dados do radar baseado na seleção do setor
+  const radarDataForSector = useMemo(() => {
+    if (!qualitativeAggregates) return [];
+
+    if (selectedSector === "all") {
+      // Mostrar dados agregados de internação
+      const internacaoData = qualitativeAggregates.byUnitType?.internacao || [];
+      return internacaoData.map((category: any) => ({
+        subject: category.name,
+        atual: category.averageScore,
+        projetado: category.meta,
+      }));
+    } else {
+      // Mostrar dados do setor específico
+      const sectorData = qualitativeAggregates.bySector?.[selectedSector];
+      if (!sectorData || !sectorData.categories) return [];
+
+      return sectorData.categories.map((category: any) => ({
+        subject: category.name,
+        atual: category.averageScore,
+        projetado: category.meta,
+      }));
+    }
+  }, [qualitativeAggregates, selectedSector]);
 
   // Dados de fallback (não usados quando hospitalId é fornecido, pois o gráfico usa a rota oficial)
   const emptyOccupation = {
@@ -797,11 +824,13 @@ const TabContentInternacao: React.FC<{
         />
       )}
 
-      {radarData && radarData.length > 0 && (
+      {radarDataForSector && radarDataForSector.length > 0 && (
         <RadarChartComponent
-          data={radarData}
-          title="Análise Qualitativa"
-          description=""
+          data={radarDataForSector}
+          title="Análise Qualitativa - Internação"
+          description={
+            selectedSector === "all" ? "Agregado de todos os setores" : ""
+          }
         />
       )}
     </div>
@@ -810,8 +839,35 @@ const TabContentInternacao: React.FC<{
 const TabContentNoInternacao: React.FC<{
   sourceData: SectorAssistance[];
   radarData: ChartDataItem[];
-}> = ({ sourceData, radarData }) => {
+  qualitativeAggregates?: any; // Dados completos de agregação qualitativa
+}> = ({ sourceData, radarData, qualitativeAggregates }) => {
   const [selectedSector, setSelectedSector] = useState<string>("all");
+
+  // Gerar dados do radar baseado na seleção do setor
+  const radarDataForSector = useMemo(() => {
+    if (!qualitativeAggregates) return [];
+
+    if (selectedSector === "all") {
+      // Mostrar dados agregados de assistencial
+      const assistencialData =
+        qualitativeAggregates.byUnitType?.assistencial || [];
+      return assistencialData.map((category: any) => ({
+        subject: category.name,
+        atual: category.averageScore,
+        projetado: category.meta,
+      }));
+    } else {
+      // Mostrar dados do setor específico
+      const sectorData = qualitativeAggregates.bySector?.[selectedSector];
+      if (!sectorData || !sectorData.categories) return [];
+
+      return sectorData.categories.map((category: any) => ({
+        subject: category.name,
+        atual: category.averageScore,
+        projetado: category.meta,
+      }));
+    }
+  }, [qualitativeAggregates, selectedSector]);
 
   // Verificações de segurança para evitar erros com null/undefined
   const safeSourceData = sourceData || [];
@@ -970,11 +1026,13 @@ const TabContentNoInternacao: React.FC<{
           title="Análise de Custo por Setor"
         />
       )}
-      {radarData && radarData.length > 0 && (
+      {radarDataForSector && radarDataForSector.length > 0 && (
         <RadarChartComponent
-          data={radarData}
-          title="Análise Qualitativa"
-          description=""
+          data={radarDataForSector}
+          title="Análise Qualitativa - Não Internação"
+          description={
+            selectedSector === "all" ? "Agregado de todos os setores" : ""
+          }
         />
       )}
     </div>
@@ -994,37 +1052,36 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = ({
     null
   );
   const [radarData, setRadarData] = useState<ChartDataItem[]>([]);
+  const [qualitativeAggregates, setQualitativeAggregates] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("global"); // Valor inicial 'global'
 
   const loadData = async () => {
     let dashboardData: HospitalSector | null = null;
 
-    // Buscar avaliações do hospital com categorias
+    // Buscar agregados qualitativos do hospital por categoria
     if (hospitalId) {
       try {
-        const avaliacoesData = await getCompletedEvaluationsWithCategories(
+        const aggregatesData = await getQualitativeAggregatesByCategory(
           hospitalId
         );
 
-        // Transformar dados para o radar chart
-        const radarChartData: ChartDataItem[] = [];
+        // Armazenar dados completos para uso nas tabs
+        setQualitativeAggregates(aggregatesData);
 
-        avaliacoesData?.forEach((evaluation) => {
-          const totalScore = parseFloat(evaluation.total_score);
-
-          evaluation.categories?.forEach((cat: any) => {
-            radarChartData.push({
-              subject: cat.category_name,
-              atual: totalScore,
-              projetado: cat.category_meta,
-            });
-          });
-        });
+        // Transformar dados do hospital para o radar chart (tab global)
+        const radarChartData: ChartDataItem[] = aggregatesData.hospital.map(
+          (category) => ({
+            subject: category.name,
+            atual: category.averageScore,
+            projetado: category.meta,
+          })
+        );
 
         setRadarData(radarChartData);
       } catch (error) {
-        console.error("Erro ao buscar avaliações:", error);
+        console.error("Erro ao buscar agregados qualitativos:", error);
         setRadarData([]);
+        setQualitativeAggregates(null);
       }
     }
 
@@ -1124,7 +1181,7 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = ({
                     Unid. de Internação
                   </TabsTrigger>
                   <TabsTrigger value="nao-internacao">
-                    Unidades de Não Internação
+                    Unid. de Não Internação
                   </TabsTrigger>
                 </TabsList>
 
@@ -1148,12 +1205,14 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = ({
                     entityId={entityId}
                     hospitalId={hospitalId}
                     isGlobalView={isGlobalView}
+                    qualitativeAggregates={qualitativeAggregates}
                   />
                 </TabsContent>
                 <TabsContent value="nao-internacao" className="mt-4">
                   <TabContentNoInternacao
                     sourceData={chartDataAtual?.assistance}
                     radarData={radarData}
+                    qualitativeAggregates={qualitativeAggregates}
                   />
                 </TabsContent>
               </Tabs>

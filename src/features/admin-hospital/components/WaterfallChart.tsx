@@ -244,7 +244,7 @@ const GlobalTabContent: React.FC<{
           <SelectContent>
             <SelectItem value="global">Global Consolidado</SelectItem>
             <SelectItem value="vs-internacao">
-              Global vs Setores de Internação
+              Global vs Unidades de Internação
             </SelectItem>
             <SelectItem value="vs-nao-internacao">
               Global vs Unidades de Não Internação

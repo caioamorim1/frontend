@@ -15,8 +15,14 @@ interface UserPayload {
   id: string;
   nome: string;
   mustChangePassword?: boolean;
-  // O token pode ter 'tipo' (admin global) ou 'role' (outros)
-  tipo?: "ADMIN";
+  // O token pode ter 'tipo' (novo/granular) e/ou 'role' (compat)
+  tipo?:
+    | "ADMIN"
+    | "GESTOR_ESTRATEGICO"
+    | "GESTOR_TATICO"
+    | "AVALIADOR"
+    | "CONSULTOR"
+    | "COMUM";
   role?: "ADMIN" | "GESTOR" | "COMUM";
   // Propriedade unificada para facilitar o uso no frontend
   appRole?: "ADMIN" | "GESTOR" | "COMUM";
@@ -139,11 +145,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // Unifica o papel do usuário em uma única propriedade 'appRole'
+        // Preferir o tipo granular quando disponível; manter role como fallback.
         let finalRole: UserPayload["appRole"] = "COMUM";
-        if (decoded.role === "ADMIN") {
+
+        if (decoded.tipo === "ADMIN") {
+          finalRole = "ADMIN";
+        } else if (
+          decoded.tipo === "GESTOR_ESTRATEGICO" ||
+          decoded.tipo === "GESTOR_TATICO"
+        ) {
+          finalRole = "GESTOR";
+        } else if (decoded.role === "ADMIN") {
           finalRole = "ADMIN";
         } else if (decoded.role === "GESTOR") {
-          finalRole = "GESTOR"; // Tratando admin de hospital como gestor
+          finalRole = "GESTOR";
         }
 
         const finalUser = { ...decoded, appRole: finalRole };
@@ -173,10 +188,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (decoded.mustChangePassword) {
           navigate("/change-password");
-        } else if (decoded.role === "ADMIN") {
+        } else if (decoded.tipo === "ADMIN" || decoded.role === "ADMIN") {
           // Admin global vai para a gestão de hospitais
           navigate("/admin/hospitais");
-        } else if (decoded.role === "GESTOR") {
+        } else if (
+          decoded.tipo === "GESTOR_ESTRATEGICO" ||
+          decoded.tipo === "GESTOR_TATICO" ||
+          decoded.role === "GESTOR"
+        ) {
           // Gestor deve ir para o dashboard do seu hospital
           const hospId = decoded.hospital?.id;
           if (hospId) {

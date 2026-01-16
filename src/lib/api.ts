@@ -541,7 +541,13 @@ export interface Usuario {
   nome: string;
   email: string;
   cpf?: string;
-  permissao: "ADMIN" | "GESTOR" | "COMUM";
+  permissao:
+    | "ADMIN"
+    | "GESTOR_ESTRATEGICO"
+    | "GESTOR_TATICO"
+    | "AVALIADOR"
+    | "CONSULTOR"
+    | "COMUM";
   coren?: string;
 }
 export interface CreateUsuarioDTO {
@@ -549,7 +555,9 @@ export interface CreateUsuarioDTO {
   nome: string;
   email: string;
   cpf?: string;
-  permissao: "ADMIN" | "GESTOR" | "COMUM";
+  // Novo padrão: tipo granular. Backend também aceita permissao (legado).
+  tipo?: Usuario["permissao"];
+  permissao?: Usuario["permissao"];
   senha?: string;
   coren?: string;
 }
@@ -689,6 +697,7 @@ export interface ScpSchema {
 }
 export interface UpdateSessaoDTO {
   itens: Record<string, number>;
+  justificativa?: string;
   leitoId: string;
   unidadeId: string;
   prontuario: string;
@@ -942,13 +951,39 @@ export interface AnaliseInternacaoResponse {
       inicio: string;
       fim: string;
       dias: number;
+      origem?: string;
+      parametrosEntrada?: {
+        inicio?: string;
+        fim?: string;
+      };
     };
     totalLeitosDia: number;
     totalAvaliacoes: number;
-    taxaOcupacaoMensal: number;
-    // Campos opcionais que podem vir do backend para enriquecer os KPIs
-    percentualLeitosAvaliadosHojePercent?: number;
+    // Compat (backends antigos)
+    taxaOcupacaoMensal?: number;
     taxaOcupacaoMensalPercent?: number;
+    percentualLeitosAvaliadosHojePercent?: number;
+
+    // Novo retorno (intervalo/período)
+    taxaOcupacaoPeriodo?: number;
+    taxaOcupacaoPeriodoPercent?: number;
+    percentualLeitosAvaliados?: number;
+    percentualLeitosAvaliadosPercent?: number;
+
+    // Leitos (podem vir no retorno)
+    leitosOcupados?: number;
+    leitosVagos?: number;
+    leitosInativos?: number;
+    totalLeitos?: number;
+
+    // Constantes (KM) e distribuição da equipe
+    kmEnfermeiro?: number;
+    kmTecnico?: number;
+    percentualEnfermeiro?: number;
+    percentualTecnico?: number;
+    percentualEnfermeiroPercent?: number;
+    percentualTecnicoPercent?: number;
+
     distribuicaoTotalClassificacao?: Record<string, number>;
   };
   tabela: LinhaAnaliseFinanceira[];
@@ -1828,6 +1863,17 @@ export const deleteLeito = async (leitoId: string): Promise<void> => {
   await api.delete(`/leitos/${leitoId}`);
 };
 
+export interface DarAltaLeitoPayload {
+  motivo?: string;
+}
+
+export const darAltaLeito = async (
+  leitoId: string,
+  payload?: DarAltaLeitoPayload
+): Promise<void> => {
+  await api.post(`/leitos/${leitoId}/alta`, payload ?? {});
+};
+
 // PARAMETROS (Admin)
 // Para unidades de INTERNAÇÃO (leitos)
 export const getParametros = async (
@@ -2037,6 +2083,39 @@ export const getCompletedEvaluationsWithCategories = async (
 ): Promise<any[]> => {
   const response = await api.get(
     `/qualitative/completed-with-categories?hospitalId=${hospitalId}`
+  );
+  return response.data;
+};
+
+export interface QualitativeCategoryAggregate {
+  categoryId: number;
+  name: string;
+  meta: number;
+  averageScore: number;
+  samples: number;
+}
+
+export interface QualitativeAggregatesBySector {
+  sectorId: string;
+  unidadeType: "internacao" | "assistencial";
+  categories: QualitativeCategoryAggregate[];
+}
+
+export interface QualitativeAggregatesResponse {
+  hospitalId: string;
+  bySector: Record<string, QualitativeAggregatesBySector>;
+  byUnitType: {
+    assistencial?: QualitativeCategoryAggregate[];
+    internacao?: QualitativeCategoryAggregate[];
+  };
+  hospital: QualitativeCategoryAggregate[];
+}
+
+export const getQualitativeAggregatesByCategory = async (
+  hospitalId: string
+): Promise<QualitativeAggregatesResponse> => {
+  const response = await api.get(
+    `/qualitative/aggregates/by-category?hospitalId=${hospitalId}`
   );
   return response.data;
 };
@@ -2307,6 +2386,45 @@ export async function getTaxaOcupacaoAgregada(
     },
   });
   return response.data;
+}
+
+// ===== TAXA DE OCUPAÇÃO CUSTOMIZADA (por unidade) =====
+
+export interface TaxaOcupacaoCustomizada {
+  id: string;
+  unidadeId: string;
+  taxa: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getTaxaOcupacaoCustomizadaByUnidadeId(
+  unidadeId: string
+): Promise<TaxaOcupacaoCustomizada | null> {
+  try {
+    const res = await api.get(`/taxa-ocupacao/${unidadeId}`);
+    return (
+      (res.data?.data as TaxaOcupacaoCustomizada) ??
+      (res.data as TaxaOcupacaoCustomizada) ??
+      null
+    );
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function saveTaxaOcupacaoCustomizada(payload: {
+  unidadeId: string;
+  taxa: number;
+}): Promise<TaxaOcupacaoCustomizada> {
+  const res = await api.post("/taxa-ocupacao", payload);
+  return (
+    (res.data?.data as TaxaOcupacaoCustomizada) ??
+    (res.data as TaxaOcupacaoCustomizada)
+  );
 }
 
 // ===== SNAPSHOT SELECIONADO POR GRUPO =====
