@@ -847,7 +847,8 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                             .replace(/\//g, ".")
                         : "";
 
-                      const deltaAtualParaBaseline = custoBaseline - custoAtualReal;
+                      const deltaAtualParaBaseline =
+                        custoBaseline - custoAtualReal;
                       const deltaBaselineParaProjetado =
                         custoProjetado - custoBaseline;
 

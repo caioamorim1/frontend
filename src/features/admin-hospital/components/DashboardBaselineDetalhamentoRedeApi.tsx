@@ -864,8 +864,7 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                     name: "Variação\n(Atual→Baseline)",
                     value: deltaAtualParaBaseline,
                     range: start <= end ? [start, end] : [end, start],
-                    color:
-                      deltaAtualParaBaseline >= 0 ? "#10B981" : "#EF4444",
+                    color: deltaAtualParaBaseline >= 0 ? "#10B981" : "#EF4444",
                     qtdPessoas: deltaQtdAtualParaBaseline,
                   });
                 }
@@ -884,9 +883,7 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                     value: deltaBaselineParaProjetado,
                     range: start <= end ? [start, end] : [end, start],
                     color:
-                      deltaBaselineParaProjetado >= 0
-                        ? "#10B981"
-                        : "#EF4444",
+                      deltaBaselineParaProjetado >= 0 ? "#10B981" : "#EF4444",
                     qtdPessoas: deltaQtdBaselineParaProjetado,
                   });
                 }
@@ -959,8 +956,7 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                 {[
                   { color: "#5CA6DD" },
                   {
-                    color:
-                      deltaAtualParaBaseline >= 0 ? "#10B981" : "#EF4444",
+                    color: deltaAtualParaBaseline >= 0 ? "#10B981" : "#EF4444",
                   },
                   { color: "#93C5FD" },
                   {

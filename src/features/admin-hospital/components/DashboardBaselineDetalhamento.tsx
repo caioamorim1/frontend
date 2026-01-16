@@ -869,8 +869,10 @@ export const DashboardBaselineDetalhamento: React.FC<
                             .replace(/\//g, ".")
                         : "";
 
-                      const deltaAtualParaBaseline = custoBaseline - custoAtualReal;
-                      const deltaBaselineParaProjetado = custoProjetado - custoBaseline;
+                      const deltaAtualParaBaseline =
+                        custoBaseline - custoAtualReal;
+                      const deltaBaselineParaProjetado =
+                        custoProjetado - custoBaseline;
 
                       return [
                         {
@@ -980,7 +982,8 @@ export const DashboardBaselineDetalhamento: React.FC<
                     />
                     <Bar dataKey="range">
                       {(() => {
-                        const deltaAtualParaBaseline = custoBaseline - custoAtualReal;
+                        const deltaAtualParaBaseline =
+                          custoBaseline - custoAtualReal;
                         const deltaBaselineParaProjetado =
                           custoProjetado - custoBaseline;
                         const cells = [
