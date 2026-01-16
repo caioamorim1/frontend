@@ -451,8 +451,8 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
     variacoes?.variacaoCustoPercentual !== undefined
       ? toNumber(variacoes.variacaoCustoPercentual, 0)
       : custoBaselineMensal !== 0
-      ? (variacaoCustoReais / custoBaselineMensal) * 100
-      : 0;
+        ? (variacaoCustoReais / custoBaselineMensal) * 100
+        : 0;
 
   const variacaoQtd =
     variacoes?.variacaoQtd !== undefined
@@ -466,8 +466,8 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
     variacoes?.variacaoQtdPercentual !== undefined
       ? toNumber(variacoes.variacaoQtdPercentual, 0)
       : totalFuncionariosBaseline !== 0
-      ? (variacaoQtd / totalFuncionariosBaseline) * 100
-      : 0;
+        ? (variacaoQtd / totalFuncionariosBaseline) * 100
+        : 0;
 
   // Cards do topo (igual UX do hospital), mas com variação Atual -> Projetado
   const deltaCustoAtualParaProjetado = custoProjetadoMensal - custoAtualMensal;
@@ -649,8 +649,8 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
       delta === undefined
         ? "--"
         : kind === "currency"
-        ? formatCurrency(delta)
-        : `${Math.round(delta).toLocaleString("pt-BR")}`;
+          ? formatCurrency(delta)
+          : `${Math.round(delta).toLocaleString("pt-BR")}`;
 
     return (
       <div className="rounded-md border bg-background px-3 py-2 shadow-sm">
@@ -1211,12 +1211,9 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                   ];
                 }}
               />
-              <Bar dataKey="Atual" fill="#003151" name="Atual">
-              </Bar>
-              <Bar dataKey="Baseline" fill="#5CA6DD" name="Baseline">
-              </Bar>
-              <Bar dataKey="Projetado" fill="#89A7D6" name="Projetado">
-              </Bar>
+              <Bar dataKey="Atual" fill="#003151" name="Atual"></Bar>
+              <Bar dataKey="Baseline" fill="#5CA6DD" name="Baseline"></Bar>
+              <Bar dataKey="Projetado" fill="#89A7D6" name="Projetado"></Bar>
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -1546,12 +1543,9 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               />
               <YAxis tick={axisTick} />
               <Tooltip />
-              <Bar dataKey="Atual" fill="#003151" name="Atual">
-              </Bar>
-              <Bar dataKey="Baseline" fill="#5CA6DD" name="Baseline">
-              </Bar>
-              <Bar dataKey="Projetado" fill="#89A7D6" name="Projetado">
-              </Bar>
+              <Bar dataKey="Atual" fill="#003151" name="Atual"></Bar>
+              <Bar dataKey="Baseline" fill="#5CA6DD" name="Baseline"></Bar>
+              <Bar dataKey="Projetado" fill="#89A7D6" name="Projetado"></Bar>
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -1812,7 +1806,10 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                         {deltaQtdPercentualAtualParaProjetado >= 0 ? "↑" : "↓"}
                       </span>
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
-                        {Math.abs(deltaQtdPercentualAtualParaProjetado).toFixed(1)}%
+                        {Math.abs(deltaQtdPercentualAtualParaProjetado).toFixed(
+                          1
+                        )}
+                        %
                       </h3>
                     </div>
                   </div>
@@ -1881,10 +1878,15 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                     </p>
                     <div className="flex items-center gap-2 mt-2">
                       <span className="text-2xl font-bold text-foreground">
-                        {deltaCustoPercentualAtualParaProjetado >= 0 ? "↑" : "↓"}
+                        {deltaCustoPercentualAtualParaProjetado >= 0
+                          ? "↑"
+                          : "↓"}
                       </span>
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
-                        {Math.abs(deltaCustoPercentualAtualParaProjetado).toFixed(1)}%
+                        {Math.abs(
+                          deltaCustoPercentualAtualParaProjetado
+                        ).toFixed(1)}
+                        %
                       </h3>
                     </div>
                   </div>

@@ -131,6 +131,15 @@ export const DashboardBaselineDetalhamento: React.FC<
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
+  const formatCurrencyAxisTick = (value: unknown) => {
+    const n = typeof value === "number" ? value : Number(value);
+    if (!Number.isFinite(n)) return String(value);
+    const abs = Math.abs(n);
+    if (abs >= 1_000_000_000) return `R$ ${(n / 1_000_000_000).toFixed(1)}B`;
+    if (abs >= 1_000_000) return `R$ ${(n / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `R$ ${(n / 1_000).toFixed(0)}k`;
+    return `R$ ${n.toFixed(0)}`;
+  };
   const formatPctPtBr = (value: number) =>
     `${Number(value || 0).toLocaleString("pt-BR", {
       minimumFractionDigits: 1,
@@ -561,12 +570,16 @@ export const DashboardBaselineDetalhamento: React.FC<
                           margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
                         >
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" tick={<CustomAxisTick />} />
+                          <XAxis
+                            type="number"
+                            tick={axisTick}
+                            tickFormatter={(v) => `${v}%`}
+                          />
                           <YAxis
                             type="category"
                             dataKey="nome"
                             width={yAxisWidth}
-                            tick={<CustomAxisTick />}
+                            tick={axisTick}
                           />
                           <Tooltip
                             content={<RankingTooltipContent kind="currency" />}
@@ -656,7 +669,11 @@ export const DashboardBaselineDetalhamento: React.FC<
                       interval="preserveStartEnd"
                       height={80}
                     />
-                    <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+                    <YAxis
+                      tick={axisTick}
+                      tickFormatter={formatCurrencyAxisTick}
+                      domain={waterfallYAxisDomain}
+                    />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -1001,7 +1018,11 @@ export const DashboardBaselineDetalhamento: React.FC<
                       interval="preserveStartEnd"
                       height={80}
                     />
-                    <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+                    <YAxis
+                      tick={axisTick}
+                      tickFormatter={formatCurrencyAxisTick}
+                      domain={waterfallYAxisDomain}
+                    />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -1411,7 +1432,11 @@ export const DashboardBaselineDetalhamento: React.FC<
                       interval="preserveStartEnd"
                       height={80}
                     />
-                    <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+                    <YAxis
+                      tick={axisTick}
+                      tickFormatter={formatCurrencyAxisTick}
+                      domain={waterfallYAxisDomain}
+                    />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -1825,7 +1850,10 @@ export const DashboardBaselineDetalhamento: React.FC<
                       interval="preserveStartEnd"
                       height={80}
                     />
-                    <YAxis tick={axisTick} />
+                    <YAxis
+                      tick={axisTick}
+                      tickFormatter={formatCurrencyAxisTick}
+                    />
                     <Tooltip
                       formatter={(value: any) => {
                         return [
@@ -1929,12 +1957,16 @@ export const DashboardBaselineDetalhamento: React.FC<
                           margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
                         >
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" tick={<CustomAxisTick />} />
+                          <XAxis
+                            type="number"
+                            tick={axisTick}
+                            tickFormatter={(v) => `${v}%`}
+                          />
                           <YAxis
                             type="category"
                             dataKey="nome"
                             width={yAxisWidth}
-                            tick={<CustomAxisTick />}
+                            tick={axisTick}
                           />
                           <Tooltip
                             content={<RankingTooltipContent kind="people" />}

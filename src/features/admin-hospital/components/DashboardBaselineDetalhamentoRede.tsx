@@ -640,7 +640,10 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                       interval="preserveStartEnd"
                       height={80}
                     />
-                    <YAxis tick={axisTick} tickFormatter={formatCurrencyAxisTick} />
+                    <YAxis
+                      tick={axisTick}
+                      tickFormatter={formatCurrencyAxisTick}
+                    />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -1012,7 +1015,10 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                       interval="preserveStartEnd"
                       height={80}
                     />
-                    <YAxis tick={axisTick} tickFormatter={formatCurrencyAxisTick} />
+                    <YAxis
+                      tick={axisTick}
+                      tickFormatter={formatCurrencyAxisTick}
+                    />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -1468,7 +1474,10 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                       interval="preserveStartEnd"
                       height={80}
                     />
-                    <YAxis tick={axisTick} tickFormatter={formatCurrencyAxisTick} />
+                    <YAxis
+                      tick={axisTick}
+                      tickFormatter={formatCurrencyAxisTick}
+                    />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -1926,7 +1935,10 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                       interval="preserveStartEnd"
                       height={80}
                     />
-                    <YAxis tick={axisTick} tickFormatter={formatCurrencyAxisTick} />
+                    <YAxis
+                      tick={axisTick}
+                      tickFormatter={formatCurrencyAxisTick}
+                    />
                     <Tooltip
                       formatter={(value: any) => {
                         return [
@@ -1937,16 +1949,17 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                         ];
                       }}
                     />
-                    <Bar dataKey="Atual" fill="#003151" name="Atual">
-                    </Bar>
+                    <Bar dataKey="Atual" fill="#003151" name="Atual"></Bar>
                     <Bar
                       dataKey="Baseline"
                       fill="#5CA6DD"
                       name="Baseline (5D MM JJ)"
-                    >
-                    </Bar>
-                    <Bar dataKey="Projetado" fill="#89A7D6" name="Projetado">
-                    </Bar>
+                    ></Bar>
+                    <Bar
+                      dataKey="Projetado"
+                      fill="#89A7D6"
+                      name="Projetado"
+                    ></Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -3096,12 +3109,17 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     />
                     <YAxis tick={axisTick} />
                     <Tooltip />
-                    <Bar dataKey="Atual" fill="#003151" name="Atual">
-                    </Bar>
-                    <Bar dataKey="Baseline" fill="#5CA6DD" name="Baseline">
-                    </Bar>
-                    <Bar dataKey="Projetado" fill="#89A7D6" name="Projetado">
-                    </Bar>
+                    <Bar dataKey="Atual" fill="#003151" name="Atual"></Bar>
+                    <Bar
+                      dataKey="Baseline"
+                      fill="#5CA6DD"
+                      name="Baseline"
+                    ></Bar>
+                    <Bar
+                      dataKey="Projetado"
+                      fill="#89A7D6"
+                      name="Projetado"
+                    ></Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
