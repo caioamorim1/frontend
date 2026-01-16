@@ -10,7 +10,6 @@ import {
   ResponsiveContainer,
   Cell,
   Legend,
-  LabelList,
   Line,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +45,16 @@ const toNumber = (value: unknown, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+const formatCurrencyAxisTick = (value: unknown) => {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return `R$ ${(n / 1_000_000_000).toFixed(1)}B`;
+  if (abs >= 1_000_000) return `R$ ${(n / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `R$ ${(n / 1_000).toFixed(0)}k`;
+  return `R$ ${n.toFixed(0)}`;
+};
+
 const formatDateTimePtBr = (value: unknown): string => {
   if (value === null || value === undefined) return "--";
   const raw = String(value);
@@ -68,6 +77,39 @@ const formatDateTimePtBr = (value: unknown): string => {
 function getCargoLabel(item: VariacaoCargoChartItem): string {
   return item.cargoNome || item.cargo || item.nome || "-";
 }
+
+// Custom tick com quebra de linha automática
+const CustomAxisTick = (props: any) => {
+  const { x, y, payload } = props;
+  const maxWidth = 100; // largura máxima em pixels
+  const words = String(payload.value).split(" ");
+  const lines: string[] = [];
+  let currentLine = "";
+
+  words.forEach((word) => {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    // Aproximação: 6 pixels por caractere
+    if (testLine.length * 6 > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  });
+  if (currentLine) lines.push(currentLine);
+
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={8} textAnchor="middle" fill="#666" fontSize={11}>
+        {lines.map((line, index) => (
+          <tspan x={0} dy={12} key={index}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
+};
 
 export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
   selectedHospitalId: string;
@@ -409,8 +451,8 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
     variacoes?.variacaoCustoPercentual !== undefined
       ? toNumber(variacoes.variacaoCustoPercentual, 0)
       : custoBaselineMensal !== 0
-      ? (variacaoCustoReais / custoBaselineMensal) * 100
-      : 0;
+        ? (variacaoCustoReais / custoBaselineMensal) * 100
+        : 0;
 
   const variacaoQtd =
     variacoes?.variacaoQtd !== undefined
@@ -424,8 +466,8 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
     variacoes?.variacaoQtdPercentual !== undefined
       ? toNumber(variacoes.variacaoQtdPercentual, 0)
       : totalFuncionariosBaseline !== 0
-      ? (variacaoQtd / totalFuncionariosBaseline) * 100
-      : 0;
+        ? (variacaoQtd / totalFuncionariosBaseline) * 100
+        : 0;
 
   // Cards do topo (igual UX do hospital), mas com variação Atual -> Projetado
   const deltaCustoAtualParaProjetado = custoProjetadoMensal - custoAtualMensal;
@@ -607,8 +649,8 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
       delta === undefined
         ? "--"
         : kind === "currency"
-        ? formatCurrency(delta)
-        : `${Math.round(delta).toLocaleString("pt-BR")}`;
+          ? formatCurrency(delta)
+          : `${Math.round(delta).toLocaleString("pt-BR")}`;
 
     return (
       <div className="rounded-md border bg-background px-3 py-2 shadow-sm">
@@ -838,13 +880,15 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="name"
-                tick={axisTick}
-                interval={0}
-                angle={-45}
-                textAnchor="end"
-                height={90}
+                tick={<CustomAxisTick />}
+                interval="preserveStartEnd"
+                height={80}
               />
-              <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+              <YAxis
+                tick={axisTick}
+                tickFormatter={formatCurrencyAxisTick}
+                domain={waterfallYAxisDomain}
+              />
               <Tooltip
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
@@ -896,16 +940,6 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                 ].map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
-                <LabelList
-                  dataKey="value"
-                  position="top"
-                  formatter={(value: any) => {
-                    const v = toNumber(value, 0);
-                    const formatted = formatCurrencyLabel(v);
-                    return v >= 0 ? `+${formatted}` : `-${formatted}`;
-                  }}
-                  style={{ fontSize: 12, fill: "#666" }}
-                />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -993,13 +1027,15 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="name"
-                tick={axisTick}
-                interval={0}
-                angle={-45}
-                textAnchor="end"
-                height={90}
+                tick={<CustomAxisTick />}
+                interval="preserveStartEnd"
+                height={80}
               />
-              <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+              <YAxis
+                tick={axisTick}
+                tickFormatter={formatCurrencyAxisTick}
+                domain={waterfallYAxisDomain}
+              />
               <Tooltip
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
@@ -1069,16 +1105,6 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                 ).map((entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
-                <LabelList
-                  dataKey="value"
-                  position="top"
-                  formatter={(value: any) => {
-                    const v = toNumber(value, 0);
-                    const formatted = formatCurrencyLabel(v);
-                    return v >= 0 ? `+${formatted}` : `-${formatted}`;
-                  }}
-                  style={{ fontSize: 12, fill: "#666" }}
-                />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -1170,13 +1196,11 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey={xAxisKey}
-                tick={axisTick}
-                interval={0}
-                angle={-45}
-                textAnchor="end"
-                height={90}
+                tick={<CustomAxisTick />}
+                interval="preserveStartEnd"
+                height={80}
               />
-              <YAxis tick={axisTick} />
+              <YAxis tick={axisTick} tickFormatter={formatCurrencyAxisTick} />
               <Tooltip
                 formatter={(value: any) => {
                   return [
@@ -1187,36 +1211,9 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                   ];
                 }}
               />
-              <Bar dataKey="Atual" fill="#003151" name="Atual">
-                <LabelList
-                  dataKey="Atual"
-                  position="top"
-                  formatter={(value: any) =>
-                    formatCurrencyLabel(toNumber(value, 0))
-                  }
-                  style={{ fontSize: 10, fill: "#666" }}
-                />
-              </Bar>
-              <Bar dataKey="Baseline" fill="#5CA6DD" name="Baseline">
-                <LabelList
-                  dataKey="Baseline"
-                  position="top"
-                  formatter={(value: any) =>
-                    formatCurrencyLabel(toNumber(value, 0))
-                  }
-                  style={{ fontSize: 10, fill: "#666" }}
-                />
-              </Bar>
-              <Bar dataKey="Projetado" fill="#89A7D6" name="Projetado">
-                <LabelList
-                  dataKey="Projetado"
-                  position="top"
-                  formatter={(value: any) =>
-                    formatCurrencyLabel(toNumber(value, 0))
-                  }
-                  style={{ fontSize: 10, fill: "#666" }}
-                />
-              </Bar>
+              <Bar dataKey="Atual" fill="#003151" name="Atual"></Bar>
+              <Bar dataKey="Baseline" fill="#5CA6DD" name="Baseline"></Bar>
+              <Bar dataKey="Projetado" fill="#89A7D6" name="Projetado"></Bar>
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -1282,11 +1279,9 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="name"
-                tick={axisTick}
-                interval={0}
-                angle={-45}
-                textAnchor="end"
-                height={90}
+                tick={<CustomAxisTick />}
+                interval="preserveStartEnd"
+                height={80}
               />
               <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
               <Tooltip
@@ -1346,16 +1341,6 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                 ].map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
-                <LabelList
-                  dataKey="value"
-                  position="top"
-                  formatter={(value: any) => {
-                    const v = toNumber(value, 0);
-                    const absValue = Math.abs(v);
-                    return v >= 0 ? `+${absValue}` : `-${absValue}`;
-                  }}
-                  style={{ fontSize: 12, fill: "#666" }}
-                />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -1441,11 +1426,9 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="name"
-                tick={axisTick}
-                interval={0}
-                angle={-45}
-                textAnchor="end"
-                height={90}
+                tick={<CustomAxisTick />}
+                interval="preserveStartEnd"
+                height={80}
               />
               <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
               <Tooltip
@@ -1508,16 +1491,6 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                 ).map((entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
-                <LabelList
-                  dataKey="value"
-                  position="top"
-                  formatter={(value: any) => {
-                    const v = toNumber(value, 0);
-                    const absValue = Math.abs(v);
-                    return v >= 0 ? `+${absValue}` : `-${absValue}`;
-                  }}
-                  style={{ fontSize: 12, fill: "#666" }}
-                />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -1564,35 +1537,15 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="cargo"
-                tick={axisTick}
-                interval={0}
-                angle={-45}
-                textAnchor="end"
-                height={90}
+                tick={<CustomAxisTick />}
+                interval="preserveStartEnd"
+                height={80}
               />
               <YAxis tick={axisTick} />
               <Tooltip />
-              <Bar dataKey="Atual" fill="#003151" name="Atual">
-                <LabelList
-                  dataKey="Atual"
-                  position="top"
-                  style={{ fontSize: 10, fill: "#666" }}
-                />
-              </Bar>
-              <Bar dataKey="Baseline" fill="#5CA6DD" name="Baseline">
-                <LabelList
-                  dataKey="Baseline"
-                  position="top"
-                  style={{ fontSize: 10, fill: "#666" }}
-                />
-              </Bar>
-              <Bar dataKey="Projetado" fill="#89A7D6" name="Projetado">
-                <LabelList
-                  dataKey="Projetado"
-                  position="top"
-                  style={{ fontSize: 10, fill: "#666" }}
-                />
-              </Bar>
+              <Bar dataKey="Atual" fill="#003151" name="Atual"></Bar>
+              <Bar dataKey="Baseline" fill="#5CA6DD" name="Baseline"></Bar>
+              <Bar dataKey="Projetado" fill="#89A7D6" name="Projetado"></Bar>
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -1648,13 +1601,15 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="name"
-                tick={axisTick}
-                interval={0}
-                angle={-45}
-                textAnchor="end"
-                height={90}
+                tick={<CustomAxisTick />}
+                interval="preserveStartEnd"
+                height={80}
               />
-              <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+              <YAxis
+                tick={axisTick}
+                tickFormatter={formatCurrencyAxisTick}
+                domain={waterfallYAxisDomain}
+              />
               <Tooltip
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
@@ -1760,11 +1715,9 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="name"
-                tick={axisTick}
-                interval={0}
-                angle={-45}
-                textAnchor="end"
-                height={90}
+                tick={<CustomAxisTick />}
+                interval="preserveStartEnd"
+                height={80}
               />
               <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
               <Tooltip
@@ -1841,67 +1794,74 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {analysisTab === "pessoal" ? (
           <>
-            <Card className="border">
+            <Card className="shadow-[0_4px_12px_rgba(0,93,151,0.3)] border-l-4 border-[#005D97]">
               <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Variação (%)
-                  </p>
-                  <div
-                    className={`text-2xl font-bold ${
-                      deltaQtdPercentualAtualParaProjetado === 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {deltaQtdPercentualAtualParaProjetado >= 0 ? "+" : ""}
-                    {deltaQtdPercentualAtualParaProjetado.toFixed(1)}%
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Variação (%)
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-2xl font-bold text-foreground">
+                        {deltaQtdPercentualAtualParaProjetado >= 0 ? "↑" : "↓"}
+                      </span>
+                      <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
+                        {Math.abs(deltaQtdPercentualAtualParaProjetado).toFixed(
+                          1
+                        )}
+                        %
+                      </h3>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border">
+            <Card className="shadow-[0_4px_12px_rgba(0,112,185,0.3)] border-l-4 border-[#0070B9]">
               <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Variação (Qtd)
-                  </p>
-                  <div
-                    className={`text-2xl font-bold ${
-                      deltaQtdPercentualAtualParaProjetado === 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {deltaQtdAtualParaProjetado >= 0 ? "+" : ""}
-                    {deltaQtdAtualParaProjetado}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Variação (Qtd)
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-2xl font-bold text-foreground">
+                        {deltaQtdAtualParaProjetado >= 0 ? "↑" : "↓"}
+                      </span>
+                      <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
+                        {Math.abs(deltaQtdAtualParaProjetado)}
+                      </h3>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border">
+            <Card className="shadow-[0_4px_12px_rgba(38,140,204,0.3)] border-l-4 border-[#268CCC]">
               <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Total de Funcionários
-                  </p>
-                  <div className="text-2xl font-bold">
-                    {totalFuncionariosAtual}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Total de Funcionários
+                    </p>
+                    <h3 className="mt-2 font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)]">
+                      {totalFuncionariosAtual}
+                    </h3>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border">
+            <Card className="shadow-[0_4px_12px_rgba(0,93,151,0.3)] border-l-4 border-[#005D97]">
               <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Total de Funcionários Projetado
-                  </p>
-                  <div className="text-2xl font-bold">
-                    {totalFuncionariosProjetado}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Total de Funcionários Projetado
+                    </p>
+                    <h3 className="mt-2 font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)]">
+                      {totalFuncionariosProjetado}
+                    </h3>
                   </div>
                 </div>
               </CardContent>
@@ -1909,67 +1869,76 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
           </>
         ) : (
           <>
-            <Card className="border">
+            <Card className="shadow-[0_4px_12px_rgba(0,93,151,0.3)] border-l-4 border-[#005D97]">
               <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Variação monetária (%)
-                  </p>
-                  <div
-                    className={`text-2xl font-bold ${
-                      deltaCustoPercentualAtualParaProjetado === 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {deltaCustoPercentualAtualParaProjetado >= 0 ? "+" : ""}
-                    {deltaCustoPercentualAtualParaProjetado.toFixed(1)}%
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Variação monetária (%)
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-2xl font-bold text-foreground">
+                        {deltaCustoPercentualAtualParaProjetado >= 0
+                          ? "↑"
+                          : "↓"}
+                      </span>
+                      <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
+                        {Math.abs(
+                          deltaCustoPercentualAtualParaProjetado
+                        ).toFixed(1)}
+                        %
+                      </h3>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border">
+            <Card className="shadow-[0_4px_12px_rgba(0,112,185,0.3)] border-l-4 border-[#0070B9]">
               <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Variação monetária (R$)
-                  </p>
-                  <div
-                    className={`text-2xl font-bold ${
-                      deltaCustoPercentualAtualParaProjetado === 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {deltaCustoAtualParaProjetado >= 0 ? "+" : "-"}
-                    {formatCurrency(Math.abs(deltaCustoAtualParaProjetado))}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Variação monetária (R$)
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-2xl font-bold text-foreground">
+                        {deltaCustoAtualParaProjetado >= 0 ? "↑" : "↓"}
+                      </span>
+                      <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
+                        {formatCurrency(Math.abs(deltaCustoAtualParaProjetado))}
+                      </h3>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border">
+            <Card className="shadow-[0_4px_12px_rgba(38,140,204,0.3)] border-l-4 border-[#268CCC]">
               <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Total custo atual
-                  </p>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(custoAtualMensal)}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Custo Total Atual
+                    </p>
+                    <h3 className="mt-2 font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)]">
+                      {formatCurrency(custoAtualMensal)}
+                    </h3>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border">
+            <Card className="shadow-[0_4px_12px_rgba(0,93,151,0.3)] border-l-4 border-[#005D97]">
               <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">
-                    Total custo projetado
-                  </p>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(custoProjetadoMensal)}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Custo Total Projetado
+                    </p>
+                    <h3 className="mt-2 font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)]">
+                      {formatCurrency(custoProjetadoMensal)}
+                    </h3>
                   </div>
                 </div>
               </CardContent>
@@ -2015,7 +1984,7 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {renderVariacaoCustoDetalhamentoCard()}
             {renderVariacaoCustoPorCargoCard()}
             {renderComparativoCustoMensalCard()}
@@ -2049,7 +2018,7 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {renderVariacaoQtdDetalhamentoCard()}
             {renderVariacaoQtdPorCargoCard()}
             {renderComparativoPorCargoCard()}

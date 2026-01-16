@@ -8,7 +8,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  LabelList,
   Legend,
   ComposedChart,
   Line,
@@ -88,6 +87,14 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
   const [occupationData, setOccupationData] =
     useState<OccupationDashboardResponse | null>(null);
   const [loadingOccupation, setLoadingOccupation] = useState(true);
+
+  const [analysisTab, setAnalysisTab] = useState<"custo" | "pessoal">("custo");
+
+  const formatCurrency = (value: number) =>
+    `R$ ${Number(value || 0).toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
 
   // No modo rede, não existe filtro por setor: sempre mantém "all".
   useEffect(() => {
@@ -206,94 +213,221 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
     (a, b) => b.variacaoPercentual - a.variacaoPercentual
   );
 
+  // Custom tick com quebra de linha automática
+  const CustomAxisTick = (props: any) => {
+    const { x, y, payload } = props;
+    const maxWidth = 100; // largura máxima em pixels
+    const words = String(payload.value).split(" ");
+    const lines: string[] = [];
+    let currentLine = "";
+
+    words.forEach((word) => {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      // Aproximação: 6 pixels por caractere
+      if (testLine.length * 6 > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    });
+    if (currentLine) lines.push(currentLine);
+
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text x={0} y={0} dy={8} textAnchor="middle" fill="#666" fontSize={11}>
+          {lines.map((line, index) => (
+            <tspan x={0} dy={12} key={index}>
+              {line}
+            </tspan>
+          ))}
+        </text>
+      </g>
+    );
+  };
+
+  const formatCurrencyAxisTick = (value: any) => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return String(value);
+    const abs = Math.abs(n);
+    if (abs >= 1_000_000_000) return `R$ ${(n / 1_000_000_000).toFixed(1)}B`;
+    if (abs >= 1_000_000) return `R$ ${(n / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `R$ ${(n / 1_000).toFixed(0)}k`;
+    return `R$ ${n.toFixed(0)}`;
+  };
+
   return (
     <TabsContent value="detalhamento" className="space-y-6">
       {/* Cards de informação do Detalhamento */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card className="border">
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-gray-600">Variação (%)</p>
-              <div
-                className={`text-2xl font-bold ${
-                  variacaoCustoPercentual === 0
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                {variacaoCustoPercentual >= 0 ? "+" : ""}
-                {variacaoCustoPercentual.toFixed(1)}%
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {analysisTab === "pessoal" ? (
+          <>
+            <Card className="shadow-[0_4px_12px_rgba(0,93,151,0.3)] border-l-4 border-[#005D97]">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Variação (%)
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-2xl font-bold text-foreground">
+                        {variacaoProfissionaisPercentual >= 0 ? "↑" : "↓"}
+                      </span>
+                      <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
+                        {Math.abs(variacaoProfissionaisPercentual).toFixed(1)}%
+                      </h3>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="border">
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-gray-600">
-                Variação (Qtd)
-              </p>
-              <div
-                className={`text-2xl font-bold ${
-                  variacaoProfissionaisPercentual === 0
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                {variacaoProfissionais >= 0 ? "+" : ""}
-                {variacaoProfissionais}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="shadow-[0_4px_12px_rgba(0,112,185,0.3)] border-l-4 border-[#0070B9]">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Variação (Qtd)
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-2xl font-bold text-foreground">
+                        {variacaoProfissionais >= 0 ? "↑" : "↓"}
+                      </span>
+                      <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
+                        {Math.abs(variacaoProfissionais)}
+                      </h3>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="border">
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-gray-600">
-                Total de Funcionários
-              </p>
-              <div className="text-2xl font-bold">
-                {profissionaisAtuaisReal}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="shadow-[0_4px_12px_rgba(38,140,204,0.3)] border-l-4 border-[#268CCC]">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Total de Funcionários
+                    </p>
+                    <h3 className="mt-2 font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)]">
+                      {profissionaisAtuaisReal}
+                    </h3>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="border">
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-gray-600">
-                Total de Funcionários Projetado
-              </p>
-              <div className="text-2xl font-bold">
-                {profissionaisProjetados}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="shadow-[0_4px_12px_rgba(0,93,151,0.3)] border-l-4 border-[#005D97]">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Total de Funcionários Projetado
+                    </p>
+                    <h3 className="mt-2 font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)]">
+                      {profissionaisProjetados}
+                    </h3>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <>
+            <Card className="shadow-[0_4px_12px_rgba(0,93,151,0.3)] border-l-4 border-[#005D97]">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Variação monetária (%)
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-2xl font-bold text-foreground">
+                        {variacaoCustoPercentual >= 0 ? "↑" : "↓"}
+                      </span>
+                      <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
+                        {Math.abs(variacaoCustoPercentual).toFixed(1)}%
+                      </h3>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="border">
+            <Card className="shadow-[0_4px_12px_rgba(0,112,185,0.3)] border-l-4 border-[#0070B9]">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Variação monetária (R$)
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-2xl font-bold text-foreground">
+                        {variacaoCusto >= 0 ? "↑" : "↓"}
+                      </span>
+                      <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
+                        {formatCurrency(Math.abs(variacaoCusto))}
+                      </h3>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-[0_4px_12px_rgba(38,140,204,0.3)] border-l-4 border-[#268CCC]">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Custo Total Atual
+                    </p>
+                    <h3 className="mt-2 font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)]">
+                      {formatCurrency(custoAtualReal)}
+                    </h3>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-[0_4px_12px_rgba(0,93,151,0.3)] border-l-4 border-[#005D97]">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground break-words">
+                      Custo Total Projetado
+                    </p>
+                    <h3 className="mt-2 font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)]">
+                      {formatCurrency(custoProjetado)}
+                    </h3>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        <Card className="shadow-[0_4px_12px_rgba(0,112,185,0.3)] border-l-4 border-[#0070B9]">
           <CardContent className="pt-6">
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-gray-600">
-                Baseline: {snapshotData.snapshot.observacao || "Snapshot"}
-              </p>
-              <div className="text-xs text-gray-500">
-                Criado em:{" "}
-                {snapshotData.snapshot.dataHora
-                  ? new Date(snapshotData.snapshot.dataHora).toLocaleString(
-                      "pt-BR",
-                      {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }
-                    )
-                  : "N/A"}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-muted-foreground break-words">
+                  Baseline: {snapshotData.snapshot.observacao || "Snapshot"}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground leading-snug break-words">
+                  Criado em:{" "}
+                  {snapshotData.snapshot.dataHora
+                    ? new Date(snapshotData.snapshot.dataHora).toLocaleString(
+                        "pt-BR",
+                        {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }
+                      )
+                    : "N/A"}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -321,7 +455,11 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
       ) : null}
 
       {/* Tabs de Análise */}
-      <Tabs defaultValue="custo" className="w-full">
+      <Tabs
+        value={analysisTab}
+        onValueChange={(value) => setAnalysisTab(value as "custo" | "pessoal")}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="custo">Análise de Custo</TabsTrigger>
           <TabsTrigger value="pessoal">Análise de Pessoal</TabsTrigger>
@@ -402,11 +540,11 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                       };
                     })}
                     layout="vertical"
-                    margin={{ left: 100 }}
+                    margin={{ left: 150, right: 10, top: 5, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" />
-                    <YAxis type="category" dataKey="nome" width={90} />
+                    <YAxis type="category" dataKey="nome" width={140} />
                     <Tooltip
                       formatter={(value: any) =>
                         `R$ ${value.toLocaleString("pt-BR", {
@@ -498,13 +636,14 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
                       dataKey="name"
-                      tick={axisTick}
-                      interval={0}
-                      angle={-45}
-                      textAnchor="end"
-                      height={90}
+                      tick={<CustomAxisTick />}
+                      interval="preserveStartEnd"
+                      height={80}
                     />
-                    <YAxis tick={axisTick} />
+                    <YAxis
+                      tick={axisTick}
+                      tickFormatter={formatCurrencyAxisTick}
+                    />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -681,7 +820,7 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
           </div>
 
           {/* Segunda linha de gráficos - Análise das Variações */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {/* Gráfico 4: Variação R$ - Detalhamento */}
             <Card>
               <CardHeader>
@@ -872,13 +1011,14 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
                       dataKey="name"
-                      tick={axisTick}
-                      interval={0}
-                      angle={-45}
-                      textAnchor="end"
-                      height={90}
+                      tick={<CustomAxisTick />}
+                      interval="preserveStartEnd"
+                      height={80}
                     />
-                    <YAxis tick={axisTick} />
+                    <YAxis
+                      tick={axisTick}
+                      tickFormatter={formatCurrencyAxisTick}
+                    />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -1053,19 +1193,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ));
                       })()}
-                      <LabelList
-                        dataKey="value"
-                        position="top"
-                        formatter={(value: any) => {
-                          const absValue = Math.abs(value);
-                          const formatted =
-                            absValue >= 1000
-                              ? `R$ ${(absValue / 1000).toFixed(0)}k`
-                              : `R$ ${absValue.toFixed(0)}`;
-                          return value >= 0 ? `+${formatted}` : `-${formatted}`;
-                        }}
-                        style={{ fontSize: 12, fill: "#666" }}
-                      />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -1343,13 +1470,14 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
                       dataKey="name"
-                      tick={axisTick}
-                      interval={0}
-                      angle={-45}
-                      textAnchor="end"
-                      height={90}
+                      tick={<CustomAxisTick />}
+                      interval="preserveStartEnd"
+                      height={80}
                     />
-                    <YAxis tick={axisTick} />
+                    <YAxis
+                      tick={axisTick}
+                      tickFormatter={formatCurrencyAxisTick}
+                    />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -1586,19 +1714,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ));
                       })()}
-                      <LabelList
-                        dataKey="value"
-                        position="top"
-                        formatter={(value: any) => {
-                          const absValue = Math.abs(value);
-                          const formatted =
-                            absValue >= 1000
-                              ? `R$ ${(absValue / 1000).toFixed(0)}k`
-                              : `R$ ${absValue.toFixed(0)}`;
-                          return value >= 0 ? `+${formatted}` : `-${formatted}`;
-                        }}
-                        style={{ fontSize: 12, fill: "#666" }}
-                      />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -1816,13 +1931,14 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
                       dataKey="setor"
-                      tick={axisTick}
-                      interval={0}
-                      angle={-45}
-                      textAnchor="end"
-                      height={90}
+                      tick={<CustomAxisTick />}
+                      interval="preserveStartEnd"
+                      height={80}
                     />
-                    <YAxis tick={axisTick} />
+                    <YAxis
+                      tick={axisTick}
+                      tickFormatter={formatCurrencyAxisTick}
+                    />
                     <Tooltip
                       formatter={(value: any) => {
                         return [
@@ -1833,49 +1949,17 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                         ];
                       }}
                     />
-                    <Bar dataKey="Atual" fill="#003151" name="Atual">
-                      <LabelList
-                        dataKey="Atual"
-                        position="top"
-                        formatter={(value: any) => {
-                          const absValue = Math.abs(value);
-                          return absValue >= 1000
-                            ? `R$ ${(absValue / 1000).toFixed(0)}k`
-                            : `R$ ${absValue.toFixed(0)}`;
-                        }}
-                        style={{ fontSize: 10, fill: "#666" }}
-                      />
-                    </Bar>
+                    <Bar dataKey="Atual" fill="#003151" name="Atual"></Bar>
                     <Bar
                       dataKey="Baseline"
                       fill="#5CA6DD"
                       name="Baseline (5D MM JJ)"
-                    >
-                      <LabelList
-                        dataKey="Baseline"
-                        position="top"
-                        formatter={(value: any) => {
-                          const absValue = Math.abs(value);
-                          return absValue >= 1000
-                            ? `R$ ${(absValue / 1000).toFixed(0)}k`
-                            : `R$ ${absValue.toFixed(0)}`;
-                        }}
-                        style={{ fontSize: 10, fill: "#666" }}
-                      />
-                    </Bar>
-                    <Bar dataKey="Projetado" fill="#89A7D6" name="Projetado">
-                      <LabelList
-                        dataKey="Projetado"
-                        position="top"
-                        formatter={(value: any) => {
-                          const absValue = Math.abs(value);
-                          return absValue >= 1000
-                            ? `R$ ${(absValue / 1000).toFixed(0)}k`
-                            : `R$ ${absValue.toFixed(0)}`;
-                        }}
-                        style={{ fontSize: 10, fill: "#666" }}
-                      />
-                    </Bar>
+                    ></Bar>
+                    <Bar
+                      dataKey="Projetado"
+                      fill="#89A7D6"
+                      name="Projetado"
+                    ></Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -1957,11 +2041,11 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                       };
                     })}
                     layout="vertical"
-                    margin={{ left: 100 }}
+                    margin={{ left: 150, right: 10, top: 5, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" />
-                    <YAxis type="category" dataKey="nome" width={90} />
+                    <YAxis type="category" dataKey="nome" width={140} />
                     <Tooltip
                       formatter={(value: any, name: any, props: any) => {
                         if (name === "variacaoQtd") {
@@ -2059,11 +2143,9 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
                       dataKey="name"
-                      tick={axisTick}
-                      interval={0}
-                      angle={-45}
-                      textAnchor="end"
-                      height={90}
+                      tick={<CustomAxisTick />}
+                      interval="preserveStartEnd"
+                      height={80}
                     />
                     <YAxis tick={axisTick} />
                     <Tooltip
@@ -2241,7 +2323,7 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
           </div>
 
           {/* Segunda linha de gráficos - Análise das Variações */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {/* Gráfico 4: Waterfall de Variação QTD */}
             <Card>
               <CardHeader>
@@ -2261,11 +2343,9 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
                       dataKey="name"
-                      tick={axisTick}
-                      interval={0}
-                      angle={-45}
-                      textAnchor="end"
-                      height={90}
+                      tick={<CustomAxisTick />}
+                      interval="preserveStartEnd"
+                      height={80}
                     />
                     <YAxis tick={axisTick} />
                     <Tooltip
@@ -2331,15 +2411,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                           fill={(entry as any).color || "#003151"}
                         />
                       ))}
-                      <LabelList
-                        dataKey="value"
-                        position="top"
-                        formatter={(value: any) => {
-                          const absValue = Math.abs(value);
-                          return value >= 0 ? `+${absValue}` : `-${absValue}`;
-                        }}
-                        style={{ fontSize: 12, fill: "#666" }}
-                      />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -2609,11 +2680,9 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
                       dataKey="name"
-                      tick={axisTick}
-                      interval={0}
-                      angle={-45}
-                      textAnchor="end"
-                      height={90}
+                      tick={<CustomAxisTick />}
+                      interval="preserveStartEnd"
+                      height={80}
                     />
                     <YAxis tick={axisTick} />
                     <Tooltip
@@ -2814,15 +2883,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ));
                       })()}
-                      <LabelList
-                        dataKey="value"
-                        position="top"
-                        formatter={(value: any) => {
-                          const absValue = Math.abs(value);
-                          return value >= 0 ? `+${absValue}` : `-${absValue}`;
-                        }}
-                        style={{ fontSize: 12, fill: "#666" }}
-                      />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -3043,35 +3103,23 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
                       dataKey="cargo"
-                      tick={axisTick}
-                      interval={0}
-                      angle={-45}
-                      textAnchor="end"
-                      height={90}
+                      tick={<CustomAxisTick />}
+                      interval="preserveStartEnd"
+                      height={80}
                     />
                     <YAxis tick={axisTick} />
                     <Tooltip />
-                    <Bar dataKey="Atual" fill="#003151" name="Atual">
-                      <LabelList
-                        dataKey="Atual"
-                        position="top"
-                        style={{ fontSize: 10, fill: "#666" }}
-                      />
-                    </Bar>
-                    <Bar dataKey="Baseline" fill="#5CA6DD" name="Baseline">
-                      <LabelList
-                        dataKey="Baseline"
-                        position="top"
-                        style={{ fontSize: 10, fill: "#666" }}
-                      />
-                    </Bar>
-                    <Bar dataKey="Projetado" fill="#89A7D6" name="Projetado">
-                      <LabelList
-                        dataKey="Projetado"
-                        position="top"
-                        style={{ fontSize: 10, fill: "#666" }}
-                      />
-                    </Bar>
+                    <Bar dataKey="Atual" fill="#003151" name="Atual"></Bar>
+                    <Bar
+                      dataKey="Baseline"
+                      fill="#5CA6DD"
+                      name="Baseline"
+                    ></Bar>
+                    <Bar
+                      dataKey="Projetado"
+                      fill="#89A7D6"
+                      name="Projetado"
+                    ></Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
