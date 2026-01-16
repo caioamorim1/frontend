@@ -188,15 +188,6 @@ export default function ProjetadoNaoInternacaoTab({
 
   // Função para abrir o modal com dados locais (sem buscar do backend)
   const handleOpenSitioManager = (sitio: GrupoDeCargos) => {
-    console.log(
-      "🔵 [handleOpenSitioManager] Abrindo modal para sítio:",
-      sitio.nome
-    );
-    console.log("🔵 [handleOpenSitioManager] Sítio completo:", sitio);
-    console.log(
-      "🔵 [handleOpenSitioManager] Distribuições atuais do sítio:",
-      (sitio as any).distribuicoes
-    );
     // Usa os dados locais da analiseBase para garantir que reflete mudanças não salvas
     setManagingSitio(sitio as any);
   };
@@ -283,17 +274,12 @@ export default function ProjetadoNaoInternacaoTab({
   };
 
   const handleStatusChange = (cargoId: string, status: string) => {
-    console.log("📝 [handleStatusChange] Status alterado:");
-    console.log("   - cargoId (key):", cargoId);
-    console.log("   - novo status:", status);
-    console.log("   - metadata anterior:", metadata);
-
     setMetadata((prev) => {
       const novoMetadata = {
         ...prev,
         [cargoId]: { ...prev[cargoId], status },
       };
-      console.log("   - metadata atualizado:", novoMetadata);
+
       return novoMetadata;
     });
   };
@@ -412,13 +398,8 @@ export default function ProjetadoNaoInternacaoTab({
   // Verificar se algum cargo do sítio gerenciado tem status concluído
   const verificarStatusConcluido = (sitio: GrupoDeCargos): boolean => {
     if (!sitio.cargos) {
-      console.log("⚠️ [verificarStatusConcluido] Sítio sem cargos");
       return false;
     }
-
-    console.log("🔍 [verificarStatusConcluido] Verificando sítio:", sitio.nome);
-    console.log("🔍 [verificarStatusConcluido] sitio.cargos:", sitio.cargos);
-    console.log("🔍 [verificarStatusConcluido] Metadata atual:", metadata);
 
     const hasCompletedCargo = sitio.cargos.some((cargo) => {
       // Usar a mesma estrutura de chave que é usada na tabela
@@ -428,21 +409,9 @@ export default function ProjetadoNaoInternacaoTab({
         meta?.status === "concluido_parcial" ||
         meta?.status === "concluido_final";
 
-      console.log(`🔍 [verificarStatusConcluido] Cargo: ${cargo.cargoNome}`);
-      console.log(`   - cargoId: ${cargo.cargoId}`);
-      console.log(`   - sitioId: ${sitio.id}`);
-      console.log(`   - Key: ${key}`);
-      console.log(`   - Metadata: ${JSON.stringify(meta)}`);
-      console.log(`   - Status: ${meta?.status}`);
-      console.log(`   - Concluído: ${isCompleted}`);
-
       return isCompleted;
     });
 
-    console.log(
-      "🔍 [verificarStatusConcluido] Resultado final:",
-      hasCompletedCargo
-    );
     return hasCompletedCargo;
   };
 

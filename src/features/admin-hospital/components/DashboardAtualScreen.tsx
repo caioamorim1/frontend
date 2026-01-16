@@ -1124,26 +1124,10 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = ({
         // fallback: try to use as-is, but ensure keys exist
         dashboardData = { internation: [], assistance: [] } as HospitalSector;
       }
-
-      console.log("📊 [DashboardAtual] Dados externos (Global View):", {
-        isGlobalView,
-        externalData: ext,
-        dashboardDataProcessado: dashboardData,
-        exemploInternacao: dashboardData.internation?.[0],
-        exemploAssistencia: dashboardData.assistance?.[0],
-      });
     } else {
       // Senão, busca dados normalmente por hospitalId
 
       dashboardData = await getAllHospitalSectors(hospitalId);
-
-      console.log("📊 [DashboardAtual] Dados do hospital:", {
-        isGlobalView,
-        hospitalId,
-        dashboardData,
-        exemploInternacao: dashboardData.internation?.[0],
-        exemploAssistencia: dashboardData.assistance?.[0],
-      });
     }
 
     setChartDataAtual(dashboardData);

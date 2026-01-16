@@ -88,7 +88,7 @@ export default function HospitalDashboardPage() {
 
       try {
         const data = await getHospitalSectors(effectiveHospitalId);
-        console.log(" [Dashboard Hospital] Dados atuais carregados:", data);
+
         setAtualData(data);
       } catch (error) {
         console.error("Erro ao buscar dados atuais:", error);

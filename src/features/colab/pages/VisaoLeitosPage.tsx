@@ -71,10 +71,6 @@ const ActionModal: FC<{
 
   useEffect(() => {
     if (modalState.isOpen && modalState.suggestedProntuario) {
-      console.log(
-        "Preenchendo campo com prontuário sugerido:",
-        modalState.suggestedProntuario
-      );
       setInputValue(modalState.suggestedProntuario);
     } else {
       setInputValue("");
@@ -474,29 +470,17 @@ export default function VisaoLeitosPage() {
     // Se for ação de avaliar, buscar último prontuário
     if (action === "EVALUATE") {
       try {
-        console.log("Buscando último prontuário para leito:", leito.id);
         const ultimoProntuario = await getUltimoProntuarioLeito(leito.id);
         if (ultimoProntuario && ultimoProntuario.prontuario) {
           suggestedProntuario = ultimoProntuario.prontuario;
-          console.log("✅ Prontuário encontrado:", {
-            prontuario: suggestedProntuario,
-            dataAplicacao: ultimoProntuario.dataAplicacao,
-            avaliacaoId: ultimoProntuario.avaliacaoId,
-          });
         } else {
-          console.log(
-            "ℹ️ Nenhum prontuário anterior encontrado para este leito"
-          );
         }
       } catch (err: any) {
-        console.warn(
-          "⚠️ Erro ao buscar prontuário (continuando sem sugestão):",
-          {
-            leitoId: leito.id,
-            status: err.response?.status,
-            message: err.response?.data?.message || err.message,
-          }
-        );
+        console.warn("Erro ao buscar prontuário (continuando sem sugestão):", {
+          leitoId: leito.id,
+          status: err.response?.status,
+          message: err.response?.data?.message || err.message,
+        });
         // Continua normalmente sem prontuário sugerido
       }
     }

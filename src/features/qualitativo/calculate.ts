@@ -7,13 +7,15 @@ import { Answer, Question } from "./types";
  */
 
 export function calculateQuestionScoreByCategory(
-    questions: Question[],
-    answers: Answer[]
+  questions: Question[],
+  answers: Answer[]
 ): {
-    categories: { categoryId: number; score: number }[];
-    totalRate: number;
+  categories: { categoryId: number; score: number }[];
+  totalRate: number;
 } {
-    // Função deprecated - retorna valores vazios
-    console.warn('calculateQuestionScoreByCategory is deprecated. Use organizeByCategoryWithScores from EvaluationForm instead.');
-    return { categories: [], totalRate: 0 };
+  // Função deprecated - retorna valores vazios
+  console.warn(
+    "calculateQuestionScoreByCategory is deprecated. Use organizeByCategoryWithScores from EvaluationForm instead."
+  );
+  return { categories: [], totalRate: 0 };
 }

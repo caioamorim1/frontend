@@ -111,17 +111,13 @@ export async function getNetworkComparative(
   redeId: string,
   params?: Record<string, any>
 ): Promise<NetworkComparativeResponse> {
-  console.log(
-    `🔍 [API] getNetworkComparative called for redeId=${redeId}`,
-    params
-  );
   const res = await api.get(
     `/hospital-sectors-aggregate/rede/${redeId}/comparative`,
     {
       params,
     }
   );
-  console.log("✅ [API] getNetworkComparative response:", res.data);
+
   return res.data as NetworkComparativeResponse;
 }
 
@@ -1167,26 +1163,14 @@ export const getNetworkSectors = async (
   redeId: string
 ): Promise<HospitalSectorsData> => {
   try {
-    console.log("📡 [API] getNetworkSectors - Iniciando requisição:", {
-      redeId,
-    });
     const response = await api.get(`/hospital-sectors-network/rede/${redeId}`);
-    console.log("✅ [API] getNetworkSectors - Resposta recebida:", {
-      status: response.status,
-      data: response.data,
-      hasInternation: !!response.data?.internation,
-      internationLength: response.data?.internation?.length,
-      hasAssistance: !!response.data?.assistance,
-      assistanceLength: response.data?.assistance?.length,
-      exemploInternacao: response.data?.internation?.[0],
-      exemploAssistencia: response.data?.assistance?.[0],
-    });
+
     return response.data;
   } catch (error) {
-    console.error("❌ [API] getNetworkSectors - Erro capturado:", error);
+    console.error("[API] getNetworkSectors - Erro capturado:", error);
     if ((error as any).response) {
-      console.error("❌ [API] Status:", (error as any).response.status);
-      console.error("❌ [API] Data:", (error as any).response.data);
+      console.error("[API] Status:", (error as any).response.status);
+      console.error(" [API] Data:", (error as any).response.data);
     }
     throw error;
   }
@@ -1951,16 +1935,15 @@ export const deleteSitioFuncional = async (sitioId: string): Promise<void> => {
 export const getSitioDistribuicoes = async (
   sitioId: string
 ): Promise<SitioDistribuicao[]> => {
-  console.log("🔍 [API] Buscando distribuições para sitioId:", sitioId);
   try {
     const response = await api.get(
       `/sitios/sitios-funcionais/${sitioId}/distribuicoes`
     );
-    console.log("✅ [API] Distribuições recebidas:", response.data);
+
     return response.data;
   } catch (error: any) {
     console.error(
-      "❌ [API] Erro ao buscar distribuições:",
+      "[API] Erro ao buscar distribuições:",
       error.response?.data || error.message
     );
     throw error;

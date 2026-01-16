@@ -48,13 +48,9 @@ export default function GlobalDashboardPage() {
 
         if (redeEncontrada) {
           setRede(redeEncontrada);
-          console.log("🌐 Rede carregada:", {
-            id: redeEncontrada.id,
-            nome: redeEncontrada.nome,
-          });
         }
       } catch (error) {
-        console.error("❌ Erro ao buscar rede:", error);
+        console.error("Erro ao buscar rede:", error);
       }
     };
 
@@ -72,10 +68,10 @@ export default function GlobalDashboardPage() {
 
       try {
         const dashboard = await getSnapshotDashboard("rede", redeId);
-        console.log("📊 Baseline (rede) via /snapshot/dashboard:", dashboard);
+
         setBaselineData(dashboard);
       } catch (error) {
-        console.error("❌ Erro ao buscar dados da rede:", error);
+        console.error("Erro ao buscar dados da rede:", error);
         setBaselineData(null);
       }
     };
@@ -83,7 +79,7 @@ export default function GlobalDashboardPage() {
     fetchBaselineData();
   }, [redeId]);
 
-  // ✅ Buscar dados atuais agregados da rede
+  //  Buscar dados atuais agregados da rede
   useEffect(() => {
     const fetchAtualData = async () => {
       if (!redeId) {
@@ -93,7 +89,6 @@ export default function GlobalDashboardPage() {
 
       try {
         const data = await getNetworkSectors(redeId);
-        console.log("📊 Dados atuais brutos recebidos da rede:", data);
 
         // Normalizar dados: converter valores de centavos para reais e strings para números
         const normalizedInternation =
@@ -131,15 +126,9 @@ export default function GlobalDashboardPage() {
           assistance: normalizedAssistance,
         };
 
-        console.log("✅ Dados atuais normalizados:", {
-          totalUnidadesInternacao: normalizedInternation.length,
-          totalUnidadesNaoInternacao: normalizedAssistance.length,
-          exemploInternacao: normalizedInternation[0],
-        });
-
         setAtualData(normalizedData);
       } catch (error) {
-        console.error("❌ Erro ao buscar dados atuais da rede:", error);
+        console.error("Erro ao buscar dados atuais da rede:", error);
         setAtualData(null);
       }
     };
@@ -147,7 +136,7 @@ export default function GlobalDashboardPage() {
     fetchAtualData();
   }, [redeId]);
 
-  // ✅ Buscar dados projetados agregados da rede
+  //  Buscar dados projetados agregados da rede
   useEffect(() => {
     const fetchProjetadoData = async () => {
       if (!redeId) {
@@ -157,7 +146,6 @@ export default function GlobalDashboardPage() {
 
       try {
         const data = await getNetworkProjectedSectors(redeId);
-        console.log("📊 Dados projetados brutos recebidos da rede:", data);
 
         // Normalizar dados projetados
         const normalizedInternation =
@@ -200,15 +188,9 @@ export default function GlobalDashboardPage() {
           assistance: normalizedAssistance,
         };
 
-        console.log("✅ Dados projetados normalizados:", {
-          totalUnidadesInternacao: normalizedInternation.length,
-          totalUnidadesNaoInternacao: normalizedAssistance.length,
-          exemploInternacao: normalizedInternation[0],
-        });
-
         setProjetadoData(normalizedData);
       } catch (error) {
-        console.error("❌ Erro ao buscar dados projetados da rede:", error);
+        console.error("Erro ao buscar dados projetados da rede:", error);
         setProjetadoData(null);
       }
     };
@@ -216,7 +198,7 @@ export default function GlobalDashboardPage() {
     fetchProjetadoData();
   }, [redeId]);
 
-  // ✅ Buscar dados comparativos agregados da rede
+  //  Buscar dados comparativos agregados da rede
   useEffect(() => {
     const fetchComparativoData = async () => {
       if (!redeId) {
@@ -228,11 +210,10 @@ export default function GlobalDashboardPage() {
         const data = await getNetworkComparative(redeId, {
           includeProjected: true,
         });
-        console.log("📊 Dados comparativos brutos recebidos da rede:", data);
 
         setComparativoData(data);
       } catch (error) {
-        console.error("❌ Erro ao buscar dados comparativos da rede:", error);
+        console.error("Erro ao buscar dados comparativos da rede:", error);
         setComparativoData(null);
       }
     };

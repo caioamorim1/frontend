@@ -56,13 +56,12 @@ export default function BaselineTabBySitio({
 
       try {
         const data = await getSnapshotHospitalSectors(hospitalId);
-        console.log("📊 [BaselineTabBySitio] Resposta completa da API:", data);
+
         const dados = (data as any).snapshot.dados;
-        console.log("📊 [BaselineTabBySitio] Dados do snapshot:", dados);
 
         setSnapshotData(dados);
       } catch (err: any) {
-        console.error("❌ [BASELINE BY SITIO] Erro ao buscar snapshot:", err);
+        console.error("[BASELINE BY SITIO] Erro ao buscar snapshot:", err);
         if (err.response?.status === 404) {
           setError(
             "Nenhum snapshot (baseline) encontrado para este hospital. Crie um snapshot primeiro."

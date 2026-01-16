@@ -70,20 +70,6 @@ export const EvaluationsTab: React.FC<{
   };
 
   const handleSaveEvaluation = (evaluationData: EvaluationDTO) => {
-    console.log("🔍 [handleSaveEvaluation] Iniciando salvamento da avaliação");
-    console.log(
-      "🔍 [handleSaveEvaluation] unidadeInternacao:",
-      unidadeInternacao
-    );
-    console.log(
-      "🔍 [handleSaveEvaluation] unidadeNaoInternacao:",
-      unidadeNaoInternacao
-    );
-    console.log(
-      "🔍 [handleSaveEvaluation] evaluationData recebida:",
-      evaluationData
-    );
-
     if (!evaluationData || !evaluationData.questionnaireId) {
       showAlert("destructive", "Dados da avaliação inválidos.", "error");
       return;
@@ -104,23 +90,6 @@ export const EvaluationsTab: React.FC<{
         (unidadeNaoInternacao as any).hospital?.id
       : null;
 
-    console.log(
-      "🔍 [handleSaveEvaluation] sectorId atribuído:",
-      evaluationData.sectorId
-    );
-    console.log(
-      "🔍 [handleSaveEvaluation] hospitalId atribuído:",
-      evaluationData.hospitalId
-    );
-    console.log(
-      "🔍 [handleSaveEvaluation] unidadeNaoInternacao completa:",
-      unidadeNaoInternacao
-    );
-    console.log(
-      "🔍 [handleSaveEvaluation] evaluationData completa:",
-      evaluationData
-    );
-
     if (!evaluationData.sectorId) {
       showAlert("destructive", "Setor inválido para a avaliação.", "error");
       return;
@@ -131,23 +100,13 @@ export const EvaluationsTab: React.FC<{
       return;
     }
 
-    console.log(
-      "📤 [PAYLOAD] Dados da avaliação sendo enviados:",
-      JSON.stringify(evaluationData, null, 2)
-    );
-
     if (editingEvaluation) {
-      console.log(
-        "🔄 [UPDATE] Atualizando avaliação ID:",
-        editingEvaluation.id
-      );
       updateAvaliacao(editingEvaluation.id, evaluationData).then(() => {
         loadEvaluations();
         handleCloseForm();
         showAlert("success", "Avaliação atualizada com sucesso!", "success");
       });
     } else {
-      console.log("✨ [CREATE] Criando nova avaliação");
       createAvaliacao(evaluationData)
         .then(() => {
           loadEvaluations();
@@ -156,11 +115,11 @@ export const EvaluationsTab: React.FC<{
         })
         .catch((error) => {
           console.error(
-            "❌ [handleSaveEvaluation] Erro ao criar avaliação:",
+            "[handleSaveEvaluation] Erro ao criar avaliação:",
             error
           );
           console.error(
-            "❌ [handleSaveEvaluation] Erro completo:",
+            "[handleSaveEvaluation] Erro completo:",
             error.response?.data
           );
           showAlert(

@@ -55,14 +55,8 @@ export const DashboardComparativoHospitalScreen: React.FC<{
   // Se externalData for fornecido, usar ele diretamente
   useEffect(() => {
     if (externalData) {
-      console.log("📊 [Comparativo] Dados externos recebidos:", externalData);
-
       // Normalizar dados da rede para o formato esperado pelo componente
       if (isGlobalView) {
-        console.log(
-          "📊 [Comparativo] Modo Global - Normalizando dados da rede"
-        );
-
         const normalizedSectors = {
           internation: externalData.sectors.internation.map((sector: any) => ({
             id: sector.name,
@@ -112,19 +106,11 @@ export const DashboardComparativoHospitalScreen: React.FC<{
           })),
         };
 
-        console.log("📊 [Comparativo] Setores normalizados:", {
-          internation: normalizedSectors.internation.length,
-          assistance: normalizedSectors.assistance.length,
-          neutral: normalizedSectors.neutral.length,
-          exemploInternacao: normalizedSectors.internation[0],
-        });
-
         setComparativeData({
           ...externalData,
           sectors: normalizedSectors,
         });
       } else {
-        console.log("📊 [Comparativo] Modo Hospital - Usando dados diretos");
         setComparativeData(externalData);
       }
 
@@ -144,11 +130,6 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         const resp = await getHospitalComparative(hospitalId, {
           includeProjected: true,
         });
-
-        console.log(
-          "📡 [API Comparativo] Resposta da rota /comparative:",
-          resp
-        );
 
         if (!mounted) return;
 
@@ -229,14 +210,9 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       return total;
     };
 
-    // BARRA 0: Atual Real (quadroAtualReal - dados tempo real do banco)
-    console.log("👥 [Comparativo] Calculando Pessoal Atual Real:");
-
     let pessoalAtualReal = 0;
 
     if (atualData) {
-      console.log("  ✅ Usando dados da aba Atual (atualData) para pessoal");
-
       // Determinar quais setores usar baseado na aba ativa
       let sectorsFromAtual: any[] = [];
       if (activeTab === "global") {
@@ -270,7 +246,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
               0
             )
           : 0;
-        console.log(`  👥 Setor ${sector.name}: ${staffCount} pessoas`);
+
         return sum + staffCount;
       }, 0);
     } else {
@@ -280,12 +256,6 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         0
       );
     }
-
-    console.log(
-      `✅ [Comparativo] Pessoal Atual Real Total: ${pessoalAtualReal}`
-    );
-
-    console.log("💰 [Comparativo] Calculando Custo Atual Real:");
 
     // 🚀 SOLUÇÃO: Usar dados da aba "Atual" (atualData) que já vem com costAmount calculado corretamente
     let custoAtualReal = 0;
@@ -365,26 +335,14 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       0
     );
 
-    console.log("💰 [Comparativo] Calculando Custo Projetado:");
     // Custo Projetado: custoUnitário × quantidade projetada para cada cargo
     const custoProjetadoSnapshot = filteredSectors.reduce(
       (sum, sector, index) => {
-        console.log(
-          `  🟢 Setor [${index}] ${sector.name} - Tipo: ${sector.tipo}`
-        );
-        console.log(`    custosAtualSnapshot:`, sector.custosAtualSnapshot);
-        console.log(
-          `    quadroProjetadoSnapshot:`,
-          sector.quadroProjetadoSnapshot
-        );
-
         // Para unidades neutras, usar custoAtualSnapshot diretamente (não há projeção de custo diferente)
         // Dividir por 100 pois vem como 5000000 ao invés de 50000
         if ((sector as any).tipo === "NEUTRAL") {
           const custoNeutro = ((sector as any).custoAtualSnapshot || 0) / 100;
-          console.log(
-            `    💚 Setor NEUTRO - Custo projetado (= snapshot): R$${custoNeutro}`
-          );
+
           return sum + custoNeutro;
         }
 
@@ -397,11 +355,6 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         return resultado;
       },
       0
-    );
-    console.log(
-      `✅ [Comparativo] Custo Projetado Total: R$${custoProjetadoSnapshot.toFixed(
-        2
-      )}`
     );
 
     // Variação de pessoal deve ser coerente com as barras do waterfall (Baseline -> Projetado)
@@ -422,18 +375,6 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     const variacaoPercentual =
       custoAtualSnapshot > 0 ? (variacaoCusto / custoAtualSnapshot) * 100 : 0;
 
-    console.log("📊 [Comparativo] Resumo Final:", {
-      custoAtualReal,
-      custoAtualSnapshot,
-      custoProjetadoSnapshot,
-      variacaoCusto,
-      variacaoPercentual: `${variacaoPercentual.toFixed(1)}%`,
-      pessoalAtualReal,
-      pessoalAtualSnapshot,
-      pessoalProjetadoSnapshot,
-      variacaoPessoal,
-    });
-
     // Montar dados do gráfico waterfall com 4 barras
     const financialWaterfall = [
       { name: "Atual", value: custoAtualReal },
@@ -442,8 +383,6 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       { name: "Projetado", value: custoProjetadoSnapshot },
     ];
 
-    console.log("📊 [Gráfico] Dados Waterfall Financeiro:", financialWaterfall);
-
     const personnelWaterfall = [
       { name: "Atual", value: pessoalAtualReal },
       { name: "Baseline", value: pessoalAtualSnapshot },
@@ -451,23 +390,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       { name: "Projetado", value: pessoalProjetadoSnapshot },
     ];
 
-    console.log("📊 [Gráfico] Dados Waterfall Pessoal:", personnelWaterfall);
-
     if (import.meta.env.DEV && activeTab === "global") {
-      console.log("🐛 [Comparativo][Global][Pessoal] Debug", {
-        isGlobalView,
-        selectedSector,
-        selectedSectorName,
-        selectedSectorNameLower,
-        filteredSectorsCount: filteredSectors.length,
-        pessoalAtualReal,
-        pessoalAtualSnapshot,
-        pessoalProjetadoSnapshot,
-        variacaoPessoal,
-        variacaoPessoalFromTotals,
-        variacaoPessoalFromDiferencas,
-        personnelWaterfall,
-      });
     }
 
     // Processar dados por função (cargo) para os gráficos GroupedBarByRole
@@ -657,15 +580,6 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       };
     })();
 
-    console.log(
-      "📊 [Gráfico] Dados por Função - Custo:",
-      dadosPorFuncao.custoPorFuncao
-    );
-    console.log(
-      "📊 [Gráfico] Dados por Função - Quantidade:",
-      dadosPorFuncao.quantidadePorFuncao
-    );
-
     return {
       financialWaterfall,
       personnelWaterfall,
@@ -676,9 +590,6 @@ export const DashboardComparativoHospitalScreen: React.FC<{
       selectedSectorName,
     };
   }, [comparativeData, atualData, activeTab, selectedSector]);
-
-  console.log("📊 [Comparativo] Resultado processedData:", processedData);
-  console.log("📊 [Comparativo] Estado loading:", loading);
 
   if (loading) {
     return (

@@ -25,15 +25,6 @@ export default function CargoSitioManager({
   onUpdate,
   disabled = false,
 }: CargoSitioManagerProps) {
-  console.log("🟢 [CargoSitioManager] Componente montado");
-  console.log("🟢 [CargoSitioManager] sitioId:", sitioId);
-  console.log("🟢 [CargoSitioManager] sitio recebido:", sitio);
-  console.log("🟢 [CargoSitioManager] disabled:", disabled);
-  console.log(
-    "🟢 [CargoSitioManager] distribuicoes recebidas:",
-    sitio.distribuicoes
-  );
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -43,30 +34,17 @@ export default function CargoSitioManager({
     sitio.distribuicoes || []
   );
 
-  console.log(
-    "🟢 [CargoSitioManager] Estado inicial de distribuicoes:",
-    distribuicoes
-  );
-
   // Buscar distribuições salvas do backend ao montar o componente
   useEffect(() => {
     const fetchDistribuicoes = async () => {
-      console.log(
-        "🔄 [CargoSitioManager] Buscando distribuições do backend..."
-      );
       setLoading(true);
       try {
         const response = await getSitioDistribuicoes(sitioId);
-        console.log(
-          "✅ [CargoSitioManager] Resposta completa do backend:",
-          response
-        );
 
         // A resposta vem como { sitioId, sitioNome, distribuicoes: { ENF: {...}, TEC: {...} } }
         // Precisamos converter para array de SitioDistribuicao
         if (response && (response as any).distribuicoes) {
           const dist = (response as any).distribuicoes;
-          console.log("🔍 [CargoSitioManager] Objeto distribuicoes:", dist);
 
           const distribuicoesArray: SitioDistribuicao[] = [];
 
@@ -102,26 +80,15 @@ export default function CargoSitioManager({
             });
           }
 
-          console.log(
-            "✅ [CargoSitioManager] Distribuições convertidas para array:",
-            distribuicoesArray
-          );
-
           if (distribuicoesArray.length > 0) {
             setDistribuicoes(distribuicoesArray);
           } else {
-            console.log(
-              "⚠️ [CargoSitioManager] Nenhuma distribuição encontrada, usando dados locais"
-            );
           }
         } else {
-          console.log(
-            "⚠️ [CargoSitioManager] Resposta não contém distribuições, usando dados locais"
-          );
         }
       } catch (error) {
         console.error(
-          "❌ [CargoSitioManager] Erro ao buscar distribuições:",
+          "[CargoSitioManager] Erro ao buscar distribuições:",
           error
         );
         // Em caso de erro, mantém as distribuições que vieram do prop

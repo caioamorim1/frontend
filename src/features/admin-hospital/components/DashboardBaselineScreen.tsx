@@ -490,14 +490,10 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
       setLoading(true);
       try {
         const data = await getSnapshotHospitalSectors(hospitalId);
-        console.log(
-          "📊 [DashboardBaselineScreen] Dados brutos do snapshot:",
-          data
-        );
 
         setSnapshotData(normalizeToSnapshotResponse(data));
       } catch (error) {
-        console.error("❌ Erro ao carregar snapshot:", error);
+        console.error("Erro ao carregar snapshot:", error);
         setSnapshotData(null);
       } finally {
         setLoading(false);
@@ -921,16 +917,6 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     ? snapshotData.situacaoAtual.totais.totalFuncionarios
     : profissionaisBaseline; // fallback para baseline
 
-  console.log("📊 [DashboardBaselineScreen] Dados do Baseline:", {
-    custoBaseline,
-    profissionaisBaseline,
-  });
-
-  console.log("🕐 [DashboardBaselineScreen] Situação Atual Real:", {
-    custoAtualReal,
-    profissionaisAtuaisReal,
-  });
-
   // Construir lista de setores para o seletor
   const setoresDisponiveis: Array<{ id: string; name: string }> = [];
 
@@ -973,8 +959,6 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
   let custoBaselineSetor = 0;
   let profissionaisAtualRealSetor = 0;
   let custoAtualRealSetor = 0;
-
-  console.log("💰 [DashboardBaselineScreen] Calculando projetado...");
 
   // Se temos situacaoAtual, usar para calcular situação atual real filtrada
   if (snapshotData.situacaoAtual && selectedSector !== "all") {
@@ -1038,8 +1022,6 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     });
   }
 
-  console.log(`📋 Total de cargos no mapa: ${custoPorCargo.size}`);
-
   // Calcular custoBaselineSetor e profissionaisBaselineSetor se não foram calculados via situacaoAtual
   if (!snapshotData.situacaoAtual || selectedSector === "all") {
     // Processar unidades de internação do baseline
@@ -1102,14 +1084,9 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     if (selectedSector !== "all" && unidade.unidadeId !== selectedSector)
       return;
 
-    console.log(`  🏥 Unidade Internação: ${unidade.unidadeNome}`);
-
     // Usar custoTotalUnidade se disponível, senão calcular manualmente
     if (unidade.custoTotalUnidade !== undefined) {
       custoProjetado += unidade.custoTotalUnidade;
-      console.log(
-        `    Custo total da unidade: R$ ${unidade.custoTotalUnidade}`
-      );
     } else {
       // Fallback: calcular manualmente
       unidade.cargos.forEach((cargo) => {
@@ -1141,14 +1118,9 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
       if (selectedSector !== "all" && unidade.unidadeId !== selectedSector)
         return;
 
-      console.log(`  🏥 Unidade Não-Internação: ${unidade.unidadeNome}`);
-
       // Usar custoTotalUnidade se disponível, senão calcular manualmente
       if (unidade.custoTotalUnidade !== undefined) {
         custoProjetado += unidade.custoTotalUnidade;
-        console.log(
-          `    Custo total da unidade: R$ ${unidade.custoTotalUnidade}`
-        );
       } else {
         // Fallback: calcular manualmente
         unidade.sitios.forEach((sitio) => {
@@ -1169,18 +1141,13 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     }
   );
 
-  console.log(
-    "💚 [DashboardBaselineScreen] Adicionando custo das unidades neutras..."
-  );
   // Adiciona custo das unidades neutras da situação atual (não têm projetado, mantém valor atual)
   // Neutras são adicionadas apenas quando "all" está selecionado
   if (selectedSector === "all") {
     // Adicionar neutras ao projetado (mantém o valor)
     snapshotData.situacaoAtual?.unidadesNeutras?.forEach((unit: any) => {
       const custoNeutro = unit.custoTotal || 0;
-      console.log(
-        `  🏥 Unidade Neutra: ${unit.unidadeNome} - R$ ${custoNeutro}`
-      );
+
       custoProjetado += custoNeutro;
       // Neutras também estavam no baseline do snapshot
       const unidadeNeutraBaseline = snapshotData.snapshot.dados.neutral?.find(
@@ -1243,27 +1210,6 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
   // Variações entre Baseline e Projetado (para o gráfico waterfall)
   const variacaoProfissionaisBaselineParaProjetado =
     profissionaisProjetados - profissionaisBaselineExibicao;
-
-  console.log("🔢 [DashboardBaselineScreen] Dados processados:", {
-    baseline: {
-      custo: custoBaselineExibicao,
-      profissionais: profissionaisBaselineExibicao,
-    },
-    projected: {
-      custo: custoProjetado,
-      profissionais: profissionaisProjetados,
-    },
-    atualReal: {
-      custo: custoAtualRealExibicao,
-      profissionais: profissionaisAtualRealExibicao,
-    },
-    variation: {
-      custo: variacaoCusto,
-      custoPercentual: variacaoCustoPercentual,
-      profissionais: variacaoProfissionais,
-      profissionaisPercentual: variacaoProfissionaisPercentual,
-    },
-  });
 
   // Dados waterfall de custo (R$) - para aba Global (Atual Real -> Projetado)
   const waterfallCustoDataGlobal: WaterfallDataItem[] = [
@@ -1397,13 +1343,6 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
 
       const variacaoReais = custoProjetadoUnidade - custoAtualUnidade;
 
-      console.log(`📊 [Ranking Setores] ${unidade.unidadeNome}:`, {
-        custoAtual: custoAtualUnidade,
-        custoProjetado: custoProjetadoUnidade,
-        variacaoReais: variacaoReais,
-        variacaoPerc: variacaoPerc,
-      });
-
       setoresVariacao.push({
         nome: unidade.unidadeNome,
         variacaoPercentual: variacaoPerc,
@@ -1452,16 +1391,6 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
             : 0;
 
         const variacaoReais = custoProjetadoUnidade - custoAtualUnidade;
-
-        console.log(
-          `📊 [Ranking Setores - Não Internação] ${unidade.unidadeNome}:`,
-          {
-            custoAtual: custoAtualUnidade,
-            custoProjetado: custoProjetadoUnidade,
-            variacaoReais: variacaoReais,
-            variacaoPerc: variacaoPerc,
-          }
-        );
 
         setoresVariacao.push({
           nome: unidade.unidadeNome,

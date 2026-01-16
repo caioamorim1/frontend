@@ -95,41 +95,29 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError(null);
 
-    console.log("🔄 [ResetPassword] Iniciando redefinição...", {
-      newPassword: newPassword.length,
-      confirmPassword: confirmPassword.length,
-      token: token?.substring(0, 10) + "...",
-    });
-
     // Validações
     const passwordError = validatePassword(newPassword);
     if (passwordError) {
-      console.log("❌ [ResetPassword] Erro de validação:", passwordError);
       setError(passwordError);
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      console.log("❌ [ResetPassword] Senhas não coincidem");
       setError("As senhas não coincidem.");
       return;
     }
 
     if (!token) {
-      console.log("❌ [ResetPassword] Token inválido");
       setError("Token de recuperação inválido.");
       return;
     }
 
     setLoading(true);
-    console.log("📡 [ResetPassword] Enviando requisição...");
 
     try {
       const response = await resetPassword(token, newPassword);
-      console.log("✅ [ResetPassword] Resposta recebida:", response);
 
       if (response.success) {
-        console.log("✅ [ResetPassword] Senha redefinida com sucesso!");
         setSuccess(true);
 
         // Redirecionar para login após 3 segundos
@@ -140,14 +128,13 @@ export default function ResetPasswordPage() {
         setError(response.message || "Erro ao redefinir senha.");
       }
     } catch (err: any) {
-      console.error("❌ [ResetPassword] Erro:", err);
-      console.error("❌ [ResetPassword] Response:", err.response?.data);
+      console.error("[ResetPassword] Erro:", err);
+      console.error("[ResetPassword] Response:", err.response?.data);
       const errorMessage =
         err.response?.data?.message ||
         "Erro ao redefinir senha. O link pode estar expirado.";
       setError(errorMessage);
     } finally {
-      console.log("🔄 [ResetPassword] Finalizando...");
       setLoading(false);
     }
   };

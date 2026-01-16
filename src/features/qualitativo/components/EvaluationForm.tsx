@@ -604,11 +604,6 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
   useEffect(() => {
     // Se estiver editando, carregar os dados da avaliação
     if (editingEvaluation) {
-      console.log(
-        "🔍 [EDIT] Carregando avaliação para edição:",
-        editingEvaluation
-      );
-
       setFormData({
         title: editingEvaluation.title,
         evaluator: editingEvaluation.evaluator,
@@ -620,17 +615,11 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
         (q) => q.id === editingEvaluation.questionnaireId
       );
 
-      console.log("📋 [EDIT] Questionário encontrado:", questionnaire);
-
       if (questionnaire) {
         setSelectedQuestionnaire(questionnaire);
 
         // Criar um map de respostas salvas a partir de categories
         const savedQuestionsMap = new Map<number, QuestionScore>();
-
-        console.log("🔍 [EDIT] Verificando formato dos dados...");
-        console.log("  - categories:", (editingEvaluation as any).categories);
-        console.log("  - answers:", editingEvaluation.answers);
 
         // Verificar se o formato é o novo (answers como array de CategoryScore) ou antigo (answers com questionId)
         if (editingEvaluation.answers && editingEvaluation.answers.length > 0) {
@@ -638,29 +627,16 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
 
           // Novo formato: answers é array de CategoryScore (tem questions)
           if ((firstItem as any).questions) {
-            console.log(
-              "✅ [EDIT] Usando formato NOVO (answers como CategoryScore[])"
-            );
             (editingEvaluation.answers as any as CategoryScore[]).forEach(
               (category) => {
-                console.log(
-                  `  - Categoria ${category.categoryId}: ${category.categoryName}`
-                );
                 category.questions.forEach((question) => {
                   savedQuestionsMap.set(question.questionId, question);
-                  console.log(
-                    `    - Carregando questão ${question.questionId}:`,
-                    question
-                  );
                 });
               }
             );
           }
           // Formato antigo: answers é array de Answer (tem questionId)
           else if ((firstItem as any).questionId) {
-            console.log(
-              "⚠️ [EDIT] Usando formato ANTIGO (answers como Answer[])"
-            );
             (editingEvaluation.answers as Answer[]).forEach((answer) => {
               savedQuestionsMap.set(answer.questionId, {
                 questionId: answer.questionId,
@@ -671,32 +647,19 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
                 observation: answer.observation,
                 attachments: answer.attachments,
               });
-              console.log(
-                `  - Carregando resposta ${answer.questionId}:`,
-                answer
-              );
             });
           }
         } else if ((editingEvaluation as any).categories) {
           // Formato com campo categories
-          console.log("✅ [EDIT] Usando formato NOVO (campo categories)");
+
           ((editingEvaluation as any).categories as CategoryScore[]).forEach(
             (category) => {
               category.questions.forEach((question) => {
                 savedQuestionsMap.set(question.questionId, question);
-                console.log(
-                  `  - Carregando questão ${question.questionId}:`,
-                  question
-                );
               });
             }
           );
         }
-
-        console.log(
-          "🗺️ [EDIT] Map de questões salvas:",
-          Array.from(savedQuestionsMap.entries())
-        );
 
         // Criar AnswerInternal para todas as perguntas do questionário
         const answersInternal: AnswerInternal[] = questionnaire.questions.map(
@@ -705,9 +668,7 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
 
             if (!savedQuestion) {
               // Pergunta não respondida - inicializar vazio
-              console.log(
-                `❌ [EDIT] Questão ${question.id} NÃO TEM resposta salva`
-              );
+
               return {
                 questionId: question.id,
                 value:
@@ -724,11 +685,6 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
             // Converter QuestionScore salvo de volta para AnswerInternal
             let value: string | number | boolean = "";
 
-            console.log(`✅ [EDIT] Convertendo questão ${question.id}:`, {
-              type: question.type,
-              savedQuestion,
-            });
-
             if (
               question.type === "sim-nao-na" ||
               question.type === "multipla-escolha"
@@ -741,12 +697,6 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
                 );
               });
               value = matchingOption?.label || "";
-              console.log(`  - Opções disponíveis:`, question.options);
-              console.log(
-                `  - selectedResponseWeight: ${savedQuestion.selectedResponseWeight}`
-              );
-              console.log(`  - Opção encontrada:`, matchingOption);
-              console.log(`  - Value final:`, value);
             } else if (question.type === "numero") {
               // Converter selectedResponseWeight de volta para nota 0-10
               // selectedResponseWeight está em percentual (0-100)
@@ -755,14 +705,9 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
               } else {
                 value = 0;
               }
-              console.log(
-                `  - selectedResponseWeight: ${savedQuestion.selectedResponseWeight}`
-              );
-              console.log(`  - Value final (0-10):`, value);
             } else if (question.type === "texto" || question.type === "data") {
               // Para texto e data, não temos como recuperar o valor original
               value = "";
-              console.log(`  - Tipo texto/data, valor vazio`);
             }
 
             const result = {
@@ -772,12 +717,10 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
               attachments: savedQuestion.attachments,
             };
 
-            console.log(`  - AnswerInternal criado:`, result);
             return result;
           }
         );
 
-        console.log("📝 [EDIT] AnswersInternal final:", answersInternal);
         setAnswers(answersInternal);
       }
     }

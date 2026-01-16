@@ -82,46 +82,56 @@ export interface ProcessedRedeData {
 export function processRedeSnapshots(
   snapshots: SnapshotSelecionadoItem[]
 ): ProcessedRedeData {
-  console.log("🔄 Processando snapshots da rede:", {
-    totalSnapshots: snapshots.length,
-    hospitais: snapshots.map((s) => s.hospital.nome),
-  });
-
   // Estruturas para agregação
-  const hospitaisData: ProcessedRedeData["baseline"]["global"]["hospitais"] = [];
-  
-  const cargoMapInternacao = new Map<string, {
-    cargoId: string;
-    cargoNome: string;
-    quantidade: number;
-    custoUnitario: number;
-    custoTotal: number;
-  }>();
-  
-  const cargoMapNaoInternacao = new Map<string, {
-    cargoId: string;
-    cargoNome: string;
-    quantidade: number;
-    custoUnitario: number;
-    custoTotal: number;
-  }>();
+  const hospitaisData: ProcessedRedeData["baseline"]["global"]["hospitais"] =
+    [];
 
-  const cargoMapProjetadoInternacao = new Map<string, {
-    cargoId: string;
-    cargoNome: string;
-    quantidade: number;
-    projetadoFinal: number;
-  }>();
+  const cargoMapInternacao = new Map<
+    string,
+    {
+      cargoId: string;
+      cargoNome: string;
+      quantidade: number;
+      custoUnitario: number;
+      custoTotal: number;
+    }
+  >();
 
-  const cargoMapProjetadoNaoInternacao = new Map<string, {
-    cargoId: string;
-    cargoNome: string;
-    quantidade: number;
-    projetadoFinal: number;
-  }>();
+  const cargoMapNaoInternacao = new Map<
+    string,
+    {
+      cargoId: string;
+      cargoNome: string;
+      quantidade: number;
+      custoUnitario: number;
+      custoTotal: number;
+    }
+  >();
 
-  const setoresCustoInternacao: ProcessedRedeData["baseline"]["internacao"]["custoPorSetor"] = [];
-  const setoresCustoNaoInternacao: ProcessedRedeData["baseline"]["naoInternacao"]["custoPorSetor"] = [];
+  const cargoMapProjetadoInternacao = new Map<
+    string,
+    {
+      cargoId: string;
+      cargoNome: string;
+      quantidade: number;
+      projetadoFinal: number;
+    }
+  >();
+
+  const cargoMapProjetadoNaoInternacao = new Map<
+    string,
+    {
+      cargoId: string;
+      cargoNome: string;
+      quantidade: number;
+      projetadoFinal: number;
+    }
+  >();
+
+  const setoresCustoInternacao: ProcessedRedeData["baseline"]["internacao"]["custoPorSetor"] =
+    [];
+  const setoresCustoNaoInternacao: ProcessedRedeData["baseline"]["naoInternacao"]["custoPorSetor"] =
+    [];
 
   let totalLeitosGeral = 0;
   let leitosOcupadosGeral = 0;
@@ -226,7 +236,10 @@ export function processRedeSnapshots(
     // Processar PROJETADO FINAL
     if (dados.projetadoFinal) {
       // Projetado - Internação
-      if (dados.projetadoFinal.internacao && Array.isArray(dados.projetadoFinal.internacao)) {
+      if (
+        dados.projetadoFinal.internacao &&
+        Array.isArray(dados.projetadoFinal.internacao)
+      ) {
         dados.projetadoFinal.internacao.forEach((unidade: any) => {
           if (unidade.cargos && Array.isArray(unidade.cargos)) {
             unidade.cargos.forEach((cargo: any) => {
@@ -251,7 +264,10 @@ export function processRedeSnapshots(
       }
 
       // Projetado - Não Internação
-      if (dados.projetadoFinal.naoInternacao && Array.isArray(dados.projetadoFinal.naoInternacao)) {
+      if (
+        dados.projetadoFinal.naoInternacao &&
+        Array.isArray(dados.projetadoFinal.naoInternacao)
+      ) {
         dados.projetadoFinal.naoInternacao.forEach((unidade: any) => {
           if (unidade.cargos && Array.isArray(unidade.cargos)) {
             unidade.cargos.forEach((cargo: any) => {
@@ -324,18 +340,12 @@ export function processRedeSnapshots(
         funcionariosPorCargo: Array.from(cargoMapProjetadoInternacao.values()),
       },
       naoInternacao: {
-        funcionariosPorCargo: Array.from(cargoMapProjetadoNaoInternacao.values()),
+        funcionariosPorCargo: Array.from(
+          cargoMapProjetadoNaoInternacao.values()
+        ),
       },
     },
   };
-
-  console.log("✅ Dados processados da rede:", {
-    totalHospitais: result.baseline.global.totalHospitais,
-    totalProfissionais: result.baseline.global.totalProfissionais,
-    custoTotal: result.baseline.global.custoTotal,
-    totalLeitos: result.baseline.internacao.totalLeitos,
-    taxaOcupacao: result.baseline.internacao.taxaOcupacao.toFixed(2) + "%",
-  });
 
   return result;
 }

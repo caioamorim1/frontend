@@ -220,17 +220,9 @@ export default function BaselinePage() {
 
   // Função para calcular a variação de custo de um snapshot
   const calcularVariacaoCusto = (snapshot: Snapshot) => {
-    console.log(
-      "📊 [BaselinePage] Calculando variação de custo. Snapshot:",
-      snapshot
-    );
-
     if (!snapshot?.resumo) {
-      console.log("⚠️ [BaselinePage] Snapshot sem resumo");
       return null;
     }
-
-    console.log("📊 [BaselinePage] Resumo do snapshot:", snapshot.resumo);
 
     const resumo = getResumoNormalizado(snapshot);
     const custoAtualTotal = resumo.custoTotal || 0;
@@ -238,13 +230,6 @@ export default function BaselinePage() {
     const variacao = custoProjetadoTotal - custoAtualTotal;
     const percentualVariacao =
       custoAtualTotal > 0 ? (variacao / custoAtualTotal) * 100 : 0;
-
-    console.log("📊 [BaselinePage] Resultados do cálculo:", {
-      custoAtualTotal,
-      custoProjetadoTotal,
-      variacao,
-      percentualVariacao,
-    });
 
     return {
       custoAtual: custoAtualTotal,
