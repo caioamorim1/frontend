@@ -821,11 +821,19 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
   };
 
   const renderVariacaoCustoDetalhamentoCard = () => {
-    const custoVariacaoReal =
-      toNumber(custoProjetadoMensal, 0) - toNumber(custoBaselineMensal, 0);
-    const qtdVariacao =
-      toNumber(totalFuncionariosProjetado, 0) -
-      toNumber(totalFuncionariosBaseline, 0);
+    const custoAtual = toNumber(custoAtualMensal, 0);
+    const custoBaseline = toNumber(custoBaselineMensal, 0);
+    const custoProjetado = toNumber(custoProjetadoMensal, 0);
+
+    const qtdAtual = toNumber(totalFuncionariosAtual, 0);
+    const qtdBaseline = toNumber(totalFuncionariosBaseline, 0);
+    const qtdProjetado = toNumber(totalFuncionariosProjetado, 0);
+
+    const deltaAtualParaBaseline = custoBaseline - custoAtual;
+    const deltaBaselineParaProjetado = custoProjetado - custoBaseline;
+
+    const deltaQtdAtualParaBaseline = qtdBaseline - qtdAtual;
+    const deltaQtdBaselineParaProjetado = qtdProjetado - qtdBaseline;
 
     return (
       <Card>
@@ -844,34 +852,50 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                 const data: any[] = [];
                 data.push({
                   name: "Atual",
-                  value: custoAtualMensal,
-                  range: [0, custoAtualMensal],
+                  value: custoAtual,
+                  range: [0, custoAtual],
                   color: "#5CA6DD",
-                  qtdPessoas: totalFuncionariosAtual,
+                  qtdPessoas: qtdAtual,
                 });
+                {
+                  const start = custoAtual;
+                  const end = custoBaseline;
+                  data.push({
+                    name: "Variação\n(Atual→Baseline)",
+                    value: deltaAtualParaBaseline,
+                    range: start <= end ? [start, end] : [end, start],
+                    color:
+                      deltaAtualParaBaseline >= 0 ? "#10B981" : "#EF4444",
+                    qtdPessoas: deltaQtdAtualParaBaseline,
+                  });
+                }
                 data.push({
                   name: "Baseline",
-                  value: custoBaselineMensal,
-                  range: [0, custoBaselineMensal],
+                  value: custoBaseline,
+                  range: [0, custoBaseline],
                   color: "#93C5FD",
-                  qtdPessoas: totalFuncionariosBaseline,
+                  qtdPessoas: qtdBaseline,
                 });
-                data.push({
-                  name: "Variação",
-                  value: custoVariacaoReal,
-                  range: [
-                    custoBaselineMensal,
-                    custoBaselineMensal + custoVariacaoReal,
-                  ],
-                  color: custoVariacaoReal >= 0 ? "#10B981" : "#EF4444",
-                  qtdPessoas: qtdVariacao,
-                });
+                {
+                  const start = custoBaseline;
+                  const end = custoProjetado;
+                  data.push({
+                    name: "Variação\n(Baseline→Projetado)",
+                    value: deltaBaselineParaProjetado,
+                    range: start <= end ? [start, end] : [end, start],
+                    color:
+                      deltaBaselineParaProjetado >= 0
+                        ? "#10B981"
+                        : "#EF4444",
+                    qtdPessoas: deltaQtdBaselineParaProjetado,
+                  });
+                }
                 data.push({
                   name: "Projetado",
-                  value: custoProjetadoMensal,
-                  range: [0, custoProjetadoMensal],
+                  value: custoProjetado,
+                  range: [0, custoProjetado],
                   color: "#003151",
-                  qtdPessoas: totalFuncionariosProjetado,
+                  qtdPessoas: qtdProjetado,
                 });
                 return data;
               })()}
@@ -934,8 +958,15 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <Bar dataKey="range">
                 {[
                   { color: "#5CA6DD" },
+                  {
+                    color:
+                      deltaAtualParaBaseline >= 0 ? "#10B981" : "#EF4444",
+                  },
                   { color: "#93C5FD" },
-                  { color: custoVariacaoReal >= 0 ? "#10B981" : "#EF4444" },
+                  {
+                    color:
+                      deltaBaselineParaProjetado >= 0 ? "#10B981" : "#EF4444",
+                  },
                   { color: "#003151" },
                 ].map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
