@@ -92,25 +92,17 @@ export const DashboardComparativoGlobalScreen: React.FC<{
     const filteredProjected = filterBySelected(projectedBase);
 
     const sumCost = (arr: any[], useProjected = false) => {
-      console.log(
-        `💰 [sumCost] Calculando custos | useProjected=${useProjected} | Total setores: ${arr.length}`
-      );
       return arr.reduce((sum, sector, index) => {
         const raw = useProjected
           ? sector.projectedCostAmount ?? sector.costAmount ?? 0
           : sector.costAmount ?? 0;
         const parsed = parseCostUtil(raw);
-        console.log(
-          `  Setor [${index}] ${sector.name}: raw=${raw}, parsed=${parsed}`
-        );
+
         return sum + parsed;
       }, 0);
     };
 
     const sumStaff = (arr: any[], useProjected = false) => {
-      console.log(
-        `👥 [sumStaff] Calculando pessoal | useProjected=${useProjected} | Total setores: ${arr.length}`
-      );
       return arr.reduce((sum, sector, index) => {
         if (useProjected) {
           const staffArr =
@@ -121,14 +113,12 @@ export const DashboardComparativoGlobalScreen: React.FC<{
             (s: number, it: any) => s + (it.quantity || 0),
             0
           );
-          console.log(
-            `  Setor [${index}] ${sector.name}: projectedStaff count=${count}`
-          );
+
           return sum + count;
         }
 
         const count = sumStaffUtil(sector);
-        console.log(`  Setor [${index}] ${sector.name}: staff count=${count}`);
+
         return sum + count;
       }, 0);
     };
@@ -140,17 +130,6 @@ export const DashboardComparativoGlobalScreen: React.FC<{
     const pessoalAtual = sumStaff(filteredAtual, false);
     const pessoalProjetado = sumStaff(filteredProjected, true);
     const variacaoPessoal = pessoalProjetado - pessoalAtual;
-
-    console.log("📊 [Resumo Comparativo]", {
-      custoAtual,
-      custoProjetado,
-      variacaoCusto,
-      pessoalAtual,
-      pessoalProjetado,
-      variacaoPessoal,
-      activeTab,
-      selectedSector,
-    });
 
     // Calcula baseline (aproximadamente 89% do custo atual como referência histórica)
     const custoBaseline = custoAtual * 0.89;
@@ -266,7 +245,7 @@ export const DashboardComparativoGlobalScreen: React.FC<{
             <TabsTrigger value="global">Global</TabsTrigger>
             <TabsTrigger value="internacao">Unid. de Internação</TabsTrigger>
             <TabsTrigger value="nao-internacao">
-              Unidades de Não Internação
+              Unid. de Não Internação
             </TabsTrigger>
           </TabsList>
           <TabsContent value="global" className="mt-6">

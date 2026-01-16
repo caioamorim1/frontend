@@ -70,20 +70,6 @@ export const EvaluationsTab: React.FC<{
   };
 
   const handleSaveEvaluation = (evaluationData: EvaluationDTO) => {
-    console.log("🔍 [handleSaveEvaluation] Iniciando salvamento da avaliação");
-    console.log(
-      "🔍 [handleSaveEvaluation] unidadeInternacao:",
-      unidadeInternacao
-    );
-    console.log(
-      "🔍 [handleSaveEvaluation] unidadeNaoInternacao:",
-      unidadeNaoInternacao
-    );
-    console.log(
-      "🔍 [handleSaveEvaluation] evaluationData recebida:",
-      evaluationData
-    );
-
     if (!evaluationData || !evaluationData.questionnaireId) {
       showAlert("destructive", "Dados da avaliação inválidos.", "error");
       return;
@@ -100,21 +86,9 @@ export const EvaluationsTab: React.FC<{
     evaluationData.hospitalId = unidadeInternacao
       ? unidadeInternacao.hospitalId
       : unidadeNaoInternacao
-      ? unidadeNaoInternacao.hospitalId
+      ? unidadeNaoInternacao.hospitalId ||
+        (unidadeNaoInternacao as any).hospital?.id
       : null;
-
-    console.log(
-      "🔍 [handleSaveEvaluation] sectorId atribuído:",
-      evaluationData.sectorId
-    );
-    console.log(
-      "🔍 [handleSaveEvaluation] hospitalId atribuído:",
-      evaluationData.hospitalId
-    );
-    console.log(
-      "🔍 [handleSaveEvaluation] evaluationData completa:",
-      evaluationData
-    );
 
     if (!evaluationData.sectorId) {
       showAlert("destructive", "Setor inválido para a avaliação.", "error");
@@ -141,11 +115,11 @@ export const EvaluationsTab: React.FC<{
         })
         .catch((error) => {
           console.error(
-            "❌ [handleSaveEvaluation] Erro ao criar avaliação:",
+            "[handleSaveEvaluation] Erro ao criar avaliação:",
             error
           );
           console.error(
-            "❌ [handleSaveEvaluation] Erro completo:",
+            "[handleSaveEvaluation] Erro completo:",
             error.response?.data
           );
           showAlert(

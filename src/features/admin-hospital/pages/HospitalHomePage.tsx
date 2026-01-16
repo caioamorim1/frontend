@@ -100,10 +100,7 @@ export default function HospitalHomePage() {
               timestamp: Date.now() - 4000,
             },
           ];
-          console.log(
-            "⚠️ [HospitalHomePage] Usando páginas padrão (erro):",
-            defaultPages
-          );
+
           setRecentPages(defaultPages);
           localStorage.setItem(storageKey, JSON.stringify(defaultPages));
         }

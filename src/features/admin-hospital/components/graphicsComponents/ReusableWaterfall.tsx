@@ -145,15 +145,6 @@ export const ReusableWaterfall: React.FC<ReusableWaterfallProps> = ({
   const yDomain = [effectiveMin, effectiveMax];
 
   if (import.meta.env.DEV && title === "Comparativo de Pessoal (Qtd.)") {
-    console.log("🐛 [Waterfall][Pessoal] Debug", {
-      unit,
-      title,
-      data,
-      chartData,
-      maxValue,
-      minValue,
-      yDomain,
-    });
   }
 
   const formatYAxisTick = (value: number) => {

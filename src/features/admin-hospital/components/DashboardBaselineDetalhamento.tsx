@@ -30,6 +30,8 @@ import {
   type OccupationDashboardResponse,
 } from "@/lib/api";
 
+type RankingTooltipKind = "currency" | "people";
+
 interface DashboardBaselineDetalhamentoProps {
   snapshotData: any;
   hospitalId?: string;
@@ -102,30 +104,73 @@ export const DashboardBaselineDetalhamento: React.FC<
       maximumFractionDigits: 2,
     })}`;
 
+  const formatPctPtBr = (value: number) =>
+    `${Number(value || 0).toLocaleString("pt-BR", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    })}%`;
+
+  const toNumber = (value: unknown, fallback = 0) => {
+    const n = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  };
+
+  const RankingTooltipContent: React.FC<
+    {
+      kind: RankingTooltipKind;
+    } & {
+      active?: boolean;
+      payload?: any[];
+    }
+  > = ({ kind, active, payload }) => {
+    if (!active || !Array.isArray(payload) || payload.length === 0) return null;
+
+    const entry = payload?.[0]?.payload as any;
+    if (!entry) return null;
+
+    const nome = String(entry.nome ?? "-");
+    const delta =
+      kind === "currency"
+        ? toNumber(entry.variacaoReais, 0)
+        : toNumber(entry.variacaoQtd, 0);
+    const pct = toNumber(entry.variacaoPercentual, 0);
+
+    const deltaLabel =
+      kind === "currency"
+        ? formatCurrency(delta)
+        : `${Math.round(delta).toLocaleString("pt-BR")}`;
+
+    return (
+      <div className="rounded-md border bg-background px-3 py-2 shadow-sm">
+        <div className="text-sm font-medium text-foreground">{nome}</div>
+        <div className="mt-1 text-sm text-muted-foreground">
+          Percentual:{" "}
+          <span className="text-foreground">{formatPctPtBr(pct)}</span>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          {kind === "currency" ? "Monetário" : "Quantidade"}:{" "}
+          <span className="text-foreground">{deltaLabel}</span>
+        </div>
+      </div>
+    );
+  };
+
   // Buscar dados de ocupação
   useEffect(() => {
-    console.log("🔍 [Occupation] useEffect disparado", {
-      hospitalId,
-      temHospitalId: !!hospitalId,
-    });
-
     const fetchOccupationData = async () => {
       if (!hospitalId) {
-        console.log("⚠️ [Occupation] hospitalId não disponível");
         return;
       }
 
       try {
-        console.log("🔄 [Occupation] Iniciando busca...", hospitalId);
         setLoadingOccupation(true);
         const data = await getHospitalOccupationDashboard(hospitalId);
-        console.log("✅ [Occupation] Dados recebidos:", data);
+
         setOccupationData(data);
       } catch (error) {
         console.error("❌ [Occupation Dashboard] Erro ao carregar:", error);
       } finally {
         setLoadingOccupation(false);
-        console.log("🏁 [Occupation] Loading finalizado");
       }
     };
 
@@ -423,104 +468,133 @@ export const DashboardBaselineDetalhamento: React.FC<
         <TabsContent value="custo" className="space-y-4 mt-4">
           {/* Primeira linha de gráficos */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Gráfico 1: Ranking da Variação dos Setores (%) */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
                   Ranking da Variação dos Setores (%)
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart
-                    data={rankingSetores.map((setor) => {
-                      // Calcular variação em reais para cada setor
-                      const unidadeProjetada =
-                        snapshotData.snapshot.dados.projetadoFinal?.internacao?.find(
-                          (u: any) => u.unidadeNome === setor.nome
-                        ) ||
-                        snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.find(
-                          (u: any) => u.unidadeNome === setor.nome
-                        );
+              <CardContent className="px-2 pb-4">
+                {(() => {
+                  if (!rankingSetores || rankingSetores.length === 0) {
+                    return (
+                      <div className="flex items-center justify-center h-[350px] text-muted-foreground">
+                        Dados insuficientes para análise.
+                      </div>
+                    );
+                  }
 
-                      const unidadeBaseline =
-                        snapshotData.snapshot.dados.internation?.find(
-                          (u: any) => u.name === setor.nome
-                        ) ||
-                        snapshotData.snapshot.dados.assistance?.find(
-                          (u: any) => u.name === setor.nome
-                        );
+                  // Enriquecer com variação em reais
+                  const rankingComReais = rankingSetores.map((setor) => {
+                    const unidadeProjetada =
+                      snapshotData.snapshot.dados.projetadoFinal?.internacao?.find(
+                        (u: any) => u.unidadeNome === setor.nome
+                      ) ||
+                      snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.find(
+                        (u: any) => u.unidadeNome === setor.nome
+                      );
 
-                      let custoAtual = 0;
-                      let custoProjetado = 0;
+                    const unidadeBaseline =
+                      snapshotData.snapshot.dados.internation?.find(
+                        (u: any) => u.name === setor.nome
+                      ) ||
+                      snapshotData.snapshot.dados.assistance?.find(
+                        (u: any) => u.name === setor.nome
+                      );
+
+                    let custoAtual = 0;
+                    let custoProjetado = 0;
+
+                    if (unidadeBaseline) {
+                      unidadeBaseline.staff?.forEach((s: any) => {
+                        custoAtual += (s.quantity || 0) * (s.unitCost || 0);
+                      });
+                    }
+
+                    if (unidadeProjetada) {
+                      const custoPorCargo = new Map<string, number>();
 
                       if (unidadeBaseline) {
                         unidadeBaseline.staff?.forEach((s: any) => {
-                          custoAtual += (s.quantity || 0) * (s.unitCost || 0);
+                          custoPorCargo.set(s.id, s.unitCost || 0);
                         });
                       }
 
-                      if (unidadeProjetada) {
-                        const custoPorCargo = new Map<string, number>();
-
-                        // Construir mapa de custos
-                        if (unidadeBaseline) {
-                          unidadeBaseline.staff?.forEach((s: any) => {
-                            custoPorCargo.set(s.id, s.unitCost || 0);
-                          });
-                        }
-
-                        if ("cargos" in unidadeProjetada) {
-                          unidadeProjetada.cargos.forEach((cargo: any) => {
+                      if ("cargos" in unidadeProjetada) {
+                        unidadeProjetada.cargos.forEach((cargo: any) => {
+                          const custoUnit =
+                            custoPorCargo.get(cargo.cargoId) || 0;
+                          custoProjetado += cargo.projetadoFinal * custoUnit;
+                        });
+                      } else if ("sitios" in unidadeProjetada) {
+                        unidadeProjetada.sitios.forEach((sitio: any) => {
+                          sitio.cargos.forEach((cargo: any) => {
                             const custoUnit =
                               custoPorCargo.get(cargo.cargoId) || 0;
                             custoProjetado += cargo.projetadoFinal * custoUnit;
                           });
-                        } else if ("sitios" in unidadeProjetada) {
-                          unidadeProjetada.sitios.forEach((sitio: any) => {
-                            sitio.cargos.forEach((cargo: any) => {
-                              const custoUnit =
-                                custoPorCargo.get(cargo.cargoId) || 0;
-                              custoProjetado +=
-                                cargo.projetadoFinal * custoUnit;
-                            });
-                          });
-                        }
+                        });
                       }
+                    }
 
-                      return {
-                        nome: setor.nome,
-                        variacaoReais: custoProjetado - custoAtual,
-                      };
-                    })}
-                    layout="vertical"
-                    margin={{ left: 100 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis type="category" dataKey="nome" width={90} />
-                    <Tooltip
-                      formatter={(value: any) =>
-                        `R$ ${value.toLocaleString("pt-BR", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`
-                      }
-                    />
-                    <Bar dataKey="variacaoReais">
-                      {rankingSetores.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={
-                            entry.variacaoPercentual < 0
-                              ? "rgb(220,38,38)"
-                              : "rgb(22,163,74)"
-                          }
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                    return {
+                      nome: setor.nome,
+                      variacaoPercentual: setor.variacaoPercentual,
+                      variacaoReais: custoProjetado - custoAtual,
+                    };
+                  });
+
+                  const computedHeight = Math.min(
+                    560,
+                    Math.max(380, rankingComReais.length * 44)
+                  );
+                  const maxLabelLen = Math.max(
+                    0,
+                    ...rankingComReais.map((d) =>
+                      d?.nome ? String(d.nome).length : 0
+                    )
+                  );
+                  const yAxisWidth = Math.min(
+                    200,
+                    Math.max(90, Math.ceil(maxLabelLen * 7.2))
+                  );
+
+                  return (
+                    <div style={{ height: computedHeight }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={rankingComReais}
+                          layout="vertical"
+                          margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" tick={axisTick} />
+                          <YAxis
+                            type="category"
+                            dataKey="nome"
+                            width={yAxisWidth}
+                            tick={axisTick}
+                          />
+                          <Tooltip
+                            content={<RankingTooltipContent kind="currency" />}
+                          />
+                          <Bar dataKey="variacaoPercentual" barSize={18}>
+                            {rankingComReais.map((entry, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={
+                                  entry.variacaoPercentual < 0
+                                    ? "rgb(220,38,38)"
+                                    : "rgb(22,163,74)"
+                                }
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
 
@@ -1986,105 +2060,110 @@ export const DashboardBaselineDetalhamento: React.FC<
                   Ranking da Variação dos Setores (QTD)
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart
-                    data={rankingSetores.map((setor) => {
-                      // Calcular variação em quantidade para cada setor (Atual vs Projetado)
-                      const unidadeProjetada =
-                        snapshotData.snapshot.dados.projetadoFinal?.internacao?.find(
-                          (u: any) => u.unidadeNome === setor.nome
-                        ) ||
-                        snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.find(
-                          (u: any) => u.unidadeNome === setor.nome
-                        );
+              <CardContent className="px-2 pb-4">
+                {(() => {
+                  if (!rankingSetores || rankingSetores.length === 0) {
+                    return (
+                      <div className="flex items-center justify-center h-[350px] text-muted-foreground">
+                        Dados insuficientes para análise.
+                      </div>
+                    );
+                  }
 
-                      const unidadeAtual =
-                        snapshotData.situacaoAtual?.unidades.find(
-                          (u: any) => u.unidadeNome === setor.nome
-                        );
+                  // Enriquecer com variação em quantidade
+                  const rankingComQtd = rankingSetores.map((setor) => {
+                    const unidadeProjetada =
+                      snapshotData.snapshot.dados.projetadoFinal?.internacao?.find(
+                        (u: any) => u.unidadeNome === setor.nome
+                      ) ||
+                      snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.find(
+                        (u: any) => u.unidadeNome === setor.nome
+                      );
 
-                      let qtdAtual = 0;
-                      let qtdProjetada = 0;
-                      let custoAtual = 0;
-                      let custoProjetado = 0;
+                    const unidadeAtual =
+                      snapshotData.situacaoAtual?.unidades.find(
+                        (u: any) => u.unidadeNome === setor.nome
+                      );
 
-                      if (unidadeAtual) {
-                        qtdAtual = unidadeAtual.totalFuncionarios;
-                        custoAtual = unidadeAtual.custoTotal;
-                      }
+                    let qtdAtual = 0;
+                    let qtdProjetada = 0;
 
-                      // Construir mapa de custos unitários
-                      const custosUnit: Record<string, number> = {};
-                      if (unidadeAtual) {
-                        unidadeAtual.cargos.forEach((cargo: any) => {
-                          custosUnit[cargo.cargoId] = cargo.custoUnitario;
+                    if (unidadeAtual) {
+                      qtdAtual = unidadeAtual.totalFuncionarios;
+                    }
+
+                    if (unidadeProjetada) {
+                      if ("cargos" in unidadeProjetada) {
+                        unidadeProjetada.cargos.forEach((cargo: any) => {
+                          qtdProjetada += cargo.projetadoFinal;
+                        });
+                      } else if ("sitios" in unidadeProjetada) {
+                        unidadeProjetada.sitios.forEach((sitio: any) => {
+                          sitio.cargos.forEach((cargo: any) => {
+                            qtdProjetada += cargo.projetadoFinal;
+                          });
                         });
                       }
+                    }
 
-                      if (unidadeProjetada) {
-                        if ("cargos" in unidadeProjetada) {
-                          unidadeProjetada.cargos.forEach((cargo: any) => {
-                            qtdProjetada += cargo.projetadoFinal;
-                            custoProjetado +=
-                              (custosUnit[cargo.cargoId] || 0) *
-                              cargo.projetadoFinal;
-                          });
-                        } else if ("sitios" in unidadeProjetada) {
-                          unidadeProjetada.sitios.forEach((sitio: any) => {
-                            sitio.cargos.forEach((cargo: any) => {
-                              qtdProjetada += cargo.projetadoFinal;
-                              custoProjetado +=
-                                (custosUnit[cargo.cargoId] || 0) *
-                                cargo.projetadoFinal;
-                            });
-                          });
-                        }
-                      }
+                    return {
+                      nome: setor.nome,
+                      variacaoPercentual: setor.variacaoPercentual,
+                      variacaoQtd: qtdProjetada - qtdAtual,
+                    };
+                  });
 
-                      return {
-                        nome: setor.nome,
-                        variacaoQtd: qtdProjetada - qtdAtual,
-                        variacaoReais: custoProjetado - custoAtual,
-                      };
-                    })}
-                    layout="vertical"
-                    margin={{ left: 100 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis type="category" dataKey="nome" width={90} />
-                    <Tooltip
-                      formatter={(value: any, name: any, props: any) => {
-                        if (name === "variacaoQtd") {
-                          const variacaoReais = props.payload.variacaoReais;
-                          return [
-                            `${value} funcionários (${
-                              variacaoReais >= 0 ? "+" : ""
-                            }R$ ${variacaoReais.toLocaleString("pt-BR", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })})`,
-                            "Variação",
-                          ];
-                        }
-                        return [value, name];
-                      }}
-                    />
-                    <Bar dataKey="variacaoQtd">
-                      {rankingSetores.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={
-                            entry.variacaoPercentual < 0
-                              ? "rgb(220,38,38)"
-                              : "rgb(22,163,74)"
-                          }
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                  const computedHeight = Math.min(
+                    560,
+                    Math.max(380, rankingComQtd.length * 44)
+                  );
+                  const maxLabelLen = Math.max(
+                    0,
+                    ...rankingComQtd.map((d) =>
+                      d?.nome ? String(d.nome).length : 0
+                    )
+                  );
+                  const yAxisWidth = Math.min(
+                    200,
+                    Math.max(90, Math.ceil(maxLabelLen * 7.2))
+                  );
+
+                  return (
+                    <div style={{ height: computedHeight }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={rankingComQtd}
+                          layout="vertical"
+                          margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" tick={axisTick} />
+                          <YAxis
+                            type="category"
+                            dataKey="nome"
+                            width={yAxisWidth}
+                            tick={axisTick}
+                          />
+                          <Tooltip
+                            content={<RankingTooltipContent kind="people" />}
+                          />
+                          <Bar dataKey="variacaoPercentual" barSize={18}>
+                            {rankingComQtd.map((entry, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={
+                                  entry.variacaoPercentual < 0
+                                    ? "rgb(220,38,38)"
+                                    : "rgb(22,163,74)"
+                                }
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
 
@@ -2227,12 +2306,6 @@ export const DashboardBaselineDetalhamento: React.FC<
               </CardHeader>
               <CardContent>
                 {(() => {
-                  console.log("🎨 [Occupation Render]", {
-                    loadingOccupation,
-                    temOccupationData: !!occupationData,
-                    occupationData,
-                    selectedSector,
-                  });
                   return null;
                 })()}
                 {loadingOccupation ? (
@@ -2295,13 +2368,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                             name === "taxaOcupacao"
                               ? "Taxa de Ocupação"
                               : "Taxa Máxima Atendível";
-                          console.log("📊 [Gráfico Taxa Ocupação]", {
-                            selectedSector,
-                            value,
-                            name,
-                            label,
-                            occupationData,
-                          });
+
                           return [`${Number(value).toFixed(1)}%`, label];
                         }}
                       />
@@ -2949,15 +3016,6 @@ export const DashboardBaselineDetalhamento: React.FC<
                         { atual: number; baseline: number; projetado: number }
                       >();
 
-                      console.log(
-                        "🎯 [Comparativo por Cargo] Dados disponíveis:",
-                        {
-                          baseline: snapshotData.snapshot.dados,
-                          projetado: snapshotData.snapshot.dados.projetadoFinal,
-                          atual: snapshotData.situacaoAtual,
-                        }
-                      );
-
                       // Processar dados do Baseline (Internação)
                       snapshotData.snapshot.dados.internation?.forEach(
                         (unidade: any) => {
@@ -3148,19 +3206,6 @@ export const DashboardBaselineDetalhamento: React.FC<
                               item.Projetado > 0)
                         )
                         .sort((a, b) => b.Projetado - a.Projetado);
-
-                      console.log(
-                        "🎯 [Comparativo por Cargo] Array final:",
-                        comparativoArray
-                      );
-                      console.log(
-                        "🎯 [Comparativo por Cargo] Total de cargos:",
-                        comparativoArray.length
-                      );
-                      console.log(
-                        "🎯 [Comparativo por Cargo] Map completo:",
-                        Array.from(cargoComparativo.entries())
-                      );
 
                       return comparativoArray;
                     })()}

@@ -9,6 +9,8 @@ import {
   getProjetadoFinalInternacao,
   type AnaliseInternacaoResponse,
   saveControlePeriodo,
+  getTaxaOcupacaoCustomizadaByUnidadeId,
+  saveTaxaOcupacaoCustomizada,
 } from "@/lib/api";
 import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import {
@@ -185,6 +187,8 @@ export default function ProjetadoTab({
     dateRange?.inicio ?? ""
   );
   const [dataFinal, setDataFinal] = useState<string>(dateRange?.fim ?? "");
+  const [taxaOcupacaoCustom, setTaxaOcupacaoCustom] = useState<string>("");
+  const [savingTaxaOcupacao, setSavingTaxaOcupacao] = useState(false);
   const [travado, setTravado] = useState<boolean>(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [hideCalculoFields, setHideCalculoFields] = useState(false);
@@ -202,6 +206,82 @@ export default function ProjetadoTab({
     setDataInicial(dateRange?.inicio ?? "");
     setDataFinal(dateRange?.fim ?? "");
   }, [dateRange?.inicio, dateRange?.fim]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchTaxaCustomizada = async () => {
+      try {
+        const saved = await getTaxaOcupacaoCustomizadaByUnidadeId(unidade.id);
+        if (cancelled) return;
+        if (
+          saved &&
+          typeof saved.taxa === "number" &&
+          Number.isFinite(saved.taxa)
+        ) {
+          setTaxaOcupacaoCustom(String(saved.taxa));
+        }
+      } catch {
+        // silencioso
+      }
+    };
+
+    fetchTaxaCustomizada();
+    return () => {
+      cancelled = true;
+    };
+  }, [unidade.id]);
+
+  const parseTaxaOcupacao = () => {
+    const raw = taxaOcupacaoCustom.trim();
+    if (!raw) return { value: null as number | null, valid: true };
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 0 || n > 100) {
+      return { value: null as number | null, valid: false };
+    }
+    return { value: n, valid: true };
+  };
+
+  const persistTaxaOcupacao = async (opts?: { silent?: boolean }) => {
+    const { value, valid } = parseTaxaOcupacao();
+    if (!valid) {
+      if (!opts?.silent) {
+        showAlert(
+          "destructive",
+          "Taxa inválida",
+          "Informe a taxa de ocupação entre 0 e 100 (em %)."
+        );
+      }
+      return false;
+    }
+
+    // se vazio, não salva (não existe rota de delete definida)
+    if (value === null) return true;
+
+    try {
+      setSavingTaxaOcupacao(true);
+      const saved = await saveTaxaOcupacaoCustomizada({
+        unidadeId: unidade.id,
+        taxa: value,
+      });
+      setTaxaOcupacaoCustom(String(saved?.taxa ?? value));
+      if (!opts?.silent) {
+        showAlert("success", "Salvo", "Taxa de ocupação atualizada.");
+      }
+      return true;
+    } catch {
+      if (!opts?.silent) {
+        showAlert(
+          "destructive",
+          "Erro",
+          "Não foi possível salvar a taxa de ocupação."
+        );
+      }
+      return false;
+    } finally {
+      setSavingTaxaOcupacao(false);
+    }
+  };
 
   const handleCalcular = async () => {
     const hasInicio = Boolean(dataInicial);
@@ -236,6 +316,10 @@ export default function ProjetadoTab({
 
     try {
       setIsCalculating(true);
+
+      const okTaxa = await persistTaxaOcupacao({ silent: true });
+      if (!okTaxa) return;
+
       const resp = await getAnaliseInternacao(unidade.id, {
         inicio: dataInicial,
         fim: dataFinal,
@@ -280,10 +364,12 @@ export default function ProjetadoTab({
     const fetchData = async () => {
       setLoading(true);
       try {
-        const analiseData = await getAnaliseInternacao(
-          unidade.id,
-          dateRange && dateRange.inicio && dateRange.fim ? dateRange : undefined
-        );
+        const params =
+          dateRange && dateRange.inicio && dateRange.fim
+            ? dateRange
+            : undefined;
+
+        const analiseData = await getAnaliseInternacao(unidade.id, params);
 
         if (analiseData) {
           setAnalise(analiseData);
@@ -537,7 +623,7 @@ export default function ProjetadoTab({
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1">
                   <div className="flex flex-col">
                     <label className="text-sm text-gray-600 mb-1">
                       Data inicial
@@ -562,12 +648,29 @@ export default function ProjetadoTab({
                       className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
+                  <div className="flex flex-col">
+                    <label className="text-sm text-gray-600 mb-1">
+                      Taxa de ocupação (%)
+                    </label>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      placeholder="Ex.: 85"
+                      value={taxaOcupacaoCustom}
+                      onChange={(e) => setTaxaOcupacaoCustom(e.target.value)}
+                      disabled={temStatusConclusao || savingTaxaOcupacao}
+                      className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
                 </div>
                 {!temStatusConclusao && (
                   <div className="flex justify-end">
                     <button
                       onClick={handleCalcular}
-                      disabled={isCalculating}
+                      disabled={isCalculating || savingTaxaOcupacao}
                       className="w-full sm:w-auto px-5 py-2.5 h-11 bg-secondary text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-60"
                     >
                       {isCalculating ? "Calculando..." : "Calcular"}
@@ -649,11 +752,95 @@ export default function ProjetadoTab({
                       <p className="text-2xl font-bold tracking-tight text-primary">
                         {(() => {
                           const ag = analise?.agregados as any;
-                          const v = ag?.taxaOcupacaoPeriodoPercent;
+                          const v =
+                            ag?.taxaOcupacaoPeriodoPercent ??
+                            ag?.taxaOcupacaoMensalPercent;
                           if (v === undefined || v === null) return "-";
                           return `${Number(v).toFixed(1)}%`;
                         })()}
                       </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      <Card className="border bg-white">
+                        <CardContent className="pt-4 pb-4 text-center">
+                          <p className="text-sm font-semibold text-muted-foreground">
+                            Constante de Marinho (Enfermeiro)
+                          </p>
+                          <p className="mt-1 text-xl font-bold tracking-tight text-primary">
+                            {(() => {
+                              const ag = analise?.agregados as any;
+                              const v = ag?.kmEnfermeiro;
+                              if (v === undefined || v === null) return "-";
+                              return Number(v).toLocaleString("pt-BR", {
+                                minimumFractionDigits: 3,
+                                maximumFractionDigits: 3,
+                              });
+                            })()}
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="border bg-white">
+                        <CardContent className="pt-4 pb-4 text-center">
+                          <p className="text-sm font-semibold text-muted-foreground">
+                            Constante de Marinho (Técnico)
+                          </p>
+                          <p className="mt-1 text-xl font-bold tracking-tight text-primary">
+                            {(() => {
+                              const ag = analise?.agregados as any;
+                              const v = ag?.kmTecnico;
+                              if (v === undefined || v === null) return "-";
+                              return Number(v).toLocaleString("pt-BR", {
+                                minimumFractionDigits: 3,
+                                maximumFractionDigits: 3,
+                              });
+                            })()}
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="border bg-white">
+                        <CardContent className="pt-4 pb-4 text-center">
+                          <p className="text-sm font-semibold text-muted-foreground">
+                            Percentual Enfermeiro
+                          </p>
+                          <p className="mt-1 text-xl font-bold tracking-tight text-primary">
+                            {(() => {
+                              const ag = analise?.agregados as any;
+                              const enf =
+                                ag?.percentualEnfermeiroPercent ??
+                                (typeof ag?.percentualEnfermeiro === "number"
+                                  ? ag.percentualEnfermeiro * 100
+                                  : null);
+                              if (enf === null) return "-";
+                              return `${Number(enf).toFixed(0)}%`;
+                            })()}
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="border bg-white">
+                        <CardContent className="pt-4 pb-4 text-center">
+                          <p className="text-sm font-semibold text-muted-foreground">
+                            Percentual Técnico
+                          </p>
+                          <p className="mt-1 text-xl font-bold tracking-tight text-primary">
+                            {(() => {
+                              const ag = analise?.agregados as any;
+                              const tec =
+                                ag?.percentualTecnicoPercent ??
+                                (typeof ag?.percentualTecnico === "number"
+                                  ? ag.percentualTecnico * 100
+                                  : null);
+                              if (tec === null) return "-";
+                              return `${Number(tec).toFixed(0)}%`;
+                            })()}
+                          </p>
+                        </CardContent>
+                      </Card>
                     </div>
                   </div>
                 </div>

@@ -15,8 +15,14 @@ interface UserPayload {
   id: string;
   nome: string;
   mustChangePassword?: boolean;
-  // O token pode ter 'tipo' (admin global) ou 'role' (outros)
-  tipo?: "ADMIN";
+  // O token pode ter 'tipo' (novo/granular) e/ou 'role' (compat)
+  tipo?:
+    | "ADMIN"
+    | "GESTOR_ESTRATEGICO"
+    | "GESTOR_TATICO"
+    | "AVALIADOR"
+    | "CONSULTOR"
+    | "COMUM";
   role?: "ADMIN" | "GESTOR" | "COMUM";
   // Propriedade unificada para facilitar o uso no frontend
   appRole?: "ADMIN" | "GESTOR" | "COMUM";
@@ -60,15 +66,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const expiresAt = user.exp;
       const timeUntilExpiration = expiresAt - now;
 
-      console.log(
-        `🕐 Token expira em ${Math.floor(
-          timeUntilExpiration / 60
-        )} minutos (${new Date(expiresAt * 1000).toLocaleTimeString()})`
-      );
-
       // Se o token já está expirado
       if (timeUntilExpiration <= 0) {
-        console.warn("⚠️ Token já expirado. Deslogando...");
+        console.warn("Token já expirado. Deslogando...");
         logout();
         return;
       }
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (timeUntilWarning > 0) {
         warningTimeoutId = setTimeout(() => {
-          console.warn("⚠️ Mostrando aviso: 2 minutos para expiração");
+          console.warn("Mostrando aviso: 2 minutos para expiração");
           showAlert(
             "destructive",
             "Sessão Expirando",
@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (timeUntilLogout > 0) {
         logoutTimeoutId = setTimeout(() => {
-          console.warn("⚠️ Token expirado. Deslogando...");
+          console.warn("Token expirado. Deslogando...");
           showAlert(
             "destructive",
             "Sessão Expirada",
@@ -128,7 +128,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (decoded.exp) {
           const now = Math.floor(Date.now() / 1000);
           if (decoded.exp <= now) {
-            console.warn("⚠️ Token expirado ao carregar. Limpando sessão...");
+            console.warn("Token expirado ao carregar. Limpando sessão...");
             setToken(null);
             setUser(null);
             localStorage.removeItem("authToken");
@@ -139,11 +139,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // Unifica o papel do usuário em uma única propriedade 'appRole'
+        // Preferir o tipo granular quando disponível; manter role como fallback.
         let finalRole: UserPayload["appRole"] = "COMUM";
-        if (decoded.role === "ADMIN") {
+
+        if (decoded.tipo === "ADMIN") {
+          finalRole = "ADMIN";
+        } else if (
+          decoded.tipo === "GESTOR_ESTRATEGICO" ||
+          decoded.tipo === "GESTOR_TATICO"
+        ) {
+          finalRole = "GESTOR";
+        } else if (decoded.role === "ADMIN") {
           finalRole = "ADMIN";
         } else if (decoded.role === "GESTOR") {
-          finalRole = "GESTOR"; // Tratando admin de hospital como gestor
+          finalRole = "GESTOR";
         }
 
         const finalUser = { ...decoded, appRole: finalRole };
@@ -173,10 +182,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (decoded.mustChangePassword) {
           navigate("/change-password");
-        } else if (decoded.role === "ADMIN") {
+        } else if (decoded.tipo === "ADMIN" || decoded.role === "ADMIN") {
           // Admin global vai para a gestão de hospitais
           navigate("/admin/hospitais");
-        } else if (decoded.role === "GESTOR") {
+        } else if (
+          decoded.tipo === "GESTOR_ESTRATEGICO" ||
+          decoded.tipo === "GESTOR_TATICO" ||
+          decoded.role === "GESTOR"
+        ) {
           // Gestor deve ir para o dashboard do seu hospital
           const hospId = decoded.hospital?.id;
           if (hospId) {
@@ -211,8 +224,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Redirecionar para login
     navigate("/login");
-
-    console.log("✅ Logout realizado - Token e dados limpos");
   };
 
   const value = {

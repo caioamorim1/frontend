@@ -57,6 +57,7 @@ export default function SetoresPage() {
     "internacao" | "nao-internacao" | "neutro" | null
   >(null);
   const [editingUnidade, setEditingUnidade] = useState<Unidade | null>(null);
+  const [isConvertingNeutral, setIsConvertingNeutral] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Estados para os formulários
@@ -75,7 +76,7 @@ export default function SetoresPage() {
       await fetchData();
       showAlert("success", "Sucesso", "Baseline gerada com sucesso.");
     } catch (error: any) {
-      console.error("❌ Erro ao criar snapshot:", error);
+      console.error(" Erro ao criar snapshot:", error);
 
       // Verifica se é o erro de setores pendentes
       if (error?.response?.data?.setoresPendentes) {
@@ -153,6 +154,7 @@ export default function SetoresPage() {
     setTipoUnidade(null);
     setIsFormVisible(false);
     setEditingUnidade(null);
+    setIsConvertingNeutral(false);
   };
 
   const handleAddNew = () => {
@@ -165,6 +167,7 @@ export default function SetoresPage() {
     setEditingUnidade(unidade);
     setTipoUnidade(unidade.tipo);
     setNome(unidade.nome);
+    setIsConvertingNeutral(false);
 
     if (unidade.tipo === "internacao") {
       setNumeroLeitos(unidade.leitos?.length || 0);
@@ -182,13 +185,63 @@ export default function SetoresPage() {
     setIsFormVisible(true);
   };
 
+  const handleNeutralEditModeChange = (
+    mode: "neutro" | "internacao" | "nao-internacao"
+  ) => {
+    setIsConvertingNeutral(mode !== "neutro");
+    setTipoUnidade(mode);
+
+    // When converting, clear fields that must be explicitly provided.
+    if (mode === "internacao") {
+      setNumeroLeitos(0);
+      setScpMetodoId("");
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!hospitalId || !tipoUnidade) return;
 
     try {
       if (editingUnidade) {
-        if (tipoUnidade === "internacao") {
+        // Special case: converting a NEUTRO sector into a different type.
+        if (editingUnidade.tipo === "neutro" && isConvertingNeutral) {
+          if (tipoUnidade === "internacao") {
+            if (!scpMetodoId || scpMetodoId.trim() === "") {
+              showAlert(
+                "destructive",
+                "Erro",
+                "Selecione um método SCP para unidades de internação."
+              );
+              return;
+            }
+
+            await createUnidadeInternacao({
+              hospitalId,
+              nome,
+              numeroLeitos,
+              scpMetodoId,
+              horas_extra_reais: "0.00",
+              horas_extra_projetadas: "0",
+              cargos_unidade: [],
+            });
+          } else if (tipoUnidade === "nao-internacao") {
+            await createUnidadeNaoInternacao({
+              hospitalId,
+              nome,
+              descricao,
+              horas_extra_reais: "0.00",
+              horas_extra_projetadas: "0",
+              cargos_unidade: [],
+            });
+          } else {
+            // Shouldn't happen because convertingNeutral implies non-neutro.
+            return;
+          }
+
+          // Delete the original neutral sector only after successful creation.
+          await deleteUnidadeNeutra(editingUnidade.id);
+        } else if (tipoUnidade === "internacao") {
           // Must have an SCP method selected for internacao
           if (!scpMetodoId || scpMetodoId.trim() === "") {
             showAlert(
@@ -307,7 +360,10 @@ export default function SetoresPage() {
       (unidade.tipo === "internacao" && "internação".includes(search)) ||
       (unidade.tipo === "nao-internacao" &&
         "não internação".includes(search)) ||
-      (unidade.tipo === "neutro" && "neutro".includes(search))
+      (unidade.tipo === "neutro" &&
+        ("a dimensionar".includes(search) ||
+          "dimensionar".includes(search) ||
+          "neutro".includes(search)))
     );
   });
 
@@ -341,7 +397,9 @@ export default function SetoresPage() {
           <CardHeader>
             <CardTitle>
               {editingUnidade
-                ? `Editando Setor`
+                ? editingUnidade.tipo === "neutro" && isConvertingNeutral
+                  ? "Convertendo Setor a dimensionar"
+                  : `Editando Setor`
                 : !tipoUnidade
                 ? "Qual tipo de setor deseja criar?"
                 : `Adicionar Novo Setor`}
@@ -372,7 +430,7 @@ export default function SetoresPage() {
                   className="flex-1 h-24 flex-col"
                 >
                   <DollarSign className="h-8 w-8 text-secondary mb-2" />
-                  <span>Setor Neutro</span>
+                  <span>Setor a dimensionar</span>
                 </Button>
               </div>
             ) : (
@@ -390,6 +448,40 @@ export default function SetoresPage() {
                   />
                 </div>
 
+                {editingUnidade?.tipo === "neutro" && (
+                  <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                    <div className="text-sm font-medium text-gray-800">
+                      Converter Setor
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        type="button"
+                        variant={
+                          tipoUnidade === "internacao" ? "default" : "outline"
+                        }
+                        onClick={() =>
+                          handleNeutralEditModeChange("internacao")
+                        }
+                      >
+                        Converter para Internação
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={
+                          tipoUnidade === "nao-internacao"
+                            ? "default"
+                            : "outline"
+                        }
+                        onClick={() =>
+                          handleNeutralEditModeChange("nao-internacao")
+                        }
+                      >
+                        Converter para Não Internação
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {tipoUnidade === "internacao" && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -404,7 +496,7 @@ export default function SetoresPage() {
                         }
                         placeholder="0"
                         required
-                        disabled={!!editingUnidade}
+                        disabled={!!editingUnidade && !isConvertingNeutral}
                         className="mt-1"
                       />
                     </div>
@@ -433,11 +525,13 @@ export default function SetoresPage() {
                     </div>
                   </div>
                 )}
-                {editingUnidade && tipoUnidade === "internacao" && (
-                  <p className="text-xs text-gray-500 -mt-2">
-                    O número de leitos não pode ser alterado na edição.
-                  </p>
-                )}
+                {editingUnidade &&
+                  tipoUnidade === "internacao" &&
+                  !isConvertingNeutral && (
+                    <p className="text-xs text-gray-500 -mt-2">
+                      O número de leitos não pode ser alterado na edição.
+                    </p>
+                  )}
 
                 {tipoUnidade === "nao-internacao" && (
                   <div>
@@ -487,7 +581,11 @@ export default function SetoresPage() {
                     {editingUnidade ? "Cancelar Edição" : "Voltar"}
                   </Button>
                   <Button type="submit">
-                    {editingUnidade ? "Salvar Alterações" : "Salvar Setor"}
+                    {editingUnidade
+                      ? isConvertingNeutral
+                        ? "Salvar Conversão"
+                        : "Salvar Alterações"
+                      : "Salvar Setor"}
                   </Button>
                 </div>
               </form>
@@ -529,7 +627,7 @@ export default function SetoresPage() {
                             ? "Internação"
                             : unidade.tipo === "nao-internacao"
                             ? "Não Internação"
-                            : "Neutro"}
+                            : "A dimensionar"}
                         </span>
                       </TableCell>
                       <TableCell className="text-right space-x-2">

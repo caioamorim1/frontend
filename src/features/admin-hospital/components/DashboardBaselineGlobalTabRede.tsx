@@ -27,6 +27,8 @@ export type BaselineRankingItemRede = {
   variacaoReais?: number;
 };
 
+type RankingTooltipKind = "currency" | "people";
+
 const toNumber = (value: unknown, fallback = 0) => {
   const n = typeof value === "number" ? value : Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -139,6 +141,63 @@ const computeRankingsFromHospitais = (
   rankingQuantidade.sort((a, b) => a.variacaoPercentual - b.variacaoPercentual);
 
   return { rankingCusto, rankingQuantidade };
+};
+
+const formatPctPtBr = (value: number) =>
+  `${value.toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`;
+
+const formatCurrencyPtBr = (value: number) =>
+  `R$ ${value.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+const RankingTooltipContent: React.FC<
+  {
+    kind: RankingTooltipKind;
+  } & {
+    active?: boolean;
+    payload?: any[];
+  }
+> = ({ kind, active, payload }) => {
+  if (!active || !Array.isArray(payload) || payload.length === 0) return null;
+
+  const entry = payload?.[0]?.payload as BaselineRankingItemRede | undefined;
+  if (!entry) return null;
+
+  const pct = toNumber(entry.variacaoPercentual, 0);
+  const rawDelta =
+    entry.variacaoReais !== undefined
+      ? toNumber(entry.variacaoReais, 0)
+      : undefined;
+
+  const deltaLabel =
+    rawDelta === undefined
+      ? "--"
+      : kind === "currency"
+      ? formatCurrencyPtBr(rawDelta)
+      : `${rawDelta.toLocaleString("pt-BR", {
+          maximumFractionDigits: 0,
+        })}`;
+
+  return (
+    <div className="rounded-md border bg-background px-3 py-2 shadow-sm">
+      <div className="text-sm font-medium text-foreground">
+        {String(entry.nome ?? "-")}
+      </div>
+      <div className="mt-1 text-sm text-muted-foreground">
+        Percentual:{" "}
+        <span className="text-foreground">{formatPctPtBr(pct)}</span>
+      </div>
+      <div className="text-sm text-muted-foreground">
+        {kind === "currency" ? "Monetário" : "Quantidade"}:{" "}
+        <span className="text-foreground">{deltaLabel}</span>
+      </div>
+    </div>
+  );
 };
 
 export const DashboardBaselineGlobalTabRede: React.FC<{
@@ -390,6 +449,128 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
       ? rankingQuantidadeFromPayload
       : computedFromHospitais.rankingQuantidade;
 
+  const formatAbsCurrency = (value: number) => {
+    if (!Number.isFinite(value)) return "--";
+    return `R$ ${Math.abs(value).toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
+  const formatAbsInt = (value: number) => {
+    if (!Number.isFinite(value)) return "--";
+    return `${Math.abs(Math.round(value)).toLocaleString("pt-BR")}`;
+  };
+
+  const formatSignedInt = (value: number) => {
+    if (!Number.isFinite(value)) return "--";
+    const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+    return `${sign}${Math.abs(Math.round(value)).toLocaleString("pt-BR")}`;
+  };
+
+  const desvioFinanceiroReais = toNumber(variacaoCustoReaisResolved, 0);
+  const desvioFinanceiroPct = toNumber(variacaoCustoPercentualResolved, 0);
+  const desvioFuncionarios = toNumber(variacaoQuantidadeResolved, 0);
+  const desvioFuncionariosPct = toNumber(variacaoQuantidadePercentual, 0);
+
+  const hospitalMaiorDesvio =
+    rankingCustoResolved && rankingCustoResolved.length > 0
+      ? rankingCustoResolved.reduce((best, cur) => {
+          const bestHasReais = typeof best?.variacaoReais === "number";
+          const curHasReais = typeof cur?.variacaoReais === "number";
+
+          const bestScore = bestHasReais
+            ? Math.abs(toNumber(best.variacaoReais, 0))
+            : Math.abs(toNumber(best?.variacaoPercentual, 0));
+          const curScore = curHasReais
+            ? Math.abs(toNumber(cur.variacaoReais, 0))
+            : Math.abs(toNumber(cur?.variacaoPercentual, 0));
+
+          return curScore > bestScore ? cur : best;
+        })
+      : undefined;
+
+  type CargoVariacaoItem = {
+    cargoNome?: string;
+    cargo?: string;
+    nome?: string;
+    variacaoReais?: number;
+    variacaoCustoReais?: number;
+    variacaoQtd?: number;
+    variacaoQuantidade?: number;
+    qtdVariacao?: number;
+    variacao?: number;
+  };
+
+  const cargoMaiorDesvio = (() => {
+    const hospitaisList = Array.isArray(globalData?.hospitais)
+      ? (globalData?.hospitais as any[])
+      : [];
+
+    const cargoMap = new Map<
+      string,
+      { nome: string; variacaoCustoReais: number; variacaoQtd: number }
+    >();
+
+    for (const h of hospitaisList) {
+      const itens: CargoVariacaoItem[] =
+        (h?.detalhamento?.variacoesPorCargo?.itens as CargoVariacaoItem[]) ||
+        (h?.variacoesPorCargo?.itens as CargoVariacaoItem[]) ||
+        (h?.detalhamento?.variacoesCargo?.itens as CargoVariacaoItem[]) ||
+        [];
+
+      if (!Array.isArray(itens) || itens.length === 0) continue;
+
+      for (const it of itens) {
+        const nome = String(it?.cargoNome ?? it?.cargo ?? it?.nome ?? "-");
+        if (!nome || nome === "-") continue;
+
+        const variacaoCustoReais =
+          toNumber(
+            it?.variacaoCustoReais ??
+              it?.variacaoReais ??
+              (it as any)?.custoVariacao,
+            0
+          ) || 0;
+
+        const variacaoQtd =
+          toNumber(
+            it?.variacaoQtd ??
+              it?.variacaoQuantidade ??
+              it?.qtdVariacao ??
+              (it as any)?.quantidadeVariacao ??
+              it?.variacao,
+            0
+          ) || 0;
+
+        const prev = cargoMap.get(nome) || {
+          nome,
+          variacaoCustoReais: 0,
+          variacaoQtd: 0,
+        };
+
+        prev.variacaoCustoReais += variacaoCustoReais;
+        prev.variacaoQtd += variacaoQtd;
+        cargoMap.set(nome, prev);
+      }
+    }
+
+    const aggregated = Array.from(cargoMap.values());
+    if (aggregated.length === 0) return undefined;
+
+    return aggregated.reduce((best, cur) => {
+      const bestAbsCusto = Math.abs(toNumber(best?.variacaoCustoReais, 0));
+      const curAbsCusto = Math.abs(toNumber(cur?.variacaoCustoReais, 0));
+      if (curAbsCusto !== bestAbsCusto) {
+        return curAbsCusto > bestAbsCusto ? cur : best;
+      }
+
+      const bestAbsQtd = Math.abs(toNumber(best?.variacaoQtd, 0));
+      const curAbsQtd = Math.abs(toNumber(cur?.variacaoQtd, 0));
+      return curAbsQtd > bestAbsQtd ? cur : best;
+    });
+  })();
+
   const axisTick = {
     fontSize: 12,
     fill: "hsl(var(--muted-foreground))",
@@ -398,7 +579,7 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
   const renderRanking = (
     _title: string,
     data: BaselineRankingItemRede[],
-    tooltipFormatter: (value: any, name: string, props: any) => any
+    tooltipKind: RankingTooltipKind
   ) => {
     if (!data || data.length === 0) {
       return (
@@ -434,7 +615,7 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
               width={yAxisWidth}
               tick={axisTick}
             />
-            <Tooltip formatter={tooltipFormatter} />
+            <Tooltip content={<RankingTooltipContent kind={tooltipKind} />} />
             <Bar dataKey="variacaoPercentual" barSize={18}>
               {data.map((entry, index) => (
                 <Cell
@@ -575,6 +756,73 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
         </Card>
       </div>
 
+      {/* Cards resumo (acima dos rankings) */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <InfoCard
+          title="Desvio Financeiro"
+          value={formatAbsCurrency(desvioFinanceiroReais)}
+          subtitle={formatArrowPct(desvioFinanceiroReais, desvioFinanceiroPct)}
+          icon={icons.variacao}
+          variant="warning"
+        />
+
+        <InfoCard
+          title="Desvio de Funcionários"
+          value={formatAbsInt(desvioFuncionarios)}
+          subtitle={formatArrowPct(desvioFuncionarios, desvioFuncionariosPct)}
+          icon={icons.variacao}
+          variant="warning"
+        />
+
+        <InfoCard
+          title="Hospital com Maior Desvio"
+          value={
+            hospitalMaiorDesvio?.variacaoReais !== undefined
+              ? formatAbsCurrency(
+                  toNumber(hospitalMaiorDesvio.variacaoReais, 0)
+                )
+              : hospitalMaiorDesvio
+              ? `${Math.abs(
+                  toNumber(hospitalMaiorDesvio.variacaoPercentual, 0)
+                ).toLocaleString("pt-BR", {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1,
+                })}%`
+              : "--"
+          }
+          subtitle={
+            hospitalMaiorDesvio
+              ? `${hospitalMaiorDesvio.nome} • ${formatArrowPct(
+                  toNumber(hospitalMaiorDesvio.variacaoReais, 0),
+                  toNumber(hospitalMaiorDesvio.variacaoPercentual, 0)
+                )}`
+              : "Dados insuficientes"
+          }
+          icon={icons.atual}
+          variant="primary"
+        />
+
+        <InfoCard
+          title="Cargo com Maior Desvio"
+          value={
+            cargoMaiorDesvio
+              ? formatAbsCurrency(
+                  toNumber(cargoMaiorDesvio.variacaoCustoReais, 0)
+                )
+              : "--"
+          }
+          subtitle={
+            cargoMaiorDesvio
+              ? `${cargoMaiorDesvio.nome} • ${formatSignedInt(
+                  toNumber(cargoMaiorDesvio.variacaoQtd, 0)
+                )} funcionários`
+              : "Dados insuficientes"
+          }
+          icon={icons.funcionarios}
+          variant="primary"
+        />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
@@ -586,16 +834,7 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
             {renderRanking(
               "Ranking da Variação dos Hospitais (R$) (%)",
               rankingCustoResolved,
-              (value: any, _name: string, props: any) => {
-                const variacaoReais = props?.payload?.variacaoReais;
-                if (typeof variacaoReais === "number") {
-                  return `R$ ${variacaoReais.toLocaleString("pt-BR", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}`;
-                }
-                return `${Number(value).toFixed(1)}%`;
-              }
+              "currency"
             )}
           </CardContent>
         </Card>
@@ -610,7 +849,7 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
             {renderRanking(
               "Ranking da Variação dos Hospitais (Qtd) (%)",
               rankingQuantidadeResolved,
-              (value: any) => `${Number(value).toFixed(1)}%`
+              "people"
             )}
           </CardContent>
         </Card>

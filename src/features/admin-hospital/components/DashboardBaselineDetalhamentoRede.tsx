@@ -98,28 +98,20 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
 
   // Buscar dados de ocupação
   useEffect(() => {
-    console.log("🔍 [Occupation] useEffect disparado", {
-      hospitalId,
-      temHospitalId: !!hospitalId,
-    });
-
     const fetchOccupationData = async () => {
       if (!hospitalId) {
-        console.log("⚠️ [Occupation] hospitalId não disponível");
         return;
       }
 
       try {
-        console.log("🔄 [Occupation] Iniciando busca...", hospitalId);
         setLoadingOccupation(true);
         const data = await getHospitalOccupationDashboard(hospitalId);
-        console.log("✅ [Occupation] Dados recebidos:", data);
+
         setOccupationData(data);
       } catch (error) {
-        console.error("❌ [Occupation Dashboard] Erro ao carregar:", error);
+        console.error("[Occupation Dashboard] Erro ao carregar:", error);
       } finally {
         setLoadingOccupation(false);
-        console.log("🏁 [Occupation] Loading finalizado");
       }
     };
 
@@ -2143,12 +2135,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
               </CardHeader>
               <CardContent>
                 {(() => {
-                  console.log("🎨 [Occupation Render]", {
-                    loadingOccupation,
-                    temOccupationData: !!occupationData,
-                    occupationData,
-                    selectedSector,
-                  });
                   return null;
                 })()}
                 {loadingOccupation ? (
@@ -2211,13 +2197,7 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                             name === "taxaOcupacao"
                               ? "Taxa de Ocupação"
                               : "Taxa Máxima Atendível";
-                          console.log("📊 [Gráfico Taxa Ocupação]", {
-                            selectedSector,
-                            value,
-                            name,
-                            label,
-                            occupationData,
-                          });
+
                           return [`${Number(value).toFixed(1)}%`, label];
                         }}
                       />
@@ -2865,15 +2845,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                         { atual: number; baseline: number; projetado: number }
                       >();
 
-                      console.log(
-                        "🎯 [Comparativo por Cargo] Dados disponíveis:",
-                        {
-                          baseline: snapshotData.snapshot.dados,
-                          projetado: snapshotData.snapshot.dados.projetadoFinal,
-                          atual: snapshotData.situacaoAtual,
-                        }
-                      );
-
                       // Processar dados do Baseline (Internação)
                       snapshotData.snapshot.dados.internation?.forEach(
                         (unidade: any) => {
@@ -3064,19 +3035,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                               item.Projetado > 0)
                         )
                         .sort((a, b) => b.Projetado - a.Projetado);
-
-                      console.log(
-                        "🎯 [Comparativo por Cargo] Array final:",
-                        comparativoArray
-                      );
-                      console.log(
-                        "🎯 [Comparativo por Cargo] Total de cargos:",
-                        comparativoArray.length
-                      );
-                      console.log(
-                        "🎯 [Comparativo por Cargo] Map completo:",
-                        Array.from(cargoComparativo.entries())
-                      );
 
                       return comparativoArray;
                     })()}

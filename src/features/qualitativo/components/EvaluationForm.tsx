@@ -15,16 +15,25 @@ import {
   Evaluation,
   QualitativeCategory,
   EvaluationDTO,
+  CategoryScore,
+  QuestionScore,
 } from "../types";
 import { getListQualitativesCategories, getQuestionarios } from "@/lib/api";
 import { useAlert } from "@/contexts/AlertContext";
 import { useModal } from "@/contexts/ModalContext";
-import { calculateQuestionScoreByCategory } from "../calculate";
 import { useAuth } from "@/contexts/AuthContext";
+
+// Interface interna para manter value durante edição
+interface AnswerInternal {
+  questionId: number;
+  value: string | number | boolean;
+  observation?: string;
+  attachments?: string[];
+}
 
 interface QuestionInputRendererProps {
   question: Question;
-  answer: Answer | undefined;
+  answer: AnswerInternal | undefined;
   onAnswerChange: (
     questionId: number,
     value: string | number | boolean
@@ -567,7 +576,7 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
     questionnaireId: 0,
     questionnaire: "",
   });
-  const [answers, setAnswers] = useState<Answer[]>([]);
+  const [answers, setAnswers] = useState<AnswerInternal[]>([]);
 
   const showModalAviso = (title: string, message: string) => {
     showModal({
@@ -605,9 +614,114 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
       const questionnaire = questionnaires.find(
         (q) => q.id === editingEvaluation.questionnaireId
       );
+
       if (questionnaire) {
         setSelectedQuestionnaire(questionnaire);
-        setAnswers(editingEvaluation.answers || []);
+
+        // Criar um map de respostas salvas a partir de categories
+        const savedQuestionsMap = new Map<number, QuestionScore>();
+
+        // Verificar se o formato é o novo (answers como array de CategoryScore) ou antigo (answers com questionId)
+        if (editingEvaluation.answers && editingEvaluation.answers.length > 0) {
+          const firstItem = editingEvaluation.answers[0];
+
+          // Novo formato: answers é array de CategoryScore (tem questions)
+          if ((firstItem as any).questions) {
+            (editingEvaluation.answers as any as CategoryScore[]).forEach(
+              (category) => {
+                category.questions.forEach((question) => {
+                  savedQuestionsMap.set(question.questionId, question);
+                });
+              }
+            );
+          }
+          // Formato antigo: answers é array de Answer (tem questionId)
+          else if ((firstItem as any).questionId) {
+            (editingEvaluation.answers as Answer[]).forEach((answer) => {
+              savedQuestionsMap.set(answer.questionId, {
+                questionId: answer.questionId,
+                questionWeight: 0, // Não temos essa info no formato antigo
+                maxResponseWeight: answer.maxResponsePoints || 0,
+                selectedResponseWeight: 0,
+                questionScore: answer.responsePoints || 0,
+                observation: answer.observation,
+                attachments: answer.attachments,
+              });
+            });
+          }
+        } else if ((editingEvaluation as any).categories) {
+          // Formato com campo categories
+
+          ((editingEvaluation as any).categories as CategoryScore[]).forEach(
+            (category) => {
+              category.questions.forEach((question) => {
+                savedQuestionsMap.set(question.questionId, question);
+              });
+            }
+          );
+        }
+
+        // Criar AnswerInternal para todas as perguntas do questionário
+        const answersInternal: AnswerInternal[] = questionnaire.questions.map(
+          (question) => {
+            const savedQuestion = savedQuestionsMap.get(question.id);
+
+            if (!savedQuestion) {
+              // Pergunta não respondida - inicializar vazio
+
+              return {
+                questionId: question.id,
+                value:
+                  question.type === "sim-nao-na"
+                    ? ""
+                    : question.type === "numero"
+                    ? 0
+                    : "",
+                observation: "",
+                attachments: [],
+              };
+            }
+
+            // Converter QuestionScore salvo de volta para AnswerInternal
+            let value: string | number | boolean = "";
+
+            if (
+              question.type === "sim-nao-na" ||
+              question.type === "multipla-escolha"
+            ) {
+              // Encontrar a opção baseada no selectedResponseWeight
+              const matchingOption = question.options?.find((opt) => {
+                return (
+                  Math.abs(opt.weight - savedQuestion.selectedResponseWeight) <
+                  0.01
+                );
+              });
+              value = matchingOption?.label || "";
+            } else if (question.type === "numero") {
+              // Converter selectedResponseWeight de volta para nota 0-10
+              // selectedResponseWeight está em percentual (0-100)
+              if (savedQuestion.selectedResponseWeight > 0) {
+                value = (savedQuestion.selectedResponseWeight / 100) * 10;
+              } else {
+                value = 0;
+              }
+            } else if (question.type === "texto" || question.type === "data") {
+              // Para texto e data, não temos como recuperar o valor original
+              value = "";
+            }
+
+            const result = {
+              questionId: savedQuestion.questionId,
+              value,
+              observation: savedQuestion.observation,
+              attachments: savedQuestion.attachments,
+            };
+
+            return result;
+          }
+        );
+
+        setAnswers(answersInternal);
       }
     }
   }, [questionnaires]);
@@ -626,12 +740,14 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
       setSelectedQuestionnaire(questionnaire);
       setFormData({ ...formData, questionnaireId });
       // Inicializar respostas vazias
-      const initialAnswers: Answer[] = questionnaire.questions.map((q) => ({
-        questionId: q.id,
-        value: q.type === "sim-nao-na" ? "" : q.type === "numero" ? 0 : "",
-        observation: "",
-        attachments: [],
-      }));
+      const initialAnswers: AnswerInternal[] = questionnaire.questions.map(
+        (q) => ({
+          questionId: q.id,
+          value: q.type === "sim-nao-na" ? "" : q.type === "numero" ? 0 : "",
+          observation: "",
+          attachments: [],
+        })
+      );
       setAnswers(initialAnswers);
     }
   };
@@ -703,9 +819,165 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
     );
   };
 
+  const organizeByCategoryWithScores = (
+    questionnaire: Questionnaire,
+    answersInternal: AnswerInternal[]
+  ): CategoryScore[] => {
+    // Agrupar perguntas por categoria
+    const categoriesMap = new Map<
+      number,
+      {
+        categoryId: number;
+        categoryName: string;
+        questions: QuestionScore[];
+      }
+    >();
+
+    questionnaire.questions.forEach((question) => {
+      const answerInternal = answersInternal.find(
+        (a) => a.questionId === question.id
+      );
+
+      // Apenas processar se houver resposta
+      if (
+        !answerInternal ||
+        answerInternal.value === "" ||
+        answerInternal.value === null ||
+        answerInternal.value === undefined
+      ) {
+        return;
+      }
+
+      // Calcular peso da maior resposta possível
+      const maxResponseWeight =
+        question.options && question.options.length > 0
+          ? Math.max(...question.options.map((o) => o.weight))
+          : 100;
+
+      // Calcular peso da resposta escolhida
+      let selectedResponseWeight = 0;
+      if (
+        question.type === "sim-nao-na" ||
+        question.type === "multipla-escolha"
+      ) {
+        const selectedOption = question.options?.find(
+          (o) =>
+            o.label.toLowerCase() === String(answerInternal.value).toLowerCase()
+        );
+        selectedResponseWeight = selectedOption?.weight ?? 0;
+      } else if (
+        question.type === "numero" &&
+        typeof answerInternal.value === "number"
+      ) {
+        // Converter nota 0-10 em percentual 0-100
+        selectedResponseWeight = Math.min(
+          100,
+          Math.max(0, (answerInternal.value / 10) * 100)
+        );
+      }
+
+      // Calcular pontuação da pergunta
+      const questionScore = question.weight * selectedResponseWeight;
+
+      const questionScoreData: QuestionScore = {
+        questionId: question.id,
+        questionWeight: question.weight,
+        maxResponseWeight: maxResponseWeight,
+        selectedResponseWeight: selectedResponseWeight,
+        questionScore: parseFloat(questionScore.toFixed(2)),
+        observation: answerInternal.observation,
+        attachments: answerInternal.attachments,
+      };
+
+      // Adicionar à categoria correspondente
+      if (!categoriesMap.has(question.categoryId)) {
+        const category = categories.find((c) => c.id === question.categoryId);
+        categoriesMap.set(question.categoryId, {
+          categoryId: question.categoryId,
+          categoryName: category?.name || `Categoria ${question.categoryId}`,
+          questions: [],
+        });
+      }
+
+      categoriesMap.get(question.categoryId)!.questions.push(questionScoreData);
+    });
+
+    // Calcular totais por categoria
+    const categoryScores: CategoryScore[] = Array.from(
+      categoriesMap.values()
+    ).map((cat) => {
+      const totalScore = cat.questions.reduce(
+        (sum, q) => sum + q.questionScore,
+        0
+      );
+      const maxScore = cat.questions.reduce(
+        (sum, q) => sum + q.questionWeight * q.maxResponseWeight,
+        0
+      );
+
+      return {
+        categoryId: cat.categoryId,
+        categoryName: cat.categoryName,
+        totalScore: parseFloat(totalScore.toFixed(2)),
+        maxScore: parseFloat(maxScore.toFixed(2)),
+        questions: cat.questions,
+      };
+    });
+
+    return categoryScores;
+  };
+
+  const convertToAnswerWithPoints = (
+    answerInternal: AnswerInternal,
+    question: Question
+  ): Answer => {
+    let responsePoints = 0;
+    let maxResponsePoints = 0;
+
+    // Calcular maxResponsePoints (peso máximo da pergunta)
+    const maxOptionWeight =
+      question.options && question.options.length > 0
+        ? Math.max(...question.options.map((o) => o.weight))
+        : 100;
+    maxResponsePoints = maxOptionWeight * question.weight;
+
+    // Calcular responsePoints baseado na resposta
+    if (
+      question.type === "sim-nao-na" ||
+      question.type === "multipla-escolha"
+    ) {
+      const selectedOption = question.options?.find(
+        (o) =>
+          o.label.toLowerCase() === String(answerInternal.value).toLowerCase()
+      );
+      const optionWeight = selectedOption?.weight ?? 0;
+      responsePoints = optionWeight * question.weight;
+    } else if (
+      question.type === "numero" &&
+      typeof answerInternal.value === "number"
+    ) {
+      // Converter nota 0-10 em percentual 0-100
+      const percentual = Math.min(
+        100,
+        Math.max(0, (answerInternal.value / 10) * 100)
+      );
+      responsePoints = percentual * question.weight;
+    }
+    // Tipos "texto" e "data" não contribuem para pontuação
+
+    return {
+      questionId: answerInternal.questionId,
+      responsePoints: parseFloat(responsePoints.toFixed(2)),
+      maxResponsePoints: parseFloat(maxResponsePoints.toFixed(2)),
+      observation: answerInternal.observation,
+      attachments: answerInternal.attachments,
+    };
+  };
+
   const handleNext = () => {
     if (!formData.title.trim() || !selectedQuestionnaire) {
-      showModalAviso(
+      showAlert(
+        "destructive",
         "Informações incompletas",
         "Por favor, preencha o título e selecione um questionário."
       );
@@ -746,9 +1018,10 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
     //   return;
     // }
 
-    const calculateRate = calculateQuestionScoreByCategory(
-      selectedQuestionnaire.questions,
-      answers || []
+    // Organizar respostas por categoria com todas as informações de pontuação
+    const categoryScores = organizeByCategoryWithScores(
+      selectedQuestionnaire!,
+      answers
     );
 
     const evaluationData: EvaluationDTO = {
@@ -758,12 +1031,10 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
       status: unansweredQuestions.length > 0 ? "in-progress" : "completed",
       questionnaire: selectedQuestionnaire!.name,
       questionnaireId: selectedQuestionnaire!.id,
-      answers,
-      calculateRate: calculateRate.categories,
       sectorId: sectorId,
       hospitalId: hospitalId,
-      rate: calculateRate.totalRate,
       unidadeType: unidadeType,
+      categories: categoryScores,
     };
 
     if (editingEvaluation) {

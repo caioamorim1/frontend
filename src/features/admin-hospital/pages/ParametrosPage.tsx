@@ -62,7 +62,6 @@ export default function ParametrosPage() {
             cargaHorariaTecnico: normalizeHours(
               (data as any).cargaHorariaTecnico
             ),
-            diasSemana: onlyDigitsStr((data as any).diasSemana),
           } as any);
         } else {
           setParametros({}); // aceita null/undefined -> {} (sem parâmetros)
@@ -92,7 +91,6 @@ export default function ParametrosPage() {
 
     // Campos numéricos que devem ser inteiros (sem casas): horas e IST (%)
     const integerFields = [
-      "diasSemana",
       "cargaHorariaEnfermeiro",
       "cargaHorariaTecnico",
       "ist",
@@ -120,12 +118,6 @@ export default function ParametrosPage() {
       }
       const finalValue = parsed % 1 === 0 ? Math.trunc(parsed) : parsed;
       setParametros((prev) => ({ ...prev, [name]: finalValue }));
-      return;
-    }
-
-    if (name === "diasSemana") {
-      const onlyDigits = value.replace(/\D/g, "");
-      setParametros((prev) => ({ ...prev, diasSemana: onlyDigits }));
       return;
     }
 
@@ -162,11 +154,8 @@ export default function ParametrosPage() {
           parametros.cargaHorariaTecnico !== null
             ? Number(parametros.cargaHorariaTecnico as any)
             : undefined,
-        // diasSemana no DTO é string; mantém como string
-        diasSemana:
-          parametros.diasSemana !== undefined && parametros.diasSemana !== null
-            ? String(parametros.diasSemana as any)
-            : undefined,
+        // diasSemana sempre 7 (padrão)
+        diasSemana: "7",
       } as CreateParametrosDTO;
 
       await saveParametros(setorId, payload);
@@ -217,21 +206,7 @@ export default function ParametrosPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Dias da Semana para Cálculo
-            </label>
-            <input
-              name="diasSemana"
-              type="number"
-              inputMode="numeric"
-              step={1}
-              value={(parametros.diasSemana as any) || ""}
-              onChange={handleChange}
-              className="w-full p-2 border rounded-md"
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium mb-2">
               Jornada Semanal Enfermeiro (horas)
