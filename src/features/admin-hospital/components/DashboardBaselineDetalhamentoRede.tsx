@@ -835,125 +835,8 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                 <ResponsiveContainer width="100%" height={350}>
                   <BarChart
                     data={(() => {
-                      // Extrair custos unitários reais do Baseline
-                      const custoUnitarioPorCargo = new Map<string, number>();
-
-                      snapshotData.snapshot.dados.internation?.forEach(
-                        (unidade: any) => {
-                          unidade.staff?.forEach((staff: any) => {
-                            if (staff.id && staff.unitCost) {
-                              custoUnitarioPorCargo.set(
-                                staff.id,
-                                staff.unitCost
-                              );
-                            }
-                          });
-                        }
-                      );
-
-                      snapshotData.snapshot.dados.assistance?.forEach(
-                        (unidade: any) => {
-                          unidade.staff?.forEach((staff: any) => {
-                            if (staff.id && staff.unitCost) {
-                              custoUnitarioPorCargo.set(
-                                staff.id,
-                                staff.unitCost
-                              );
-                            }
-                          });
-                        }
-                      );
-
-                      // Calcular variação real em R$ (Baseline → Projetado)
-                      let custoVariacaoReal = 0;
-
-                      // Processar Internação
-                      snapshotData.snapshot.dados.projetadoFinal?.internacao?.forEach(
-                        (unidade: any) => {
-                          if (
-                            selectedSector !== "all" &&
-                            unidade.unidadeId !== selectedSector
-                          )
-                            return;
-
-                          unidade.cargos?.forEach((cargo: any) => {
-                            const custoUnit =
-                              custoUnitarioPorCargo.get(cargo.cargoId) || 0;
-
-                            let baselineQtd = 0;
-                            const unidadeBaseline =
-                              snapshotData.snapshot.dados.internation?.find(
-                                (u: any) => u.id === unidade.unidadeId
-                              );
-                            if (unidadeBaseline) {
-                              const staffBaseline = unidadeBaseline.staff?.find(
-                                (s: any) => s.id === cargo.cargoId
-                              );
-                              baselineQtd = staffBaseline?.quantity || 0;
-                            }
-
-                            const qtdVariacao =
-                              cargo.projetadoFinal - baselineQtd;
-                            custoVariacaoReal += qtdVariacao * custoUnit;
-                          });
-                        }
-                      );
-
-                      // Processar Não-Internação
-                      snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.forEach(
-                        (unidade: any) => {
-                          if (
-                            selectedSector !== "all" &&
-                            unidade.unidadeId !== selectedSector
-                          )
-                            return;
-
-                          const cargosProjetadosConsolidados = new Map<
-                            string,
-                            number
-                          >();
-                          unidade.sitios?.forEach((sitio: any) => {
-                            sitio.cargos?.forEach((cargo: any) => {
-                              const qtdAtual =
-                                cargosProjetadosConsolidados.get(
-                                  cargo.cargoId
-                                ) || 0;
-                              cargosProjetadosConsolidados.set(
-                                cargo.cargoId,
-                                qtdAtual + cargo.projetadoFinal
-                              );
-                            });
-                          });
-
-                          cargosProjetadosConsolidados.forEach(
-                            (projetadoTotal, cargoId) => {
-                              const custoUnit =
-                                custoUnitarioPorCargo.get(cargoId) || 0;
-
-                              let baselineQtd = 0;
-                              const unidadeBaseline =
-                                snapshotData.snapshot.dados.assistance?.find(
-                                  (u: any) => u.id === unidade.unidadeId
-                                );
-                              if (unidadeBaseline) {
-                                const staffBaseline =
-                                  unidadeBaseline.staff?.find(
-                                    (s: any) => s.id === cargoId
-                                  );
-                                baselineQtd = staffBaseline?.quantity || 0;
-                              }
-
-                              const qtdVariacao = projetadoTotal - baselineQtd;
-                              custoVariacaoReal += qtdVariacao * custoUnit;
-                            }
-                          );
-                        }
-                      );
-
-                      // Construir waterfall com valores em R$ corretos
                       const waterfallData: any[] = [];
 
-                      // Formatar data do baseline
                       const baselineDate = snapshotData.snapshot.dataHora
                         ? new Date(snapshotData.snapshot.dataHora)
                             .toLocaleDateString("pt-BR", {
@@ -964,6 +847,11 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                             .replace(/\//g, ".")
                         : "";
 
+                      const deltaAtualParaBaseline =
+                        custoBaseline - custoAtualReal;
+                      const deltaBaselineParaProjetado =
+                        custoProjetado - custoBaseline;
+
                       // 1. Atual (barra completa)
                       waterfallData.push({
                         name: "Atual",
@@ -973,7 +861,22 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                         qtdPessoas: profissionaisAtuaisReal,
                       });
 
-                      // 2. Baseline (barra completa)
+                      // 2. Variação (Atual → Baseline)
+                      {
+                        const start = custoAtualReal;
+                        const end = custoBaseline;
+                        waterfallData.push({
+                          name: "Variação\n(Atual→Baseline)",
+                          value: deltaAtualParaBaseline,
+                          range: start <= end ? [start, end] : [end, start],
+                          color:
+                            deltaAtualParaBaseline >= 0 ? "#10B981" : "#EF4444",
+                          qtdPessoas:
+                            profissionaisBaseline - profissionaisAtuaisReal,
+                        });
+                      }
+
+                      // 3. Baseline (barra completa)
                       waterfallData.push({
                         name: `Baseline\n(${baselineDate})`,
                         value: custoBaseline,
@@ -982,20 +885,24 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                         qtdPessoas: profissionaisBaseline,
                       });
 
-                      // 3. Variação (barra flutuante)
-                      waterfallData.push({
-                        name: "Variação",
-                        value: custoVariacaoReal,
-                        range: [
-                          custoBaseline,
-                          custoBaseline + custoVariacaoReal,
-                        ],
-                        color: custoVariacaoReal >= 0 ? "#10B981" : "#EF4444",
-                        qtdPessoas:
-                          profissionaisProjetados - profissionaisBaseline,
-                      });
+                      // 4. Variação (Baseline → Projetado)
+                      {
+                        const start = custoBaseline;
+                        const end = custoProjetado;
+                        waterfallData.push({
+                          name: "Variação\n(Baseline→Projetado)",
+                          value: deltaBaselineParaProjetado,
+                          range: start <= end ? [start, end] : [end, start],
+                          color:
+                            deltaBaselineParaProjetado >= 0
+                              ? "#10B981"
+                              : "#EF4444",
+                          qtdPessoas:
+                            profissionaisProjetados - profissionaisBaseline,
+                        });
+                      }
 
-                      // 4. Projetado (barra completa)
+                      // 5. Projetado (barra completa)
                       waterfallData.push({
                         name: "Projetado",
                         value: custoProjetado,
@@ -1065,127 +972,26 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     />
                     <Bar dataKey="range">
                       {(() => {
-                        // Recalcular cores baseado nos dados atuais
-                        const custoUnitarioPorCargo = new Map<string, number>();
-
-                        snapshotData.snapshot.dados.internation?.forEach(
-                          (unidade: any) => {
-                            unidade.staff?.forEach((staff: any) => {
-                              if (staff.id && staff.unitCost) {
-                                custoUnitarioPorCargo.set(
-                                  staff.id,
-                                  staff.unitCost
-                                );
-                              }
-                            });
-                          }
-                        );
-
-                        snapshotData.snapshot.dados.assistance?.forEach(
-                          (unidade: any) => {
-                            unidade.staff?.forEach((staff: any) => {
-                              if (staff.id && staff.unitCost) {
-                                custoUnitarioPorCargo.set(
-                                  staff.id,
-                                  staff.unitCost
-                                );
-                              }
-                            });
-                          }
-                        );
-
-                        let custoVariacaoReal = 0;
-
-                        snapshotData.snapshot.dados.projetadoFinal?.internacao?.forEach(
-                          (unidade: any) => {
-                            if (
-                              selectedSector !== "all" &&
-                              unidade.unidadeId !== selectedSector
-                            )
-                              return;
-
-                            unidade.cargos?.forEach((cargo: any) => {
-                              const custoUnit =
-                                custoUnitarioPorCargo.get(cargo.cargoId) || 0;
-
-                              let baselineQtd = 0;
-                              const unidadeBaseline =
-                                snapshotData.snapshot.dados.internation?.find(
-                                  (u: any) => u.id === unidade.unidadeId
-                                );
-                              if (unidadeBaseline) {
-                                const staffBaseline =
-                                  unidadeBaseline.staff?.find(
-                                    (s: any) => s.id === cargo.cargoId
-                                  );
-                                baselineQtd = staffBaseline?.quantity || 0;
-                              }
-
-                              const qtdVariacao =
-                                cargo.projetadoFinal - baselineQtd;
-                              custoVariacaoReal += qtdVariacao * custoUnit;
-                            });
-                          }
-                        );
-
-                        snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.forEach(
-                          (unidade: any) => {
-                            if (
-                              selectedSector !== "all" &&
-                              unidade.unidadeId !== selectedSector
-                            )
-                              return;
-
-                            const cargosProjetadosConsolidados = new Map<
-                              string,
-                              number
-                            >();
-                            unidade.sitios?.forEach((sitio: any) => {
-                              sitio.cargos?.forEach((cargo: any) => {
-                                const qtdAtual =
-                                  cargosProjetadosConsolidados.get(
-                                    cargo.cargoId
-                                  ) || 0;
-                                cargosProjetadosConsolidados.set(
-                                  cargo.cargoId,
-                                  qtdAtual + cargo.projetadoFinal
-                                );
-                              });
-                            });
-
-                            cargosProjetadosConsolidados.forEach(
-                              (projetadoTotal, cargoId) => {
-                                const custoUnit =
-                                  custoUnitarioPorCargo.get(cargoId) || 0;
-
-                                let baselineQtd = 0;
-                                const unidadeBaseline =
-                                  snapshotData.snapshot.dados.assistance?.find(
-                                    (u: any) => u.id === unidade.unidadeId
-                                  );
-                                if (unidadeBaseline) {
-                                  const staffBaseline =
-                                    unidadeBaseline.staff?.find(
-                                      (s: any) => s.id === cargoId
-                                    );
-                                  baselineQtd = staffBaseline?.quantity || 0;
-                                }
-
-                                const qtdVariacao =
-                                  projetadoTotal - baselineQtd;
-                                custoVariacaoReal += qtdVariacao * custoUnit;
-                              }
-                            );
-                          }
-                        );
+                        const deltaAtualParaBaseline =
+                          custoBaseline - custoAtualReal;
+                        const deltaBaselineParaProjetado =
+                          custoProjetado - custoBaseline;
 
                         const cells = [
                           { color: "#5CA6DD" }, // Atual
+                          {
+                            color:
+                              deltaAtualParaBaseline >= 0
+                                ? "#10B981"
+                                : "#EF4444",
+                          }, // Variação (Atual→Baseline)
                           { color: "#93C5FD" }, // Baseline
                           {
                             color:
-                              custoVariacaoReal >= 0 ? "#10B981" : "#EF4444",
-                          }, // Variação
+                              deltaBaselineParaProjetado >= 0
+                                ? "#10B981"
+                                : "#EF4444",
+                          }, // Variação (Baseline→Projetado)
                           { color: "#003151" }, // Projetado
                         ];
 
