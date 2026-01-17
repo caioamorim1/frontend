@@ -1008,6 +1008,30 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                       Math.abs(b.custoVariacao) - Math.abs(a.custoVariacao)
                   );
 
+                // Validação: verificar se o waterfall fecha corretamente
+                const somaVariacoesCargos = cargosOrdenados.reduce(
+                  (acc, c) => acc + c.custoVariacao,
+                  0
+                );
+                console.log("=== DEBUG WATERFALL REDE (Custo R$) ===");
+                console.log("custoBaselineMensal:", custoBaselineMensal);
+                console.log(
+                  "custoProjetadoMensal (da API):",
+                  custoProjetadoMensal
+                );
+                console.log("Soma variações cargos:", somaVariacoesCargos);
+                console.log(
+                  "Diferença esperada (Projetado - Baseline):",
+                  custoProjetadoMensal - custoBaselineMensal
+                );
+                console.log(
+                  "Diferença das somas:",
+                  Math.abs(
+                    somaVariacoesCargos -
+                      (custoProjetadoMensal - custoBaselineMensal)
+                  )
+                );
+
                 const waterfallData: any[] = [];
                 waterfallData.push({
                   name: "Atual",
@@ -1039,6 +1063,21 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                     qtdPessoas: cargo.qtdVariacao,
                   });
                 }
+
+                console.log(
+                  "Acumulado final após todos os cargos:",
+                  cumulative
+                );
+                console.log(
+                  "Diferença entre acumulado e projetado:",
+                  cumulative - custoProjetadoMensal
+                );
+                if (Math.abs(cumulative - custoProjetadoMensal) > 0.01) {
+                  console.warn(
+                    "⚠️ AVISO: Waterfall Rede não fecha! Pode haver custos não incluídos nas variações por cargo."
+                  );
+                }
+                console.log("=== FIM DEBUG WATERFALL REDE (Custo R$) ===\n");
 
                 waterfallData.push({
                   name: "Projetado",
@@ -1406,6 +1445,33 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                   .filter((c) => c.nome && c.variacao !== 0)
                   .sort((a, b) => Math.abs(b.variacao) - Math.abs(a.variacao));
 
+                // Validação: verificar se o waterfall fecha corretamente
+                const somaVariacoesQtd = cargosOrdenados.reduce(
+                  (acc, c) => acc + c.variacao,
+                  0
+                );
+                console.log("=== DEBUG WATERFALL REDE (Quantidade) ===");
+                console.log(
+                  "totalFuncionariosBaseline:",
+                  totalFuncionariosBaseline
+                );
+                console.log(
+                  "totalFuncionariosProjetado (da API):",
+                  totalFuncionariosProjetado
+                );
+                console.log("Soma variações qtd cargos:", somaVariacoesQtd);
+                console.log(
+                  "Diferença esperada (Projetado - Baseline):",
+                  totalFuncionariosProjetado - totalFuncionariosBaseline
+                );
+                console.log(
+                  "Diferença das somas:",
+                  Math.abs(
+                    somaVariacoesQtd -
+                      (totalFuncionariosProjetado - totalFuncionariosBaseline)
+                  )
+                );
+
                 const waterfallData: any[] = [];
                 waterfallData.push({
                   name: "Atual",
@@ -1437,6 +1503,21 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                     custoReais: cargo.custoVariacao,
                   });
                 }
+
+                console.log(
+                  "Acumulado final após todos os cargos (qtd):",
+                  cumulative
+                );
+                console.log(
+                  "Diferença entre acumulado e projetado (qtd):",
+                  cumulative - totalFuncionariosProjetado
+                );
+                if (Math.abs(cumulative - totalFuncionariosProjetado) > 0.01) {
+                  console.warn(
+                    "⚠️ AVISO: Waterfall Rede (Quantidade) não fecha! Pode haver funcionários não incluídos nas variações por cargo."
+                  );
+                }
+                console.log("=== FIM DEBUG WATERFALL REDE (Quantidade) ===\n");
 
                 waterfallData.push({
                   name: "Projetado",

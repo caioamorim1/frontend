@@ -1026,35 +1026,36 @@ export const DashboardBaselineDetalhamento: React.FC<
                 <ResponsiveContainer width="100%" height={450}>
                   <BarChart
                     data={(() => {
+                      console.log(
+                        "=== WATERFALL CUSTO POR CARGO (HOSPITAL) - DEBUG ==="
+                      );
+                      console.log("custoAtualReal (props):", custoAtualReal);
+                      console.log("custoBaseline (props):", custoBaseline);
+                      console.log("custoProjetado (props):", custoProjetado);
+                      console.log(
+                        "profissionaisAtuaisReal:",
+                        profissionaisAtuaisReal
+                      );
+                      console.log(
+                        "profissionaisBaseline:",
+                        profissionaisBaseline
+                      );
+                      console.log(
+                        "profissionaisProjetados:",
+                        profissionaisProjetados
+                      );
+                      console.log("selectedSector:", selectedSector);
+
+                      // O custoProjetado já vem com as neutras somadas do componente pai (DashboardBaselineScreen)
+                      // quando selectedSector === "all" (linha 1151 do DashboardBaselineScreen.tsx)
+                      // Portanto, não precisa ajustar aqui novamente
+                      console.log(
+                        "custoProjetado recebido (já inclui neutras quando 'all'):",
+                        custoProjetado
+                      );
+
                       // Construir dados de waterfall calculando custos reais em R$, não quantidade
                       const waterfallData: any[] = [];
-                      // Mapa para guardar custo unitário de cada cargo (do Baseline)
-                      const custoUnitarioPorCargo = new Map<string, number>();
-                      // Extrair custos unitários do Baseline
-                      snapshotData.snapshot.dados.internation?.forEach(
-                        (unidade: any) => {
-                          unidade.staff?.forEach((staff: any) => {
-                            if (staff.id && staff.unitCost) {
-                              custoUnitarioPorCargo.set(
-                                staff.id,
-                                staff.unitCost
-                              );
-                            }
-                          });
-                        }
-                      );
-                      snapshotData.snapshot.dados.assistance?.forEach(
-                        (unidade: any) => {
-                          unidade.staff?.forEach((staff: any) => {
-                            if (staff.id && staff.unitCost) {
-                              custoUnitarioPorCargo.set(
-                                staff.id,
-                                staff.unitCost
-                              );
-                            }
-                          });
-                        }
-                      );
                       // Calcular variações em R$ por cargo
                       const cargoVariacoes = new Map<
                         string,
@@ -1064,6 +1065,18 @@ export const DashboardBaselineDetalhamento: React.FC<
                           qtdVariacao: number;
                         }
                       >();
+
+                      console.log("\n--- PROCESSANDO INTERNAÇÃO ---");
+                      if (selectedSector === "all") {
+                        console.log(
+                          "Modo: TODAS AS UNIDADES (acumulando cargos com custos específicos de cada unidade)"
+                        );
+                      } else {
+                        console.log(
+                          `Modo: UNIDADE ESPECÍFICA (${selectedSector})`
+                        );
+                      }
+                      let contadorInternacao = 0;
                       // Processar Internação
                       snapshotData.snapshot.dados.projetadoFinal?.internacao?.forEach(
                         (unidade) => {
@@ -1072,16 +1085,27 @@ export const DashboardBaselineDetalhamento: React.FC<
                             unidade.unidadeId !== selectedSector
                           )
                             return;
+
+                          console.log(
+                            `Unidade Internação: ${unidade.unidadeId} (nome: ${unidade.unidadeNome})`
+                          );
+
                           unidade.cargos.forEach((cargo) => {
-                            // Custo unitário do cargo
-                            const custoUnit =
-                              custoUnitarioPorCargo.get(cargo.cargoId) || 0;
-                            // Quantidade baseline
-                            let baselineQtd = 0;
+                            // Buscar custo unitário específico da unidade de internação no baseline
+                            let custoUnit = 0;
                             const unidadeBaseline =
                               snapshotData.snapshot.dados.internation?.find(
                                 (u: any) => u.id === unidade.unidadeId
                               );
+                            if (unidadeBaseline) {
+                              const staffBaseline = unidadeBaseline.staff?.find(
+                                (s: any) => s.id === cargo.cargoId
+                              );
+                              custoUnit = staffBaseline?.unitCost || 0;
+                            }
+
+                            // Quantidade baseline
+                            let baselineQtd = 0;
                             if (unidadeBaseline) {
                               const staffBaseline = unidadeBaseline.staff?.find(
                                 (s: any) => s.id === cargo.cargoId
@@ -1094,9 +1118,29 @@ export const DashboardBaselineDetalhamento: React.FC<
                             const qtdVariacao = projetadoQtd - baselineQtd;
                             // Variação em custo (R$)
                             const custoVariacao = qtdVariacao * custoUnit;
+
+                            if (contadorInternacao < 5) {
+                              console.log(`  Cargo [${cargo.cargoId}]:`);
+                              console.log(
+                                `    Custo unitário (da unidade): R$ ${custoUnit.toFixed(2)}`
+                              );
+                              console.log(`    Qtd Baseline: ${baselineQtd}`);
+                              console.log(`    Qtd Projetado: ${projetadoQtd}`);
+                              console.log(`    Variação Qtd: ${qtdVariacao}`);
+                              console.log(
+                                `    Variação Custo: R$ ${custoVariacao.toFixed(2)} (${qtdVariacao} × ${custoUnit.toFixed(2)})`
+                              );
+                              contadorInternacao++;
+                            }
+
                             if (qtdVariacao === 0) return;
                             const existing = cargoVariacoes.get(cargo.cargoId);
                             if (existing) {
+                              if (contadorInternacao < 5) {
+                                console.log(
+                                  `    ✓ Acumulando com variação existente (total anterior: R$ ${existing.custoVariacao.toFixed(2)})`
+                                );
+                              }
                               existing.custoVariacao += custoVariacao;
                               existing.qtdVariacao += qtdVariacao;
                             } else {
@@ -1120,6 +1164,18 @@ export const DashboardBaselineDetalhamento: React.FC<
                           });
                         }
                       );
+
+                      console.log("\n--- PROCESSANDO NÃO-INTERNAÇÃO ---");
+                      if (selectedSector === "all") {
+                        console.log(
+                          "Modo: TODAS AS UNIDADES (acumulando cargos com custos específicos de cada unidade)"
+                        );
+                      } else {
+                        console.log(
+                          `Modo: UNIDADE ESPECÍFICA (${selectedSector})`
+                        );
+                      }
+                      let contadorNaoInternacao = 0;
                       // Processar Não-Internação
                       snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.forEach(
                         (unidade) => {
@@ -1128,6 +1184,11 @@ export const DashboardBaselineDetalhamento: React.FC<
                             unidade.unidadeId !== selectedSector
                           )
                             return;
+
+                          console.log(
+                            `Unidade Não-Internação: ${unidade.unidadeId} (nome: ${unidade.unidadeNome})`
+                          );
+
                           // Consolidar cargos projetados por sítio
                           const cargosProjetadosConsolidados = new Map<
                             string,
@@ -1145,12 +1206,16 @@ export const DashboardBaselineDetalhamento: React.FC<
                               );
                             });
                           });
+
+                          console.log(
+                            `  Total de cargos consolidados: ${cargosProjetadosConsolidados.size}`
+                          );
+
                           // Calcular variações
                           cargosProjetadosConsolidados.forEach(
                             (projetadoTotal, cargoId) => {
-                              const custoUnit =
-                                custoUnitarioPorCargo.get(cargoId) || 0;
-                              let baselineQtd = 0;
+                              // Buscar custo unitário específico da unidade de não-internação no baseline
+                              let custoUnit = 0;
                               const unidadeBaseline =
                                 snapshotData.snapshot.dados.assistance?.find(
                                   (u: any) => u.id === unidade.unidadeId
@@ -1160,13 +1225,44 @@ export const DashboardBaselineDetalhamento: React.FC<
                                   unidadeBaseline.staff?.find(
                                     (s: any) => s.id === cargoId
                                   );
+                                custoUnit = staffBaseline?.unitCost || 0;
+                              }
+
+                              let baselineQtd = 0;
+                              if (unidadeBaseline) {
+                                const staffBaseline =
+                                  unidadeBaseline.staff?.find(
+                                    (s: any) => s.id === cargoId
+                                  );
                                 baselineQtd = staffBaseline?.quantity || 0;
                               }
                               const qtdVariacao = projetadoTotal - baselineQtd;
                               const custoVariacao = qtdVariacao * custoUnit;
+
+                              if (contadorNaoInternacao < 5) {
+                                console.log(`  Cargo [${cargoId}]:`);
+                                console.log(
+                                  `    Custo unitário (da unidade): R$ ${custoUnit.toFixed(2)}`
+                                );
+                                console.log(`    Qtd Baseline: ${baselineQtd}`);
+                                console.log(
+                                  `    Qtd Projetado (consolidado): ${projetadoTotal}`
+                                );
+                                console.log(`    Variação Qtd: ${qtdVariacao}`);
+                                console.log(
+                                  `    Variação Custo: R$ ${custoVariacao.toFixed(2)} (${qtdVariacao} × ${custoUnit.toFixed(2)})`
+                                );
+                                contadorNaoInternacao++;
+                              }
+
                               if (qtdVariacao === 0) return;
                               const existing = cargoVariacoes.get(cargoId);
                               if (existing) {
+                                if (contadorNaoInternacao < 5) {
+                                  console.log(
+                                    `    ✓ Acumulando com variação existente (total anterior: R$ ${existing.custoVariacao.toFixed(2)})`
+                                  );
+                                }
                                 existing.custoVariacao += custoVariacao;
                                 existing.qtdVariacao += qtdVariacao;
                               } else {
@@ -1198,6 +1294,36 @@ export const DashboardBaselineDetalhamento: React.FC<
                         (a, b) =>
                           Math.abs(b.custoVariacao) - Math.abs(a.custoVariacao)
                       );
+
+                      console.log(
+                        "Total de cargos com variação:",
+                        cargoVariacoes.size
+                      );
+                      console.log(
+                        "Primeiros 5 cargos ordenados:",
+                        cargosOrdenados.slice(0, 5)
+                      );
+
+                      // Somar todas as variações de cargo
+                      const somaVariacoesCargos = cargosOrdenados.reduce(
+                        (acc, c) => acc + c.custoVariacao,
+                        0
+                      );
+                      console.log(
+                        "Soma de todas variações de cargos:",
+                        somaVariacoesCargos
+                      );
+                      console.log(
+                        "Diferença esperada (Projetado - Baseline):",
+                        custoProjetado - custoBaseline
+                      );
+                      console.log(
+                        "Diferença das somas:",
+                        Math.abs(
+                          somaVariacoesCargos - (custoProjetado - custoBaseline)
+                        )
+                      );
+
                       // Formatar data do baseline
                       const baselineDate = snapshotData.snapshot.dataHora
                         ? new Date(snapshotData.snapshot.dataHora)
@@ -1226,10 +1352,27 @@ export const DashboardBaselineDetalhamento: React.FC<
                       });
                       // 3. Variações por cargo (barras flutuantes)
                       let acumuladoCusto = custoBaseline;
-                      cargosOrdenados.forEach((cargo) => {
+                      console.log(
+                        "Iniciando acumulado em (Baseline):",
+                        acumuladoCusto
+                      );
+
+                      cargosOrdenados.forEach((cargo, index) => {
                         const nomeFormatado = cargo.nome;
                         const inicio = acumuladoCusto;
                         acumuladoCusto += cargo.custoVariacao;
+
+                        if (index < 5) {
+                          console.log(`Cargo ${index}: ${cargo.nome}`);
+                          console.log(
+                            `  Variação custo: ${cargo.custoVariacao}`
+                          );
+                          console.log(`  Variação qtd: ${cargo.qtdVariacao}`);
+                          console.log(
+                            `  Range: [${inicio}, ${acumuladoCusto}]`
+                          );
+                        }
+
                         waterfallData.push({
                           name: nomeFormatado,
                           value: cargo.custoVariacao,
@@ -1239,7 +1382,28 @@ export const DashboardBaselineDetalhamento: React.FC<
                           qtdPessoas: cargo.qtdVariacao,
                         });
                       });
-                      // 4. Projetado (barra completa)
+
+                      console.log(
+                        "Acumulado final após todos os cargos:",
+                        acumuladoCusto
+                      );
+                      console.log("Custo Baseline:", custoBaseline);
+                      console.log(
+                        "Custo Projetado (já inclui neutras):",
+                        custoProjetado
+                      );
+                      console.log(
+                        "Diferença entre acumulado e projetado:",
+                        acumuladoCusto - custoProjetado
+                      );
+
+                      if (Math.abs(acumuladoCusto - custoProjetado) > 0.01) {
+                        console.warn(
+                          "⚠️ AVISO: Waterfall não fecha! Pode haver custos neutros ou inconsistências."
+                        );
+                      }
+
+                      // 4. Projetado (barra completa) - já vem com neutras incluídas
                       waterfallData.push({
                         name: "Projetado",
                         value: custoProjetado,
@@ -1247,6 +1411,23 @@ export const DashboardBaselineDetalhamento: React.FC<
                         color: "#003151",
                         qtdPessoas: profissionaisProjetados,
                       });
+
+                      console.log("Estrutura final do waterfall:");
+                      console.log("  Total de barras:", waterfallData.length);
+                      console.log(
+                        "  Primeira barra (Atual):",
+                        waterfallData[0]
+                      );
+                      console.log(
+                        "  Segunda barra (Baseline):",
+                        waterfallData[1]
+                      );
+                      console.log(
+                        "  Última barra (Projetado):",
+                        waterfallData[waterfallData.length - 1]
+                      );
+                      console.log("=== FIM DEBUG (HOSPITAL) ===\n");
+
                       return waterfallData;
                     })()}
                     margin={{ top: 8, right: 20, left: 20, bottom: 60 }}
@@ -1306,32 +1487,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                     />
                     <Bar dataKey="range">
                       {(() => {
-                        // Recalcular para garantir sincronia
-                        const custoUnitarioPorCargo = new Map<string, number>();
-                        snapshotData.snapshot.dados.internation?.forEach(
-                          (unidade: any) => {
-                            unidade.staff?.forEach((staff: any) => {
-                              if (staff.id && staff.unitCost) {
-                                custoUnitarioPorCargo.set(
-                                  staff.id,
-                                  staff.unitCost
-                                );
-                              }
-                            });
-                          }
-                        );
-                        snapshotData.snapshot.dados.assistance?.forEach(
-                          (unidade: any) => {
-                            unidade.staff?.forEach((staff: any) => {
-                              if (staff.id && staff.unitCost) {
-                                custoUnitarioPorCargo.set(
-                                  staff.id,
-                                  staff.unitCost
-                                );
-                              }
-                            });
-                          }
-                        );
+                        // Recalcular variações para garantir cores corretas
                         const cargoVariacoes = new Map<
                           string,
                           {
@@ -1339,6 +1495,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                             custoVariacao: number;
                           }
                         >();
+
                         snapshotData.snapshot.dados.projetadoFinal?.internacao?.forEach(
                           (unidade) => {
                             if (
@@ -1347,9 +1504,8 @@ export const DashboardBaselineDetalhamento: React.FC<
                             )
                               return;
                             unidade.cargos.forEach((cargo) => {
-                              const custoUnit =
-                                custoUnitarioPorCargo.get(cargo.cargoId) || 0;
-                              let baselineQtd = 0;
+                              // Buscar custo unitário específico da unidade de internação
+                              let custoUnit = 0;
                               const unidadeBaseline =
                                 snapshotData.snapshot.dados.internation?.find(
                                   (u: any) => u.id === unidade.unidadeId
@@ -1359,8 +1515,18 @@ export const DashboardBaselineDetalhamento: React.FC<
                                   unidadeBaseline.staff?.find(
                                     (s: any) => s.id === cargo.cargoId
                                   );
+                                custoUnit = staffBaseline?.unitCost || 0;
+                              }
+
+                              let baselineQtd = 0;
+                              if (unidadeBaseline) {
+                                const staffBaseline =
+                                  unidadeBaseline.staff?.find(
+                                    (s: any) => s.id === cargo.cargoId
+                                  );
                                 baselineQtd = staffBaseline?.quantity || 0;
                               }
+
                               const qtdVariacao =
                                 cargo.projetadoFinal - baselineQtd;
                               const custoVariacao = qtdVariacao * custoUnit;
@@ -1415,13 +1581,21 @@ export const DashboardBaselineDetalhamento: React.FC<
                             });
                             cargosProjetadosConsolidados.forEach(
                               (projetadoTotal, cargoId) => {
-                                const custoUnit =
-                                  custoUnitarioPorCargo.get(cargoId) || 0;
-                                let baselineQtd = 0;
+                                // Buscar custo unitário específico da unidade de não-internação
+                                let custoUnit = 0;
                                 const unidadeBaseline =
                                   snapshotData.snapshot.dados.assistance?.find(
                                     (u: any) => u.id === unidade.unidadeId
                                   );
+                                if (unidadeBaseline) {
+                                  const staffBaseline =
+                                    unidadeBaseline.staff?.find(
+                                      (s: any) => s.id === cargoId
+                                    );
+                                  custoUnit = staffBaseline?.unitCost || 0;
+                                }
+
+                                let baselineQtd = 0;
                                 if (unidadeBaseline) {
                                   const staffBaseline =
                                     unidadeBaseline.staff?.find(
