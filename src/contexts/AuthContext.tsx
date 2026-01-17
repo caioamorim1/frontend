@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../lib/api";
 import { jwtDecode } from "jwt-decode";
 import { useAlert } from "./AlertContext";
-
+import { API_BASE_URL } from "@/lib/api";
 // Interface expandida para incluir o papel do usuário
 interface UserPayload {
   id: string;
@@ -172,6 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, pass: string) => {
     try {
+      console.log("URL", API_BASE_URL);
       const response = await api.post("/login", { email: email, senha: pass });
 
       const { token: newToken } = response.data;
