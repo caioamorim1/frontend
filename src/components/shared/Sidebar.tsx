@@ -17,6 +17,7 @@ import {
   Shield,
   BarChart3,
   Home,
+  Settings,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getHospitais, getRedes, Hospital, Rede } from "@/lib/api";
@@ -292,6 +293,12 @@ export default function Sidebar() {
       to: `/admin/admins`,
       icon: <Shield size={18} />,
       label: "Administradores",
+      end: true,
+    },
+    {
+      to: `/admin/ajustes`,
+      icon: <Settings size={18} />,
+      label: "Ajustes",
       end: true,
     },
   ];
