@@ -27,6 +27,7 @@ import LeitosAdminPage from "./features/admin-hospital/pages/LeitosAdminPage";
 import ParametrosPage from "./features/admin-hospital/pages/ParametrosPage";
 import HistoricoColetasPage from "./features/admin-hospital/pages/HistoricoColetasPage";
 import AdminsPage from "./features/admin-global/pages/AdminsPage";
+import AjustesPage from "./features/admin-global/pages/AjustesPage";
 import HospitalDashboardPage from "./features/colab/pages/DashboardPage";
 import GlobalDashboardPage from "./features/admin-global/pages/GlobalDashboardPage";
 import HospitalHomePage from "./features/admin-hospital/pages/HospitalHomePage";
@@ -59,6 +60,7 @@ function App() {
           <Route path="scp-metodos" element={<ScpMetodosPage />} />
           <Route path="questionarios" element={<QualitativoPage />} />
           <Route path="admins" element={<AdminsPage />} />
+          <Route path="ajustes" element={<AjustesPage />} />
         </Route>
 
         {/* Rotas de Admin de Hospital */}
