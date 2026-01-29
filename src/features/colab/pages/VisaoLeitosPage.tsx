@@ -176,15 +176,13 @@ const EvaluationDetailsModal: FC<{
   sessao: SessaoAtiva | null;
   onClose: () => void;
   onEdit: (sessao: SessaoAtiva) => void;
-  onDischarge: (sessao: SessaoAtiva, motivo?: string) => Promise<void>;
+  onDischarge: (sessao: SessaoAtiva) => Promise<void>;
 }> = ({ sessao, onClose, onEdit, onDischarge }) => {
   if (!sessao) return null;
 
-  const [motivo, setMotivo] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    setMotivo("");
     setIsSubmitting(false);
   }, [sessao.id]);
 
@@ -221,43 +219,101 @@ const EvaluationDetailsModal: FC<{
               </p>
             </div>
           </div>
-          <div className="space-y-2 pt-4 border-t">
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              Fechar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={isSubmitting}
+              onClick={async () => {
+                try {
+                  setIsSubmitting(true);
+                  await onDischarge(sessao);
+                } catch {
+                  // Mensagem de erro é tratada no handler do componente pai.
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
+            >
+              Dar alta
+            </Button>
+            <Button onClick={() => onEdit(sessao)}>Editar Avaliação</Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// --- Modal de Justificativa de Edição ---
+const EditJustificationModal: FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (justificativa: string) => void;
+}> = ({ isOpen, onClose, onConfirm }) => {
+  const [justificativa, setJustificativa] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      setJustificativa("");
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!justificativa.trim()) return;
+    onConfirm(justificativa.trim());
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in-0">
+      <Card className="w-full max-w-md animate-in fade-in-0 zoom-in-95">
+        <form onSubmit={handleSubmit}>
+          <CardHeader>
+            <CardTitle className="flex justify-between items-center text-lg">
+              Justificativa da Edição
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={onClose}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardTitle>
+            <CardDescription>
+              Descreva o motivo da edição desta avaliação
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Motivo da alta (opcional)
-              </p>
+              <label className="text-sm font-medium text-muted-foreground">
+                Justificativa *
+              </label>
               <Textarea
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                placeholder="Ex.: Alta hospitalar, transferência, etc."
+                value={justificativa}
+                onChange={(e) => setJustificativa(e.target.value)}
+                placeholder="Ex.: Correção de dados, mudança no quadro clínico, etc."
                 className="mt-1"
+                required
+                rows={4}
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={onClose}>
-                Fechar
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancelar
               </Button>
-              <Button
-                variant="destructive"
-                disabled={isSubmitting}
-                onClick={async () => {
-                  try {
-                    setIsSubmitting(true);
-                    const trimmed = motivo.trim();
-                    await onDischarge(sessao, trimmed ? trimmed : undefined);
-                  } catch {
-                    // Mensagem de erro é tratada no handler do componente pai.
-                  } finally {
-                    setIsSubmitting(false);
-                  }
-                }}
-              >
-                Dar alta
+              <Button type="submit" disabled={!justificativa.trim()}>
+                Continuar
               </Button>
-              <Button onClick={() => onEdit(sessao)}>Editar Avaliação</Button>
             </div>
-          </div>
-        </CardContent>
+          </CardContent>
+        </form>
       </Card>
     </div>
   );
@@ -398,6 +454,14 @@ export default function VisaoLeitosPage() {
     sessao: SessaoAtiva | null;
   }>({ isOpen: false, sessao: null });
 
+  const [editJustificationModalState, setEditJustificationModalState] =
+    useState<{
+      isOpen: boolean;
+      sessao: SessaoAtiva | null;
+    }>({ isOpen: false, sessao: null });
+
+  const [justificativaEdicao, setJustificativaEdicao] = useState<string>("");
+
   const fetchData = async () => {
     if (!unidadeId) return;
     try {
@@ -503,9 +567,9 @@ export default function VisaoLeitosPage() {
     setActionModalState({ isOpen: false, leito: null, action: null });
   };
 
-  const handleDischarge = async (sessao: SessaoAtiva, motivo?: string) => {
+  const handleDischarge = async (sessao: SessaoAtiva) => {
     try {
-      await darAltaLeito(sessao.leito.id, motivo ? { motivo } : undefined);
+      await darAltaLeito(sessao.leito.id);
       showAlert(
         "success",
         "Alta realizada",
@@ -580,9 +644,24 @@ export default function VisaoLeitosPage() {
         onClose={() => setDetailsModalSessao(null)}
         onEdit={(sessao) => {
           setDetailsModalSessao(null);
-          setEditAvaliacaoModalState({ isOpen: true, sessao });
+          setEditJustificationModalState({ isOpen: true, sessao });
         }}
         onDischarge={handleDischarge}
+      />
+
+      <EditJustificationModal
+        isOpen={editJustificationModalState.isOpen}
+        onClose={() =>
+          setEditJustificationModalState({ isOpen: false, sessao: null })
+        }
+        onConfirm={(justificativa) => {
+          setJustificativaEdicao(justificativa);
+          setEditAvaliacaoModalState({
+            isOpen: true,
+            sessao: editJustificationModalState.sessao,
+          });
+          setEditJustificationModalState({ isOpen: false, sessao: null });
+        }}
       />
 
       <div className="space-y-4">

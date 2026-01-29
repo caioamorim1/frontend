@@ -18,8 +18,8 @@ export type {
   QuestionOption,
 };
 
-export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
-
+export const API_BASE_URL = "http://localhost:3110";
+//
 const getApiOrigin = (): string => {
   const base = String(API_BASE_URL || "");
 
@@ -410,6 +410,24 @@ export async function getControlePeriodoByUnidadeId(
   try {
     const res = await api.get(`/controle-periodo/${unidadeId}`);
     return (res.data?.data as ControlePeriodo) ?? null;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function getPeriodoTravado(
+  unidadeId: string
+): Promise<ControlePeriodo | null> {
+  try {
+    const res = await api.get(`/controle-periodo/${unidadeId}/travado`);
+    return (
+      (res.data?.data as ControlePeriodo) ??
+      (res.data as ControlePeriodo) ??
+      null
+    );
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
       return null;
@@ -943,6 +961,13 @@ export interface LinhaAnaliseFinanceira {
 
 export interface AnaliseInternacaoResponse {
   agregados: {
+    unidadeNome: string;
+    metodoAvaliacaoSCP?: {
+      key: string;
+      title?: string;
+      label?: string;
+      description?: string;
+    };
     periodo: {
       inicio: string;
       fim: string;
@@ -955,6 +980,8 @@ export interface AnaliseInternacaoResponse {
     };
     totalLeitosDia: number;
     totalAvaliacoes: number;
+    totalPacientesMedio?: number;
+
     // Compat (backends antigos)
     taxaOcupacaoMensal?: number;
     taxaOcupacaoMensalPercent?: number;
@@ -980,7 +1007,37 @@ export interface AnaliseInternacaoResponse {
     percentualEnfermeiroPercent?: number;
     percentualTecnicoPercent?: number;
 
+    // Quadro de Pessoal
+    qpEnfermeiros?: number;
+    qpTecnicos?: number;
+    qpTotal?: number;
+    totalHorasEnfermagem?: number;
+    totalHorasEnfermagemDia?: number;
+
+    // Classificação de pacientes
+    nivelCuidadoPredominante?: string;
     distribuicaoTotalClassificacao?: Record<string, number>;
+    mediaDiariaClassificacao?: Record<string, number>;
+
+    // Taxa de ocupação customizada
+    taxaOcupacaoCustomizada?: {
+      taxa: number;
+      dataInicio?: string;
+      dataFim?: string;
+      createdAt?: string;
+      updatedAt?: string;
+    };
+
+    // Parâmetros utilizados no cálculo
+    parametros?: {
+      ist?: number;
+      istPercent?: number;
+      diasTrabalhoSemana?: number;
+      cargaHorariaEnfermeiro?: string | number;
+      cargaHorariaTecnico?: string | number;
+      equipeComRestricoes?: boolean;
+      fatorRestricao?: number;
+    };
   };
   tabela: LinhaAnaliseFinanceira[];
 }
@@ -2099,6 +2156,39 @@ export const getQualitativeAggregatesByCategory = async (
 ): Promise<QualitativeAggregatesResponse> => {
   const response = await api.get(
     `/qualitative/aggregates/by-category?hospitalId=${hospitalId}`
+  );
+  return response.data;
+};
+
+export const getQualitativeAggregatesBySector = async (
+  sectorId: string
+): Promise<{
+  sectorId: string;
+  aggregates: Array<{
+    categoryId: number;
+    name: string;
+    meta: number;
+    averageScore: number;
+    samples: number;
+  }>;
+  evaluations: Array<{
+    evaluationId: number;
+    title: string;
+    evaluator: string;
+    date: string;
+    totalScore: number;
+    questionnaire: string;
+    categories: Array<{
+      categoryId: number;
+      categoryName: string;
+      obtained: number;
+      max: number;
+      score: number;
+    }>;
+  }>;
+}> => {
+  const response = await api.get(
+    `/qualitative/aggregates/by-sector?sectorId=${sectorId}`
   );
   return response.data;
 };
