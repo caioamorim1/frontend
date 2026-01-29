@@ -64,11 +64,11 @@ export const EvaluationsTab: React.FC<{
     const sectorId = unidadeInternacao
       ? unidadeInternacao.id
       : unidadeNaoInternacao
-      ? unidadeNaoInternacao.id
-      : null;
-    
+        ? unidadeNaoInternacao.id
+        : null;
+
     if (!sectorId) return;
-    
+
     try {
       const data = await getQualitativeAggregatesBySector(sectorId);
       setSectorAggregates(data);
@@ -81,8 +81,8 @@ export const EvaluationsTab: React.FC<{
     const sectorId = unidadeInternacao
       ? unidadeInternacao.id
       : unidadeNaoInternacao
-      ? unidadeNaoInternacao.id
-      : null;
+        ? unidadeNaoInternacao.id
+        : null;
     if (!sectorId) {
       showAlert(
         "destructive",
@@ -114,16 +114,16 @@ export const EvaluationsTab: React.FC<{
     evaluationData.sectorId = unidadeInternacao
       ? unidadeInternacao.id
       : unidadeNaoInternacao
-      ? unidadeNaoInternacao.id
-      : null;
+        ? unidadeNaoInternacao.id
+        : null;
 
     // Atribuir hospitalId
     evaluationData.hospitalId = unidadeInternacao
       ? unidadeInternacao.hospitalId
       : unidadeNaoInternacao
-      ? unidadeNaoInternacao.hospitalId ||
-        (unidadeNaoInternacao as any).hospital?.id
-      : null;
+        ? unidadeNaoInternacao.hospitalId ||
+          (unidadeNaoInternacao as any).hospital?.id
+        : null;
 
     if (!evaluationData.sectorId) {
       showAlert("destructive", "Setor inválido para a avaliação.", "error");
@@ -261,15 +261,15 @@ export const EvaluationsTab: React.FC<{
             unidadeInternacao
               ? unidadeInternacao.id
               : unidadeNaoInternacao
-              ? unidadeNaoInternacao.id
-              : ""
+                ? unidadeNaoInternacao.id
+                : ""
           }
           hospitalId={
             unidadeInternacao
               ? unidadeInternacao.hospitalId
               : unidadeNaoInternacao
-              ? unidadeNaoInternacao.hospitalId
-              : ""
+                ? unidadeNaoInternacao.hospitalId
+                : ""
           }
           unidadeType={unidadeInternacao ? "internacao" : "assistencial"}
         />
@@ -340,7 +340,9 @@ export const EvaluationsTab: React.FC<{
                       <td className="px-6 py-4">
                         <div className="flex items-center text-sm text-gray-600">
                           <Calendar className="h-4 w-4 mr-2" />
-                          {new Date(evaluation.date).toLocaleDateString("pt-BR")}
+                          {new Date(evaluation.date).toLocaleDateString(
+                            "pt-BR"
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -353,7 +355,9 @@ export const EvaluationsTab: React.FC<{
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {evaluationData?.totalScore ?? evaluation.calculateRate ?? 0}
+                        {evaluationData?.totalScore ??
+                          evaluation.calculateRate ??
+                          0}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {evaluation.questionnaire}
@@ -384,11 +388,9 @@ export const EvaluationsTab: React.FC<{
                     return (
                       <TooltipProvider key={evaluation.id} delayDuration={200}>
                         <Tooltip>
-                          <TooltipTrigger asChild>
-                            {rowContent}
-                          </TooltipTrigger>
-                          <TooltipContent 
-                            side="top" 
+                          <TooltipTrigger asChild>{rowContent}</TooltipTrigger>
+                          <TooltipContent
+                            side="top"
                             align="center"
                             className="p-0 bg-white border shadow-xl z-50"
                             sideOffset={10}
@@ -403,14 +405,14 @@ export const EvaluationsTab: React.FC<{
                               <ResponsiveContainer width="100%" height="85%">
                                 <RadarChart data={radarData}>
                                   <PolarGrid stroke="#e5e7eb" />
-                                  <PolarAngleAxis 
-                                    dataKey="category" 
-                                    tick={{ fill: '#6b7280', fontSize: 11 }}
+                                  <PolarAngleAxis
+                                    dataKey="category"
+                                    tick={{ fill: "#6b7280", fontSize: 11 }}
                                   />
-                                  <PolarRadiusAxis 
-                                    angle={90} 
+                                  <PolarRadiusAxis
+                                    angle={90}
                                     domain={[0, 100]}
-                                    tick={{ fill: '#6b7280', fontSize: 10 }}
+                                    tick={{ fill: "#6b7280", fontSize: 10 }}
                                   />
                                   <Radar
                                     name="Pontuação"
@@ -419,13 +421,15 @@ export const EvaluationsTab: React.FC<{
                                     fill="#3b82f6"
                                     fillOpacity={0.6}
                                   />
-                                  <RechartsTooltip 
+                                  <RechartsTooltip
                                     content={({ active, payload }) => {
                                       if (active && payload && payload.length) {
                                         const data = payload[0].payload;
                                         return (
                                           <div className="bg-white border p-2 rounded shadow-sm text-xs">
-                                            <p className="font-semibold">{data.category}</p>
+                                            <p className="font-semibold">
+                                              {data.category}
+                                            </p>
                                             <p>Pontuação: {data.value}%</p>
                                             <p className="text-gray-600">
                                               {data.obtained}/{data.max} pontos
