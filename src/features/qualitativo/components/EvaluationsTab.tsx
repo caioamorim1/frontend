@@ -20,9 +20,25 @@ import {
   UnidadeInternacao,
   UnidadeNaoInternacao,
   updateAvaliacao,
+  getQualitativeAggregatesBySector,
 } from "@/lib/api";
 import { useAlert } from "@/contexts/AlertContext";
 import { useModal } from "@/contexts/ModalContext";
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+} from "recharts";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const EvaluationsTab: React.FC<{
   onClose: () => void;
@@ -37,17 +53,36 @@ export const EvaluationsTab: React.FC<{
   const [editingEvaluation, setEditingEvaluation] = useState<Evaluation | null>(
     null
   );
+  const [sectorAggregates, setSectorAggregates] = useState<any>(null);
 
   React.useEffect(() => {
     loadEvaluations();
+    loadSectorAggregates();
   }, []);
+
+  const loadSectorAggregates = async () => {
+    const sectorId = unidadeInternacao
+      ? unidadeInternacao.id
+      : unidadeNaoInternacao
+        ? unidadeNaoInternacao.id
+        : null;
+
+    if (!sectorId) return;
+
+    try {
+      const data = await getQualitativeAggregatesBySector(sectorId);
+      setSectorAggregates(data);
+    } catch (error) {
+      console.warn("Erro ao carregar agregados do setor:", error);
+    }
+  };
 
   const loadEvaluations = () => {
     const sectorId = unidadeInternacao
       ? unidadeInternacao.id
       : unidadeNaoInternacao
-      ? unidadeNaoInternacao.id
-      : null;
+        ? unidadeNaoInternacao.id
+        : null;
     if (!sectorId) {
       showAlert(
         "destructive",
@@ -79,16 +114,16 @@ export const EvaluationsTab: React.FC<{
     evaluationData.sectorId = unidadeInternacao
       ? unidadeInternacao.id
       : unidadeNaoInternacao
-      ? unidadeNaoInternacao.id
-      : null;
+        ? unidadeNaoInternacao.id
+        : null;
 
     // Atribuir hospitalId
     evaluationData.hospitalId = unidadeInternacao
       ? unidadeInternacao.hospitalId
       : unidadeNaoInternacao
-      ? unidadeNaoInternacao.hospitalId ||
-        (unidadeNaoInternacao as any).hospital?.id
-      : null;
+        ? unidadeNaoInternacao.hospitalId ||
+          (unidadeNaoInternacao as any).hospital?.id
+        : null;
 
     if (!evaluationData.sectorId) {
       showAlert("destructive", "Setor inválido para a avaliação.", "error");
@@ -226,15 +261,15 @@ export const EvaluationsTab: React.FC<{
             unidadeInternacao
               ? unidadeInternacao.id
               : unidadeNaoInternacao
-              ? unidadeNaoInternacao.id
-              : ""
+                ? unidadeNaoInternacao.id
+                : ""
           }
           hospitalId={
             unidadeInternacao
               ? unidadeInternacao.hospitalId
               : unidadeNaoInternacao
-              ? unidadeNaoInternacao.hospitalId
-              : ""
+                ? unidadeNaoInternacao.hospitalId
+                : ""
           }
           unidadeType={unidadeInternacao ? "internacao" : "assistencial"}
         />
@@ -268,63 +303,155 @@ export const EvaluationsTab: React.FC<{
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {evaluations.map((evaluation) => (
-                  <tr
-                    key={evaluation.id}
-                    className="hover:bg-gray-50 transition-colors duration-150"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {evaluation.title}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center text-sm text-gray-600">
-                        <User className="h-4 w-4 mr-2" />
-                        {evaluation.evaluator}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        {new Date(evaluation.date).toLocaleDateString("pt-BR")}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                          evaluation.status
-                        )}`}
-                      >
-                        {getStatusText(evaluation.status)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {evaluation.calculateRate || 0}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {evaluation.questionnaire}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center space-x-2">
-                        <button
-                          onClick={() => handleEdit(evaluation)}
-                          className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-all duration-200"
-                          title="Editar avaliação"
+                {evaluations.map((evaluation) => {
+                  // Buscar dados da avaliação específica nos agregados
+                  const evaluationData = sectorAggregates?.evaluations?.find(
+                    (ev: any) => ev.evaluationId === evaluation.id
+                  );
+
+                  // Preparar dados para o gráfico de radar usando as categorias da avaliação
+                  const radarData = evaluationData?.categories
+                    ? evaluationData.categories.map((cat: any) => ({
+                        category: cat.categoryName,
+                        value: cat.score,
+                        obtained: cat.obtained,
+                        max: cat.max,
+                      }))
+                    : [];
+
+                  const isCompleted = evaluation.status === "completed";
+
+                  const rowContent = (
+                    <tr
+                      key={evaluation.id}
+                      className="hover:bg-gray-50 transition-colors duration-150"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">
+                          {evaluation.title}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <User className="h-4 w-4 mr-2" />
+                          {evaluation.evaluator}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          {new Date(evaluation.date).toLocaleDateString(
+                            "pt-BR"
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                            evaluation.status
+                          )}`}
                         >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(evaluation.id)}
-                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200"
-                          title="Excluir avaliação"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {getStatusText(evaluation.status)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {evaluationData?.totalScore ??
+                          evaluation.calculateRate ??
+                          0}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {evaluation.questionnaire}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center space-x-2">
+                          <button
+                            onClick={() => handleEdit(evaluation)}
+                            className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-all duration-200"
+                            title="Editar avaliação"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(evaluation.id)}
+                            className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200"
+                            title="Excluir avaliação"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+
+                  // Se for concluída e tiver dados, envolver com Tooltip
+                  if (isCompleted && radarData.length > 0) {
+                    return (
+                      <TooltipProvider key={evaluation.id} delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>{rowContent}</TooltipTrigger>
+                          <TooltipContent
+                            side="top"
+                            align="center"
+                            className="p-0 bg-white border shadow-xl z-50"
+                            sideOffset={10}
+                          >
+                            <div className="w-[500px] h-[400px] p-4">
+                              <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                                Gráfico da Avaliação Qualitativa
+                              </h4>
+                              <p className="text-xs text-gray-500 mb-2">
+                                Pontuação Total: {evaluationData?.totalScore}%
+                              </p>
+                              <ResponsiveContainer width="100%" height="85%">
+                                <RadarChart data={radarData}>
+                                  <PolarGrid stroke="#e5e7eb" />
+                                  <PolarAngleAxis
+                                    dataKey="category"
+                                    tick={{ fill: "#6b7280", fontSize: 11 }}
+                                  />
+                                  <PolarRadiusAxis
+                                    angle={90}
+                                    domain={[0, 100]}
+                                    tick={{ fill: "#6b7280", fontSize: 10 }}
+                                  />
+                                  <Radar
+                                    name="Pontuação"
+                                    dataKey="value"
+                                    stroke="#3b82f6"
+                                    fill="#3b82f6"
+                                    fillOpacity={0.6}
+                                  />
+                                  <RechartsTooltip
+                                    content={({ active, payload }) => {
+                                      if (active && payload && payload.length) {
+                                        const data = payload[0].payload;
+                                        return (
+                                          <div className="bg-white border p-2 rounded shadow-sm text-xs">
+                                            <p className="font-semibold">
+                                              {data.category}
+                                            </p>
+                                            <p>Pontuação: {data.value}%</p>
+                                            <p className="text-gray-600">
+                                              {data.obtained}/{data.max} pontos
+                                            </p>
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                    }}
+                                  />
+                                </RadarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    );
+                  }
+
+                  // Caso contrário, retornar linha normal
+                  return rowContent;
+                })}
               </tbody>
             </table>
           </div>

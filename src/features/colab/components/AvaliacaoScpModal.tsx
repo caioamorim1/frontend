@@ -71,7 +71,6 @@ export default function AvaliacaoScpModal({
   const [unidade, setUnidade] = useState<UnidadeInternacao | null>(null);
   const [schema, setSchema] = useState<ScpSchema | null>(null);
   const [respostas, setRespostas] = useState<Record<string, number>>({});
-  const [justificativa, setJustificativa] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -119,7 +118,6 @@ export default function AvaliacaoScpModal({
       // Reset respostas e índice quando o modal abre
       // Se tiver respostas iniciais (modo edição), carrega elas
       setRespostas(respostasIniciais || {});
-      setJustificativa("");
       setCurrentQuestionIndex(0);
     }
   }, [isOpen, schema, respostasIniciais]);
@@ -158,21 +156,11 @@ export default function AvaliacaoScpModal({
       return;
     }
 
-    if (sessaoId && justificativa.trim() === "") {
-      toast({
-        title: "Justificativa obrigatória",
-        description:
-          "Para editar a avaliação, informe uma justificativa antes de salvar.",
-        variant: "destructive",
-      });
-      return;
-    }
     try {
       if (sessaoId) {
         // Modo edição
         await updateSessao(sessaoId, {
           itens: respostas,
-          justificativa: justificativa.trim(),
         });
         toast({
           title: "Sucesso!",
@@ -285,21 +273,6 @@ export default function AvaliacaoScpModal({
                     ))}
                   </div>
                 </div>
-
-                {sessaoId && (
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium text-muted-foreground">
-                      Justificativa da edição{" "}
-                      <span className="text-red-600">*</span>
-                    </div>
-                    <Textarea
-                      value={justificativa}
-                      onChange={(e) => setJustificativa(e.target.value)}
-                      placeholder="Descreva o motivo da alteração..."
-                      required
-                    />
-                  </div>
-                )}
 
                 {/* Navegação */}
                 <div className="flex justify-between items-center pt-4 border-t gap-2">
