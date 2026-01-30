@@ -108,8 +108,9 @@ export const DashboardBaselineGlobalTab: React.FC<{
   const deltaCostPercent =
     custoAtualReal !== 0 ? (variacaoCustoReais / custoAtualReal) * 100 : 0;
   const isPositiveCost = variacaoCustoReais >= 0;
-  const TrendIcon = isPositiveCost ? ArrowUp : ArrowDown;
-  const trendColorClass = isPositiveCost ? "text-green-600" : "text-red-600";
+  // Lógica invertida: redução (negativo) = verde e seta para cima, aumento (positivo) = vermelho e seta para baixo
+  const TrendIcon = isPositiveCost ? ArrowDown : ArrowUp;
+  const trendColorClass = isPositiveCost ? "text-red-600" : "text-green-600";
   const costPercentLabel = `${Math.abs(deltaCostPercent).toLocaleString(
     "pt-BR",
     {
@@ -179,11 +180,7 @@ export const DashboardBaselineGlobalTab: React.FC<{
               {data.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
-                  fill={
-                    entry.variacaoPercentual < 0
-                      ? "rgb(220,38,38)"
-                      : "rgb(22,163,74)"
-                  }
+                  fill={entry.variacaoPercentual < 0 ? "#16a34a" : "#dc2626"}
                 />
               ))}
             </Bar>

@@ -223,29 +223,24 @@ const GlobalTabContent: React.FC<{
 
   return (
     <div className="space-y-12">
-      <div className="flex gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <InfoCard
           title="Total de Funcionários (Projetado)"
           value={totalStaff}
           icon={<Users size={24} />}
+          variant="primary"
         />
         <InfoCard
           title="Custo Total (Projetado)"
           value={formatAmountBRL(amountTotal)}
           icon={<CircleDollarSign size={24} />}
+          variant="success"
         />
       </div>
       <BargraphicChart
         data={chartDataProjetado}
         title="Análise de Custo Projetado por Setor"
       />
-      {!isGlobalView && (
-        <RadarChartComponent
-          data={radarData}
-          title="Análise de Desempenho"
-          description="Comparativo entre o desempenho atual e projetado"
-        />
-      )}
     </div>
   );
 };
@@ -326,18 +321,40 @@ const TabContentInternacao: React.FC<{
 
   return (
     <div className="space-y-12">
-      <div className="flex gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <InfoCard
           title="Custo Total (Projetado)"
           value={formatAmountBRL(amountTotal)}
           icon={<DollarSign size={24} />}
+          variant="primary"
         />
         <InfoCard
           title="Total de Funcionários (Projetado)"
           value={totalStaff}
           icon={<Users size={24} />}
+          variant="warning"
         />
         {/* 'Total de Leitos' removido para a aba 'Unid. de Internação' conforme solicitado */}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+        <div>
+          <label className="text-sm font-medium text-muted-foreground">
+            Selecione o Setor
+          </label>
+          <Select value={selectedSector} onValueChange={setSelectedSector}>
+            <SelectTrigger>
+              <SelectValue placeholder="Escolha um setor..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Setores</SelectItem>
+              {sourceData.map((sector) => (
+                <SelectItem key={sector.id} value={sector.id}>
+                  {sector.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         <HorizontalBarChartComp
@@ -353,13 +370,6 @@ const TabContentInternacao: React.FC<{
         data={chartDataProjetado}
         title="Análise de Custo Projetado por Setor"
       />
-      {radarData && radarData.length > 0 && (
-        <RadarChartComponent
-          data={radarData}
-          title="Análise de Desempenho"
-          description="Comparativo entre o desempenho atual e projetado"
-        />
-      )}
     </div>
   );
 };
@@ -436,16 +446,18 @@ const TabContentNoInternacao: React.FC<{
 
   return (
     <div className="space-y-12">
-      <div className="flex gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <InfoCard
           title="Total de Funcionários (Projetado)"
           value={totalStaff}
           icon={<Users size={24} />}
+          variant="primary"
         />
         <InfoCard
           title="Custo Total (Projetado)"
           value={formatAmountBRL(amountTotal)}
           icon={<CircleDollarSign size={24} />}
+          variant="success"
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
@@ -482,13 +494,6 @@ const TabContentNoInternacao: React.FC<{
         data={chartDataProjetado}
         title="Análise de Custo Projetado por Setor"
       />
-      {radarData && radarData.length > 0 && (
-        <RadarChartComponent
-          data={radarData}
-          title="Análise de Desempenho"
-          description="Comparativo entre o desempenho atual e projetado"
-        />
-      )}
     </div>
   );
 };
@@ -589,9 +594,8 @@ export const DashboardProjetadoScreen: React.FC<
       // Buscar avaliações do hospital com categorias
       if (hospitalId) {
         try {
-          const avaliacoesData = await getCompletedEvaluationsWithCategories(
-            hospitalId
-          );
+          const avaliacoesData =
+            await getCompletedEvaluationsWithCategories(hospitalId);
 
           // Transformar dados para o radar chart
           const radarChartData: ChartDataItem[] = [];
@@ -650,7 +654,7 @@ export const DashboardProjetadoScreen: React.FC<
                     Unid. de Internação
                   </TabsTrigger>
                   <TabsTrigger value="nao-internacao">
-                    Setores Assistenciais
+                    Unid. de Não Internação
                   </TabsTrigger>
                 </TabsList>
 

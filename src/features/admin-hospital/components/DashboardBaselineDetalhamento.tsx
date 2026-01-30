@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, TrendingUp, TrendingDown } from "lucide-react";
+import { Building2, ArrowUp, ArrowDown } from "lucide-react";
 import { WaterfallDataItem } from "./DashboardBaselineScreen";
 import {
   getHospitalOccupationDashboard,
@@ -87,6 +87,11 @@ export const DashboardBaselineDetalhamento: React.FC<
     (dataMin: number) => (dataMin < 0 ? dataMin * 1.4 : 0),
     (dataMax: number) => (dataMax > 0 ? dataMax * 1.4 : 0),
   ] as [(dataMin: number) => number, (dataMax: number) => number];
+
+  type RankingOrder = "asc" | "desc";
+  const [rankingOrderCusto, setRankingOrderCusto] =
+    useState<RankingOrder>("asc");
+  const [rankingOrderQtd, setRankingOrderQtd] = useState<RankingOrder>("asc");
 
   // Custom tick com quebra de linha automática
   const CustomAxisTick = (props: any) => {
@@ -291,9 +296,11 @@ export const DashboardBaselineDetalhamento: React.FC<
                       Variação (%)
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-2xl font-bold text-foreground">
-                        {variacaoProfissionaisPercentual >= 0 ? "↑" : "↓"}
-                      </span>
+                      {variacaoProfissionaisPercentual < 0 ? (
+                        <ArrowDown className="h-6 w-6 text-green-600" />
+                      ) : (
+                        <ArrowUp className="h-6 w-6 text-red-600" />
+                      )}
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {Math.abs(variacaoProfissionaisPercentual).toFixed(1)}%
                       </h3>
@@ -310,9 +317,11 @@ export const DashboardBaselineDetalhamento: React.FC<
                       Variação (Qtd)
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-2xl font-bold text-foreground">
-                        {variacaoProfissionais >= 0 ? "↑" : "↓"}
-                      </span>
+                      {variacaoProfissionais < 0 ? (
+                        <ArrowDown className="h-6 w-6 text-green-600" />
+                      ) : (
+                        <ArrowUp className="h-6 w-6 text-red-600" />
+                      )}
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {Math.abs(variacaoProfissionais)}
                       </h3>
@@ -360,9 +369,11 @@ export const DashboardBaselineDetalhamento: React.FC<
                       Variação monetária (%)
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-2xl font-bold text-foreground">
-                        {variacaoCustoPercentual >= 0 ? "↑" : "↓"}
-                      </span>
+                      {variacaoCustoPercentual < 0 ? (
+                        <ArrowDown className="h-6 w-6 text-green-600" />
+                      ) : (
+                        <ArrowUp className="h-6 w-6 text-red-600" />
+                      )}
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {Math.abs(variacaoCustoPercentual).toFixed(1)}%
                       </h3>
@@ -379,9 +390,11 @@ export const DashboardBaselineDetalhamento: React.FC<
                       Variação monetária (R$)
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-2xl font-bold text-foreground">
-                        {variacaoCusto >= 0 ? "↑" : "↓"}
-                      </span>
+                      {variacaoCusto < 0 ? (
+                        <ArrowDown className="h-6 w-6 text-green-600" />
+                      ) : (
+                        <ArrowUp className="h-6 w-6 text-red-600" />
+                      )}
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {formatCurrency(Math.abs(variacaoCusto))}
                       </h3>
@@ -482,9 +495,66 @@ export const DashboardBaselineDetalhamento: React.FC<
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">
-                  Ranking da Variação dos Setores (%)
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">
+                    Ranking da Variação dos Setores (%)
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      Ordenação
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={
+                          rankingOrderCusto === "asc"
+                            ? "text-xs font-medium text-foreground whitespace-nowrap"
+                            : "text-xs text-muted-foreground whitespace-nowrap"
+                        }
+                      >
+                        Maior
+                      </span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={rankingOrderCusto === "desc"}
+                        onClick={() =>
+                          setRankingOrderCusto((prev) =>
+                            prev === "asc" ? "desc" : "asc"
+                          )
+                        }
+                        className={
+                          "relative inline-flex h-6 w-11 items-center rounded-full border transition-colors " +
+                          (rankingOrderCusto === "desc"
+                            ? "bg-primary/10 border-primary/40"
+                            : "bg-muted border-border")
+                        }
+                        title={
+                          rankingOrderCusto === "desc"
+                            ? "Maior → Menor"
+                            : "Menor → Maior"
+                        }
+                      >
+                        <span
+                          className={
+                            "inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform " +
+                            (rankingOrderCusto === "desc"
+                              ? "translate-x-5"
+                              : "translate-x-0")
+                          }
+                        />
+                      </button>
+                      <span
+                        className={
+                          rankingOrderCusto === "desc"
+                            ? "text-xs font-medium text-foreground whitespace-nowrap"
+                            : "text-xs text-muted-foreground whitespace-nowrap"
+                        }
+                      >
+                        Menor
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="px-2 pb-4">
                 {(() => {
@@ -547,13 +617,21 @@ export const DashboardBaselineDetalhamento: React.FC<
                       variacaoReais: custoProjetado - custoAtual,
                     };
                   });
+
+                  // Ordenar baseado no estado
+                  const rankingOrdenado = [...rankingComReais].sort((a, b) => {
+                    return rankingOrderCusto === "asc"
+                      ? a.variacaoPercentual - b.variacaoPercentual
+                      : b.variacaoPercentual - a.variacaoPercentual;
+                  });
+
                   const computedHeight = Math.min(
                     560,
-                    Math.max(380, rankingComReais.length * 44)
+                    Math.max(380, rankingOrdenado.length * 44)
                   );
                   const maxLabelLen = Math.max(
                     0,
-                    ...rankingComReais.map((d) =>
+                    ...rankingOrdenado.map((d) =>
                       d?.nome ? String(d.nome).length : 0
                     )
                   );
@@ -565,7 +643,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                     <div style={{ height: computedHeight }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart
-                          data={rankingComReais}
+                          data={rankingOrdenado}
                           layout="vertical"
                           margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
                         >
@@ -585,13 +663,13 @@ export const DashboardBaselineDetalhamento: React.FC<
                             content={<RankingTooltipContent kind="currency" />}
                           />
                           <Bar dataKey="variacaoPercentual" barSize={18}>
-                            {rankingComReais.map((entry, index) => (
+                            {rankingOrdenado.map((entry, index) => (
                               <Cell
                                 key={`cell-${index}`}
                                 fill={
                                   entry.variacaoPercentual < 0
-                                    ? "rgb(220,38,38)"
-                                    : "rgb(22,163,74)"
+                                    ? "#16a34a"
+                                    : "#dc2626"
                                 }
                               />
                             ))}
@@ -614,51 +692,39 @@ export const DashboardBaselineDetalhamento: React.FC<
                 <ResponsiveContainer width="100%" height={350}>
                   <BarChart
                     data={(() => {
-                      // Processar dados do waterfall manualmente (em valores R$)
-                      let cumulative = 0;
-                      const processedData = waterfallQuantidadeData.map(
-                        (item, index) => {
-                          const isStart = index === 0;
-                          const isEnd =
-                            index === waterfallQuantidadeData.length - 1;
-                          const isTransition = !isStart && !isEnd;
-                          let color = "#003151";
-                          let range: [number, number];
-                          // Calcular custo correspondente baseado na quantidade
-                          const custoMedioPorPessoa =
-                            custoAtualReal / profissionaisAtuaisReal;
-                          let custoReais = 0;
-                          if (isStart) {
-                            // Atual
-                            custoReais = custoAtualReal;
-                            range = [0, custoReais];
-                            cumulative = custoReais;
-                          } else if (isTransition) {
-                            // Variação (pode ser positiva ou negativa)
-                            custoReais = item.value * custoMedioPorPessoa;
-                            const startValue = cumulative;
-                            cumulative += custoReais;
-                            range = [startValue, cumulative];
-                            color =
-                              custoReais < 0
-                                ? "hsl(var(--destructive))"
-                                : "#0b6f88";
-                          } else {
-                            // Projetado
-                            custoReais = custoProjetado;
-                            range = [0, custoReais];
-                            color = "#003151";
-                          }
-                          return {
-                            name: item.name,
-                            value: custoReais,
-                            range: range,
-                            color: color,
-                            qtdPessoas: item.value,
-                          };
-                        }
-                      );
-                      return processedData;
+                      // Waterfall usando valores reais de custo (Atual -> Projetado)
+                      const deltaAtualParaProjetado =
+                        custoProjetado - custoAtualReal;
+                      const deltaPessoas =
+                        profissionaisProjetados - profissionaisAtuaisReal;
+
+                      return [
+                        {
+                          name: "Atual",
+                          value: custoAtualReal,
+                          range: [0, custoAtualReal],
+                          color: "#5CA6DD",
+                          qtdPessoas: profissionaisAtuaisReal,
+                        },
+                        {
+                          name: "Variação",
+                          value: deltaAtualParaProjetado,
+                          range:
+                            deltaAtualParaProjetado >= 0
+                              ? [custoAtualReal, custoProjetado]
+                              : [custoProjetado, custoAtualReal],
+                          color:
+                            deltaAtualParaProjetado < 0 ? "#16a34a" : "#dc2626",
+                          qtdPessoas: deltaPessoas,
+                        },
+                        {
+                          name: "Projetado",
+                          value: custoProjetado,
+                          range: [0, custoProjetado],
+                          color: "#003151",
+                          qtdPessoas: profissionaisProjetados,
+                        },
+                      ];
                     })()}
                     margin={{ top: 8, right: 20, left: 20, bottom: 60 }}
                   >
@@ -712,26 +778,23 @@ export const DashboardBaselineDetalhamento: React.FC<
                       }}
                     />
                     <Bar dataKey="range">
-                      {waterfallQuantidadeData.map((_, index) => {
-                        const isStart = index === 0;
-                        const isEnd =
-                          index === waterfallQuantidadeData.length - 1;
-                        const isTransition = !isStart && !isEnd;
-                        let color = "#003151";
-                        if (isTransition) {
-                          // Calcular se a variação é positiva ou negativa
-                          const custoMedioPorPessoa =
-                            custoAtualReal / profissionaisAtuaisReal;
-                          const variacaoCusto =
-                            waterfallQuantidadeData[index].value *
-                            custoMedioPorPessoa;
-                          color =
-                            variacaoCusto < 0
-                              ? "hsl(var(--destructive))"
-                              : "#0b6f88";
-                        }
-                        return <Cell key={`cell-${index}`} fill={color} />;
-                      })}
+                      {(() => {
+                        const deltaAtualParaProjetado =
+                          custoProjetado - custoAtualReal;
+                        const cells = [
+                          { color: "#5CA6DD" }, // Atual
+                          {
+                            color:
+                              deltaAtualParaProjetado < 0
+                                ? "#16a34a"
+                                : "#dc2626",
+                          }, // Variação
+                          { color: "#003151" }, // Projetado
+                        ];
+                        return cells.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ));
+                      })()}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -890,7 +953,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                               ? [custoAtualReal, custoBaseline]
                               : [custoBaseline, custoAtualReal],
                           color:
-                            deltaAtualParaBaseline >= 0 ? "#10B981" : "#EF4444",
+                            deltaAtualParaBaseline < 0 ? "#16a34a" : "#dc2626",
                           qtdPessoas:
                             profissionaisBaseline - profissionaisAtuaisReal,
                         },
@@ -909,9 +972,9 @@ export const DashboardBaselineDetalhamento: React.FC<
                               ? [custoBaseline, custoProjetado]
                               : [custoProjetado, custoBaseline],
                           color:
-                            deltaBaselineParaProjetado >= 0
-                              ? "#10B981"
-                              : "#EF4444",
+                            deltaBaselineParaProjetado < 0
+                              ? "#16a34a"
+                              : "#dc2626",
                           qtdPessoas:
                             profissionaisProjetados - profissionaisBaseline,
                         },
@@ -990,16 +1053,16 @@ export const DashboardBaselineDetalhamento: React.FC<
                           { color: "#5CA6DD" }, // Atual
                           {
                             color:
-                              deltaAtualParaBaseline >= 0
-                                ? "#10B981"
-                                : "#EF4444",
+                              deltaAtualParaBaseline < 0
+                                ? "#16a34a"
+                                : "#dc2626",
                           }, // Variação (Atual -> Baseline)
                           { color: "#93C5FD" }, // Baseline
                           {
                             color:
-                              deltaBaselineParaProjetado >= 0
-                                ? "#10B981"
-                                : "#EF4444",
+                              deltaBaselineParaProjetado < 0
+                                ? "#16a34a"
+                                : "#dc2626",
                           }, // Variação (Baseline -> Projetado)
                           { color: "#003151" }, // Projetado
                         ];
@@ -1378,7 +1441,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                           value: cargo.custoVariacao,
                           range: [inicio, acumuladoCusto],
                           color:
-                            cargo.custoVariacao >= 0 ? "#10B981" : "#EF4444",
+                            cargo.custoVariacao < 0 ? "#16a34a" : "#dc2626",
                           qtdPessoas: cargo.qtdVariacao,
                         });
                       });
@@ -1644,7 +1707,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                         cargosOrdenados.forEach((cargo) => {
                           cells.push({
                             color:
-                              cargo.custoVariacao >= 0 ? "#10B981" : "#EF4444",
+                              cargo.custoVariacao < 0 ? "#16a34a" : "#dc2626",
                           });
                         });
                         cells.push({ color: "#003151" }); // Projetado
@@ -1855,21 +1918,90 @@ export const DashboardBaselineDetalhamento: React.FC<
                       tickFormatter={formatCurrencyAxisTick}
                     />
                     <Tooltip
-                      formatter={(value: any) => {
-                        return [
-                          `R$ ${Number(value).toLocaleString("pt-BR", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}`,
-                        ];
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const atual =
+                            payload.find((p) => p.dataKey === "Atual")?.value ||
+                            0;
+                          const baseline =
+                            payload.find((p) => p.dataKey === "Baseline")
+                              ?.value || 0;
+                          const projetado =
+                            payload.find((p) => p.dataKey === "Projetado")
+                              ?.value || 0;
+
+                          return (
+                            <div className="bg-background border p-3 rounded-lg shadow-lg text-sm">
+                              <p className="font-bold text-foreground mb-2">
+                                {label}
+                              </p>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-[#003151] rounded"></div>
+                                  <span className="text-muted-foreground">
+                                    Atual:
+                                  </span>
+                                  <span className="font-semibold">
+                                    R${" "}
+                                    {Number(atual).toLocaleString("pt-BR", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-[#5CA6DD] rounded"></div>
+                                  <span className="text-muted-foreground">
+                                    Baseline:
+                                  </span>
+                                  <span className="font-semibold">
+                                    R${" "}
+                                    {Number(baseline).toLocaleString("pt-BR", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-[#89A7D6] rounded"></div>
+                                  <span className="text-muted-foreground">
+                                    Projetado:
+                                  </span>
+                                  <span className="font-semibold">
+                                    R${" "}
+                                    {Number(projetado).toLocaleString("pt-BR", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{ paddingTop: "20px" }}
+                      formatter={(value: string) => {
+                        if (value === "Baseline") {
+                          const baselineDate = snapshotData.snapshot.dataHora
+                            ? new Date(snapshotData.snapshot.dataHora)
+                                .toLocaleDateString("pt-BR", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "2-digit",
+                                })
+                                .replace(/\//g, ".")
+                            : "";
+                          return `Baseline (${baselineDate})`;
+                        }
+                        return value;
                       }}
                     />
                     <Bar dataKey="Atual" fill="#003151" name="Atual" />
-                    <Bar
-                      dataKey="Baseline"
-                      fill="#5CA6DD"
-                      name="Baseline (5D MM JJ)"
-                    />
+                    <Bar dataKey="Baseline" fill="#5CA6DD" name="Baseline" />
                     <Bar dataKey="Projetado" fill="#89A7D6" name="Projetado" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -1884,9 +2016,66 @@ export const DashboardBaselineDetalhamento: React.FC<
             {/* Gráfico 1: Ranking da Variação dos Setores (QTD) */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">
-                  Ranking da Variação dos Setores (QTD)
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">
+                    Ranking da Variação dos Setores (QTD)
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      Ordenação
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={
+                          rankingOrderQtd === "asc"
+                            ? "text-xs font-medium text-foreground whitespace-nowrap"
+                            : "text-xs text-muted-foreground whitespace-nowrap"
+                        }
+                      >
+                        Maior
+                      </span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={rankingOrderQtd === "desc"}
+                        onClick={() =>
+                          setRankingOrderQtd((prev) =>
+                            prev === "asc" ? "desc" : "asc"
+                          )
+                        }
+                        className={
+                          "relative inline-flex h-6 w-11 items-center rounded-full border transition-colors " +
+                          (rankingOrderQtd === "desc"
+                            ? "bg-primary/10 border-primary/40"
+                            : "bg-muted border-border")
+                        }
+                        title={
+                          rankingOrderQtd === "desc"
+                            ? "Maior → Menor"
+                            : "Menor → Maior"
+                        }
+                      >
+                        <span
+                          className={
+                            "inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform " +
+                            (rankingOrderQtd === "desc"
+                              ? "translate-x-5"
+                              : "translate-x-0")
+                          }
+                        />
+                      </button>
+                      <span
+                        className={
+                          rankingOrderQtd === "desc"
+                            ? "text-xs font-medium text-foreground whitespace-nowrap"
+                            : "text-xs text-muted-foreground whitespace-nowrap"
+                        }
+                      >
+                        Menor
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="px-2 pb-4">
                 {(() => {
@@ -1934,13 +2123,21 @@ export const DashboardBaselineDetalhamento: React.FC<
                       variacaoQtd: qtdProjetada - qtdAtual,
                     };
                   });
+
+                  // Ordenar baseado no estado
+                  const rankingOrdenado = [...rankingComQtd].sort((a, b) => {
+                    return rankingOrderQtd === "asc"
+                      ? a.variacaoPercentual - b.variacaoPercentual
+                      : b.variacaoPercentual - a.variacaoPercentual;
+                  });
+
                   const computedHeight = Math.min(
                     560,
-                    Math.max(380, rankingComQtd.length * 44)
+                    Math.max(380, rankingOrdenado.length * 44)
                   );
                   const maxLabelLen = Math.max(
                     0,
-                    ...rankingComQtd.map((d) =>
+                    ...rankingOrdenado.map((d) =>
                       d?.nome ? String(d.nome).length : 0
                     )
                   );
@@ -1952,7 +2149,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                     <div style={{ height: computedHeight }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart
-                          data={rankingComQtd}
+                          data={rankingOrdenado}
                           layout="vertical"
                           margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
                         >
@@ -1972,13 +2169,13 @@ export const DashboardBaselineDetalhamento: React.FC<
                             content={<RankingTooltipContent kind="people" />}
                           />
                           <Bar dataKey="variacaoPercentual" barSize={18}>
-                            {rankingComQtd.map((entry, index) => (
+                            {rankingOrdenado.map((entry, index) => (
                               <Cell
                                 key={`cell-${index}`}
                                 fill={
                                   entry.variacaoPercentual < 0
-                                    ? "rgb(220,38,38)"
-                                    : "rgb(22,163,74)"
+                                    ? "#16a34a"
+                                    : "#dc2626"
                                 }
                               />
                             ))}
@@ -2016,10 +2213,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                             const startValue = cumulative;
                             cumulative += item.value;
                             range = [startValue, cumulative];
-                            color =
-                              item.value < 0
-                                ? "hsl(var(--destructive))"
-                                : "#0b6f88";
+                            color = item.value < 0 ? "#16a34a" : "#dc2626";
                           } else {
                             range = [0, item.value];
                             color = "#003151";
@@ -2053,7 +2247,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                       interval="preserveStartEnd"
                       height={80}
                     />
-                    <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+                    <YAxis tick={axisTick} />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -2102,8 +2296,8 @@ export const DashboardBaselineDetalhamento: React.FC<
                         if (isTransition) {
                           color =
                             waterfallQuantidadeData[index].value < 0
-                              ? "hsl(var(--destructive))"
-                              : "#0b6f88";
+                              ? "#16a34a"
+                              : "#dc2626";
                         }
                         return <Cell key={`cell-${index}`} fill={color} />;
                       })}
@@ -2244,7 +2438,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                       interval="preserveStartEnd"
                       height={80}
                     />
-                    <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+                    <YAxis tick={axisTick} />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -2526,7 +2720,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                           name: nomeFormatado,
                           value: cargo.variacao,
                           range: [inicio, acumuladoCargos],
-                          color: cargo.variacao >= 0 ? "#10B981" : "#EF4444",
+                          color: cargo.variacao < 0 ? "#16a34a" : "#dc2626",
                           custoReais: cargo.custoVariacao,
                         });
                       });
@@ -2549,7 +2743,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                       interval="preserveStartEnd"
                       height={80}
                     />
-                    <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
+                    <YAxis tick={axisTick} />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
@@ -2729,7 +2923,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                         // Variações por cargo (Baseline→Projetado)
                         cargosOrdenados.forEach((cargo) => {
                           waterfallDataForCells.push({
-                            color: cargo.variacao >= 0 ? "#10B981" : "#EF4444",
+                            color: cargo.variacao < 0 ? "#16a34a" : "#dc2626",
                           });
                         });
                         // Projetado
@@ -2943,7 +3137,86 @@ export const DashboardBaselineDetalhamento: React.FC<
                       height={80}
                     />
                     <YAxis tick={axisTick} />
-                    <Tooltip />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const atual =
+                            payload.find((p) => p.dataKey === "Atual")?.value ||
+                            0;
+                          const baseline =
+                            payload.find((p) => p.dataKey === "Baseline")
+                              ?.value || 0;
+                          const projetado =
+                            payload.find((p) => p.dataKey === "Projetado")
+                              ?.value || 0;
+
+                          return (
+                            <div className="bg-background border p-3 rounded-lg shadow-lg text-sm">
+                              <p className="font-bold text-foreground mb-2">
+                                {label}
+                              </p>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-[#003151] rounded"></div>
+                                  <span className="text-muted-foreground">
+                                    Atual:
+                                  </span>
+                                  <span className="font-semibold">
+                                    {Number(atual)}{" "}
+                                    {Number(atual) === 1
+                                      ? "funcionário"
+                                      : "funcionários"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-[#5CA6DD] rounded"></div>
+                                  <span className="text-muted-foreground">
+                                    Baseline:
+                                  </span>
+                                  <span className="font-semibold">
+                                    {Number(baseline)}{" "}
+                                    {Number(baseline) === 1
+                                      ? "funcionário"
+                                      : "funcionários"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-[#89A7D6] rounded"></div>
+                                  <span className="text-muted-foreground">
+                                    Projetado:
+                                  </span>
+                                  <span className="font-semibold">
+                                    {Number(projetado)}{" "}
+                                    {Number(projetado) === 1
+                                      ? "funcionário"
+                                      : "funcionários"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{ paddingTop: "20px" }}
+                      formatter={(value: string) => {
+                        if (value === "Baseline") {
+                          const baselineDate = snapshotData.snapshot.dataHora
+                            ? new Date(snapshotData.snapshot.dataHora)
+                                .toLocaleDateString("pt-BR", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "2-digit",
+                                })
+                                .replace(/\//g, ".")
+                            : "";
+                          return `Baseline (${baselineDate})`;
+                        }
+                        return value;
+                      }}
+                    />
                     <Bar dataKey="Atual" fill="#003151" name="Atual" />
                     <Bar dataKey="Baseline" fill="#5CA6DD" name="Baseline" />
                     <Bar dataKey="Projetado" fill="#89A7D6" name="Projetado" />

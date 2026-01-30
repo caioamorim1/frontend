@@ -149,9 +149,12 @@ export const ReusableWaterfall: React.FC<ReusableWaterfallProps> = ({
 
   const formatYAxisTick = (value: number) => {
     if (unit === "currency") {
-      return value >= 1000 ? `R$ ${(value / 1000).toFixed(0)}k` : `R$ ${value}`;
+      return value >= 1000
+        ? `R$ ${(value / 1000).toFixed(0)}k`
+        : `R$ ${Math.round(value)}`;
     }
-    return value.toString();
+    // Para quantidade, retornar número inteiro sem decimais
+    return Math.round(value).toString();
   };
 
   return (
