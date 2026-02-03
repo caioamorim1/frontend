@@ -320,7 +320,9 @@ export default function AvaliacaoScpModal({
                       className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-sm py-2 px-3"
                     >
                       <CheckCircle className="h-4 w-4" />
-                      {isSubmitting ? "Salvando..." : "Finalizar e Salvar Avaliação"}
+                      {isSubmitting
+                        ? "Salvando..."
+                        : "Finalizar e Salvar Avaliação"}
                     </Button>
                   )}
                 </div>

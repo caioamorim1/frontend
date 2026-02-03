@@ -18,8 +18,8 @@ export type {
   QuestionOption,
 };
 
-export const API_BASE_URL = "http://localhost:3110";
-// export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
+//export const API_BASE_URL = "http://localhost:3110";
+export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
 const getApiOrigin = (): string => {
   const base = String(API_BASE_URL || "");
 
@@ -375,16 +375,17 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Se receber 401 (não autorizado) ou 403 (token expirado)
+    // Se receber 401 ou 403, mas apenas se NÃO for a rota de login
     if (
       error.response &&
-      (error.response.status === 401 || error.response.status === 403)
+      (error.response.status === 401 || error.response.status === 403) &&
+      error.config?.url !== "/login"
     ) {
       // Limpar token do localStorage
       localStorage.removeItem("authToken");
 
-      // Redirecionar para login
-      window.location.href = "/login";
+      // Redirecionar para login usando hash router
+      window.location.hash = "#/login";
     }
 
     return Promise.reject(error);
