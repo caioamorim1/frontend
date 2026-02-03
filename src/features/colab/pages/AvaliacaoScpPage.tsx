@@ -54,6 +54,7 @@ export default function AvaliacaoScpPage() {
   const [error, setError] = useState<string | null>(null);
   const [avaliationCompleted, setAvaliationCompleted] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   useEffect(() => {
     if (!state) return;
     setLeitoId((prev) => prev ?? state.lid ?? null);
@@ -118,14 +119,18 @@ export default function AvaliacaoScpPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!isFormComplete || !user?.id) {
-      toast({
-        title: "Atenção",
-        description: "Por favor, responda todas as perguntas para continuar.",
-        variant: "destructive",
-      });
+    if (!isFormComplete || !user?.id || isSubmitting) {
+      if (!isFormComplete || !user?.id) {
+        toast({
+          title: "Atenção",
+          description: "Por favor, responda todas as perguntas para continuar.",
+          variant: "destructive",
+        });
+      }
       return;
     }
+    
+    setIsSubmitting(true);
     try {
       await createSessao( {unidadeId: unidade.id, prontuario: pront, scp: mscp, leitoId,colaboradorId: user.id, itens: respostas,  });
       setAvaliationCompleted(true); // Marca como concluída antes de navegar
@@ -133,6 +138,8 @@ export default function AvaliacaoScpPage() {
       navigate(`/hospital/${hospitalId}/unidade/${unidadeId}/leitos`);
     } catch (err) {
       toast({ title: "Erro", description: "Não foi possível salvar a avaliação.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -207,11 +214,11 @@ export default function AvaliacaoScpPage() {
                 ) : (
                   <Button
                     type="submit"
-                    disabled={!isFormComplete}
+                    disabled={!isFormComplete || isSubmitting}
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-base py-6 px-6"
                   >
                     <CheckCircle className="h-5 w-5" />
-                    Finalizar e Salvar Avaliação
+                    {isSubmitting ? "Salvando..." : "Finalizar e Salvar Avaliação"}
                   </Button>
                 )}
               </div>
