@@ -17,6 +17,7 @@ type InfoCardProps = {
   subtitle: string;
   icon: React.ReactNode;
   variant: "primary" | "warning" | "success";
+  subtitleColor?: "red" | "green" | "muted";
 };
 
 type WaterfallItem = { name: string; value: number };
@@ -88,10 +89,10 @@ const normalizeRanking = (items: any): BaselineRankingItemRede[] => {
         it?.variacaoReais !== undefined
           ? toNumber(it.variacaoReais, 0)
           : it?.variacaoEmReais !== undefined
-          ? toNumber(it.variacaoEmReais, 0)
-          : it?.reais !== undefined
-          ? toNumber(it.reais, 0)
-          : undefined,
+            ? toNumber(it.variacaoEmReais, 0)
+            : it?.reais !== undefined
+              ? toNumber(it.reais, 0)
+              : undefined,
     }))
     .filter((it) => it.nome);
 };
@@ -116,7 +117,8 @@ const computeRankingsFromHospitais = (
       0
     );
     const variacaoReais = projetado - atual;
-    const variacaoPercentual = atual !== 0 ? (variacaoReais / atual) * 100 : 0;
+    const variacaoPercentual =
+      projetado !== 0 ? (variacaoReais / projetado) * 100 : 0;
     return { nome, variacaoPercentual, variacaoReais };
   });
 
@@ -133,7 +135,8 @@ const computeRankingsFromHospitais = (
       0
     );
     const variacaoReais = projetado - atual;
-    const variacaoPercentual = atual !== 0 ? (variacaoReais / atual) * 100 : 0;
+    const variacaoPercentual =
+      projetado !== 0 ? (variacaoReais / projetado) * 100 : 0;
     return { nome, variacaoPercentual, variacaoReais };
   });
 
@@ -178,10 +181,10 @@ const RankingTooltipContent: React.FC<
     rawDelta === undefined
       ? "--"
       : kind === "currency"
-      ? formatCurrencyPtBr(rawDelta)
-      : `${rawDelta.toLocaleString("pt-BR", {
-          maximumFractionDigits: 0,
-        })}`;
+        ? formatCurrencyPtBr(rawDelta)
+        : `${rawDelta.toLocaleString("pt-BR", {
+            maximumFractionDigits: 0,
+          })}`;
 
   return (
     <div className="rounded-md border bg-background px-3 py-2 shadow-sm">
@@ -361,7 +364,8 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
 
   const formatArrowPct = (delta: number, pct: number) => {
     if (!Number.isFinite(delta) || delta === 0) return "Estável";
-    const arrow = delta > 0 ? "↑" : "↓";
+    // Lógica invertida: redução (< 0) = seta para cima, aumento (> 0) = seta para baixo
+    const arrow = delta < 0 ? "↑" : "↓";
     const pctLabel = Number.isFinite(pct)
       ? `${Math.abs(pct).toLocaleString("pt-BR", {
           minimumFractionDigits: 1,
@@ -369,6 +373,13 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
         })}%`
       : "--";
     return `${arrow} ${pctLabel}`;
+  };
+
+  // Função auxiliar para determinar a cor do subtitle baseada na variação
+  const getSubtitleColor = (delta: number): "red" | "green" | "muted" => {
+    if (!Number.isFinite(delta) || delta === 0) return "muted";
+    // Redução (< 0) = vermelho, Aumento (> 0) = verde
+    return delta < 0 ? "red" : "green";
   };
 
   const formatVariationPctLabel = (delta: number, pct: number) => {
@@ -663,12 +674,15 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
                   toNumber(variacaoCustoPercentualResolved, 0)
                 )
               : toNumber(variacaoCustoReaisResolved, 0) < 0
-              ? formatArrowPct(
-                  toNumber(variacaoCustoReaisResolved, 0),
-                  toNumber(variacaoCustoPercentualResolved, 0)
-                )
-              : "Estável"
+                ? formatArrowPct(
+                    toNumber(variacaoCustoReaisResolved, 0),
+                    toNumber(variacaoCustoPercentualResolved, 0)
+                  )
+                : "Estável"
           }
+          subtitleColor={getSubtitleColor(
+            toNumber(variacaoCustoReaisResolved, 0)
+          )}
           icon={icons.variacao}
           variant="warning"
         />
@@ -701,12 +715,15 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
                   toNumber(variacaoQuantidadePercentual, 0)
                 )
               : toNumber(variacaoQuantidadeResolved, 0) < 0
-              ? formatArrowPct(
-                  toNumber(variacaoQuantidadeResolved, 0),
-                  toNumber(variacaoQuantidadePercentual, 0)
-                )
-              : "Estável"
+                ? formatArrowPct(
+                    toNumber(variacaoQuantidadeResolved, 0),
+                    toNumber(variacaoQuantidadePercentual, 0)
+                  )
+                : "Estável"
           }
+          subtitleColor={getSubtitleColor(
+            toNumber(variacaoQuantidadeResolved, 0)
+          )}
           icon={icons.variacao}
           variant="warning"
         />
@@ -762,6 +779,7 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
           title="Desvio Financeiro"
           value={formatAbsCurrency(desvioFinanceiroReais)}
           subtitle={formatArrowPct(desvioFinanceiroReais, desvioFinanceiroPct)}
+          subtitleColor={getSubtitleColor(desvioFinanceiroReais)}
           icon={icons.variacao}
           variant="warning"
         />
@@ -770,6 +788,7 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
           title="Desvio de Funcionários"
           value={formatAbsInt(desvioFuncionarios)}
           subtitle={formatArrowPct(desvioFuncionarios, desvioFuncionariosPct)}
+          subtitleColor={getSubtitleColor(desvioFuncionarios)}
           icon={icons.variacao}
           variant="warning"
         />
@@ -782,13 +801,13 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
                   toNumber(hospitalMaiorDesvio.variacaoReais, 0)
                 )
               : hospitalMaiorDesvio
-              ? `${Math.abs(
-                  toNumber(hospitalMaiorDesvio.variacaoPercentual, 0)
-                ).toLocaleString("pt-BR", {
-                  minimumFractionDigits: 1,
-                  maximumFractionDigits: 1,
-                })}%`
-              : "--"
+                ? `${Math.abs(
+                    toNumber(hospitalMaiorDesvio.variacaoPercentual, 0)
+                  ).toLocaleString("pt-BR", {
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 1,
+                  })}%`
+                : "--"
           }
           subtitle={
             hospitalMaiorDesvio
@@ -798,6 +817,9 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
                 )}`
               : "Dados insuficientes"
           }
+          subtitleColor={getSubtitleColor(
+            toNumber(hospitalMaiorDesvio?.variacaoReais, 0)
+          )}
           icon={icons.atual}
           variant="primary"
         />

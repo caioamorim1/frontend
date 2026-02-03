@@ -57,8 +57,8 @@ const processWaterfallData = (data: WaterfallDataItem[]) => {
       const startValue = cumulative;
       cumulative += item.value;
       range = [startValue, cumulative];
-      // Verde para redução (negativo), Vermelho para aumento (positivo)
-      color = item.value < 0 ? "#16a34a" : "#dc2626";
+      // Lógica invertida: Vermelho para redução (negativo), Verde para aumento (positivo)
+      color = item.value < 0 ? "#dc2626" : "#16a34a";
     }
 
     // Cores especiais para baseline, atual e projetado

@@ -164,8 +164,9 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
         });
 
         const variacaoPerc =
-          qtdAtualUnidade > 0
-            ? ((qtdProjetadaUnidade - qtdAtualUnidade) / qtdAtualUnidade) * 100
+          qtdProjetadaUnidade > 0
+            ? ((qtdProjetadaUnidade - qtdAtualUnidade) / qtdProjetadaUnidade) *
+              100
             : 0;
 
         setoresVariacao.push({
@@ -197,8 +198,9 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
         });
 
         const variacaoPerc =
-          qtdAtualUnidade > 0
-            ? ((qtdProjetadaUnidade - qtdAtualUnidade) / qtdAtualUnidade) * 100
+          qtdProjetadaUnidade > 0
+            ? ((qtdProjetadaUnidade - qtdAtualUnidade) / qtdProjetadaUnidade) *
+              100
             : 0;
 
         setoresVariacao.push({

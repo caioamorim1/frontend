@@ -382,7 +382,6 @@ api.interceptors.response.use(
     }
 
     // Se receber 401 ou 403 em outras rotas (token expirado/inválido)
-    // 404 NÃO deve causar logout pois pode ser recurso não encontrado
     if (
       error.response &&
       (error.response.status === 401 || error.response.status === 403)

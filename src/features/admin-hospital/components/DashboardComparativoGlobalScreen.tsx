@@ -150,7 +150,7 @@ export const DashboardComparativoGlobalScreen: React.FC<{
       ],
       variacaoCusto,
       variacaoPercentual:
-        custoAtual > 0 ? (variacaoCusto / custoAtual) * 100 : 0,
+        custoProjetado > 0 ? (variacaoCusto / custoProjetado) * 100 : 0,
       setorList: Array.from(
         new Map(
           baseSectors.map((s: any) => [s.name, { id: s.id, name: s.name }])

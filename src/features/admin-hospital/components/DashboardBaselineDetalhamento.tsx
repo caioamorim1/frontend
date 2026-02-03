@@ -241,8 +241,9 @@ export const DashboardBaselineDetalhamento: React.FC<
           qtdProjetadaUnidade += cargo.projetadoFinal;
         });
         const variacaoPerc =
-          qtdAtualUnidade > 0
-            ? ((qtdProjetadaUnidade - qtdAtualUnidade) / qtdAtualUnidade) * 100
+          qtdProjetadaUnidade > 0
+            ? ((qtdProjetadaUnidade - qtdAtualUnidade) / qtdProjetadaUnidade) *
+              100
             : 0;
         setoresVariacao.push({
           nome: unidade.unidadeNome,
@@ -269,8 +270,9 @@ export const DashboardBaselineDetalhamento: React.FC<
           });
         });
         const variacaoPerc =
-          qtdAtualUnidade > 0
-            ? ((qtdProjetadaUnidade - qtdAtualUnidade) / qtdAtualUnidade) * 100
+          qtdProjetadaUnidade > 0
+            ? ((qtdProjetadaUnidade - qtdAtualUnidade) / qtdProjetadaUnidade) *
+              100
             : 0;
         setoresVariacao.push({
           nome: unidade.unidadeNome,
@@ -297,9 +299,9 @@ export const DashboardBaselineDetalhamento: React.FC<
                     </p>
                     <div className="flex items-center gap-2 mt-2">
                       {variacaoProfissionaisPercentual < 0 ? (
-                        <ArrowDown className="h-6 w-6 text-green-600" />
-                      ) : (
                         <ArrowUp className="h-6 w-6 text-red-600" />
+                      ) : (
+                        <ArrowDown className="h-6 w-6 text-green-600" />
                       )}
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {Math.abs(variacaoProfissionaisPercentual).toFixed(1)}%
@@ -318,9 +320,9 @@ export const DashboardBaselineDetalhamento: React.FC<
                     </p>
                     <div className="flex items-center gap-2 mt-2">
                       {variacaoProfissionais < 0 ? (
-                        <ArrowDown className="h-6 w-6 text-green-600" />
-                      ) : (
                         <ArrowUp className="h-6 w-6 text-red-600" />
+                      ) : (
+                        <ArrowDown className="h-6 w-6 text-green-600" />
                       )}
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {Math.abs(variacaoProfissionais)}
@@ -370,9 +372,9 @@ export const DashboardBaselineDetalhamento: React.FC<
                     </p>
                     <div className="flex items-center gap-2 mt-2">
                       {variacaoCustoPercentual < 0 ? (
-                        <ArrowDown className="h-6 w-6 text-green-600" />
-                      ) : (
                         <ArrowUp className="h-6 w-6 text-red-600" />
+                      ) : (
+                        <ArrowDown className="h-6 w-6 text-green-600" />
                       )}
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {Math.abs(variacaoCustoPercentual).toFixed(1)}%
@@ -391,9 +393,9 @@ export const DashboardBaselineDetalhamento: React.FC<
                     </p>
                     <div className="flex items-center gap-2 mt-2">
                       {variacaoCusto < 0 ? (
-                        <ArrowDown className="h-6 w-6 text-green-600" />
-                      ) : (
                         <ArrowUp className="h-6 w-6 text-red-600" />
+                      ) : (
+                        <ArrowDown className="h-6 w-6 text-green-600" />
                       )}
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {formatCurrency(Math.abs(variacaoCusto))}
@@ -611,10 +613,16 @@ export const DashboardBaselineDetalhamento: React.FC<
                         });
                       }
                     }
+                    const variacaoReais = custoProjetado - custoAtual;
+                    // Calcular percentual baseado no custo projetado
+                    const variacaoPercentualCusto =
+                      custoProjetado > 0
+                        ? (variacaoReais / custoProjetado) * 100
+                        : 0;
                     return {
                       nome: setor.nome,
-                      variacaoPercentual: setor.variacaoPercentual,
-                      variacaoReais: custoProjetado - custoAtual,
+                      variacaoPercentual: variacaoPercentualCusto,
+                      variacaoReais: variacaoReais,
                     };
                   });
 
@@ -668,8 +676,8 @@ export const DashboardBaselineDetalhamento: React.FC<
                                 key={`cell-${index}`}
                                 fill={
                                   entry.variacaoPercentual < 0
-                                    ? "#16a34a"
-                                    : "#dc2626"
+                                    ? "#dc2626"
+                                    : "#16a34a"
                                 }
                               />
                             ))}
@@ -714,7 +722,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                               ? [custoAtualReal, custoProjetado]
                               : [custoProjetado, custoAtualReal],
                           color:
-                            deltaAtualParaProjetado < 0 ? "#16a34a" : "#dc2626",
+                            deltaAtualParaProjetado < 0 ? "#dc2626" : "#16a34a",
                           qtdPessoas: deltaPessoas,
                         },
                         {
@@ -786,8 +794,8 @@ export const DashboardBaselineDetalhamento: React.FC<
                           {
                             color:
                               deltaAtualParaProjetado < 0
-                                ? "#16a34a"
-                                : "#dc2626",
+                                ? "#dc2626"
+                                : "#16a34a",
                           }, // Variação
                           { color: "#003151" }, // Projetado
                         ];
@@ -953,7 +961,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                               ? [custoAtualReal, custoBaseline]
                               : [custoBaseline, custoAtualReal],
                           color:
-                            deltaAtualParaBaseline < 0 ? "#16a34a" : "#dc2626",
+                            deltaAtualParaBaseline < 0 ? "#dc2626" : "#16a34a",
                           qtdPessoas:
                             profissionaisBaseline - profissionaisAtuaisReal,
                         },
@@ -973,8 +981,8 @@ export const DashboardBaselineDetalhamento: React.FC<
                               : [custoProjetado, custoBaseline],
                           color:
                             deltaBaselineParaProjetado < 0
-                              ? "#16a34a"
-                              : "#dc2626",
+                              ? "#dc2626"
+                              : "#16a34a",
                           qtdPessoas:
                             profissionaisProjetados - profissionaisBaseline,
                         },
@@ -1054,15 +1062,15 @@ export const DashboardBaselineDetalhamento: React.FC<
                           {
                             color:
                               deltaAtualParaBaseline < 0
-                                ? "#16a34a"
-                                : "#dc2626",
+                                ? "#dc2626"
+                                : "#16a34a",
                           }, // Variação (Atual -> Baseline)
                           { color: "#93C5FD" }, // Baseline
                           {
                             color:
                               deltaBaselineParaProjetado < 0
-                                ? "#16a34a"
-                                : "#dc2626",
+                                ? "#dc2626"
+                                : "#16a34a",
                           }, // Variação (Baseline -> Projetado)
                           { color: "#003151" }, // Projetado
                         ];
@@ -1441,7 +1449,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                           value: cargo.custoVariacao,
                           range: [inicio, acumuladoCusto],
                           color:
-                            cargo.custoVariacao < 0 ? "#16a34a" : "#dc2626",
+                            cargo.custoVariacao < 0 ? "#dc2626" : "#16a34a",
                           qtdPessoas: cargo.qtdVariacao,
                         });
                       });
@@ -1707,7 +1715,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                         cargosOrdenados.forEach((cargo) => {
                           cells.push({
                             color:
-                              cargo.custoVariacao < 0 ? "#16a34a" : "#dc2626",
+                              cargo.custoVariacao < 0 ? "#dc2626" : "#16a34a",
                           });
                         });
                         cells.push({ color: "#003151" }); // Projetado
@@ -2117,10 +2125,14 @@ export const DashboardBaselineDetalhamento: React.FC<
                         });
                       }
                     }
+                    const variacaoQtd = qtdProjetada - qtdAtual;
+                    // Calcular percentual baseado na quantidade projetada
+                    const variacaoPercentualQtd =
+                      qtdProjetada > 0 ? (variacaoQtd / qtdProjetada) * 100 : 0;
                     return {
                       nome: setor.nome,
-                      variacaoPercentual: setor.variacaoPercentual,
-                      variacaoQtd: qtdProjetada - qtdAtual,
+                      variacaoPercentual: variacaoPercentualQtd,
+                      variacaoQtd: variacaoQtd,
                     };
                   });
 
@@ -2174,8 +2186,8 @@ export const DashboardBaselineDetalhamento: React.FC<
                                 key={`cell-${index}`}
                                 fill={
                                   entry.variacaoPercentual < 0
-                                    ? "#16a34a"
-                                    : "#dc2626"
+                                    ? "#dc2626"
+                                    : "#16a34a"
                                 }
                               />
                             ))}
@@ -2213,7 +2225,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                             const startValue = cumulative;
                             cumulative += item.value;
                             range = [startValue, cumulative];
-                            color = item.value < 0 ? "#16a34a" : "#dc2626";
+                            color = item.value < 0 ? "#dc2626" : "#16a34a";
                           } else {
                             range = [0, item.value];
                             color = "#003151";
@@ -2296,8 +2308,8 @@ export const DashboardBaselineDetalhamento: React.FC<
                         if (isTransition) {
                           color =
                             waterfallQuantidadeData[index].value < 0
-                              ? "#16a34a"
-                              : "#dc2626";
+                              ? "#dc2626"
+                              : "#16a34a";
                         }
                         return <Cell key={`cell-${index}`} fill={color} />;
                       })}
@@ -2720,7 +2732,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                           name: nomeFormatado,
                           value: cargo.variacao,
                           range: [inicio, acumuladoCargos],
-                          color: cargo.variacao < 0 ? "#16a34a" : "#dc2626",
+                          color: cargo.variacao < 0 ? "#dc2626" : "#16a34a",
                           custoReais: cargo.custoVariacao,
                         });
                       });
@@ -2923,7 +2935,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                         // Variações por cargo (Baseline→Projetado)
                         cargosOrdenados.forEach((cargo) => {
                           waterfallDataForCells.push({
-                            color: cargo.variacao < 0 ? "#16a34a" : "#dc2626",
+                            color: cargo.variacao < 0 ? "#dc2626" : "#16a34a",
                           });
                         });
                         // Projetado

@@ -134,11 +134,6 @@ const CustomTooltip = ({
   const isNegative = value < 0;
 
   const arrow = isPositive ? "▲" : isNegative ? "▼" : "";
-  const arrowColor = isPositive
-    ? "text-red-600"
-    : isNegative
-      ? "text-green-600"
-      : "";
 
   const format = (v: number) =>
     unit === "currency"
@@ -152,7 +147,7 @@ const CustomTooltip = ({
   return (
     <div className="bg-background border p-2 rounded shadow text-sm">
       <p className="font-bold">{entry.role}</p>
-      <p className={`font-semibold  ${isFixed ? "" : arrowColor}`}>
+      <p className="font-semibold">
         {isFixed
           ? format(Math.abs(value))
           : `${arrow} ${format(Math.abs(value))}`}

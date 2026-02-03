@@ -39,9 +39,7 @@ export const VariationCard: React.FC<VariationCardProps> = ({
               {title}
             </p>
             <div className="flex items-center mt-2 font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)]">
-              {isNegative && (
-                <ArrowUp className="h-6 w-6 mr-1 text-green-600" />
-              )}
+              {isNegative && <ArrowUp className="h-6 w-6 mr-1 text-red-600" />}
               {isPositive && (
                 <ArrowDown className="h-6 w-6 mr-1 text-red-600" />
               )}

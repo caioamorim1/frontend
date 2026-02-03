@@ -472,15 +472,15 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
   // Cards do topo (igual UX do hospital), mas com variação Atual -> Projetado
   const deltaCustoAtualParaProjetado = custoProjetadoMensal - custoAtualMensal;
   const deltaCustoPercentualAtualParaProjetado =
-    custoAtualMensal !== 0
-      ? (deltaCustoAtualParaProjetado / custoAtualMensal) * 100
+    custoProjetadoMensal !== 0
+      ? (deltaCustoAtualParaProjetado / custoProjetadoMensal) * 100
       : 0;
 
   const deltaQtdAtualParaProjetado =
     totalFuncionariosProjetado - totalFuncionariosAtual;
   const deltaQtdPercentualAtualParaProjetado =
-    totalFuncionariosAtual !== 0
-      ? (deltaQtdAtualParaProjetado / totalFuncionariosAtual) * 100
+    totalFuncionariosProjetado !== 0
+      ? (deltaQtdAtualParaProjetado / totalFuncionariosProjetado) * 100
       : 0;
 
   const variacoesPorCargoItens: VariacaoCargoChartItem[] =
