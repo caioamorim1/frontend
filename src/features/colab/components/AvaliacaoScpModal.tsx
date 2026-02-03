@@ -75,6 +75,7 @@ export default function AvaliacaoScpModal({
   const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [shuffledSchema, setShuffledSchema] = useState<ScpSchema | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -147,15 +148,18 @@ export default function AvaliacaoScpModal({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!isFormComplete || !user?.id || !unidade) {
-      toast({
-        title: "Atenção",
-        description: "Por favor, responda todas as perguntas para continuar.",
-        variant: "destructive",
-      });
+    if (!isFormComplete || !user?.id || !unidade || isSubmitting) {
+      if (!isFormComplete || !user?.id || !unidade) {
+        toast({
+          title: "Atenção",
+          description: "Por favor, responda todas as perguntas para continuar.",
+          variant: "destructive",
+        });
+      }
       return;
     }
 
+    setIsSubmitting(true);
     try {
       if (sessaoId) {
         // Modo edição
@@ -191,6 +195,8 @@ export default function AvaliacaoScpModal({
           : "Não foi possível salvar a avaliação.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -310,11 +316,11 @@ export default function AvaliacaoScpModal({
                   ) : (
                     <Button
                       type="submit"
-                      disabled={!isFormComplete}
+                      disabled={!isFormComplete || isSubmitting}
                       className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-sm py-2 px-3"
                     >
                       <CheckCircle className="h-4 w-4" />
-                      Finalizar e Salvar Avaliação
+                      {isSubmitting ? "Salvando..." : "Finalizar e Salvar Avaliação"}
                     </Button>
                   )}
                 </div>

@@ -62,6 +62,17 @@ export const GroupedBarByRole: React.FC<Props> = ({
 
   const isCurrency = unit === "currency";
 
+  // Calculate dynamic Y domain
+  const allValues = processed.flatMap((d) => d.range);
+  const maxValue = Math.max(...allValues, 0);
+  const minValue = Math.min(...allValues, 0);
+
+  // Add 10% padding to the domain
+  const effectiveMax = maxValue < 1 ? 10 : maxValue * 1.1;
+  const effectiveMin = minValue < 0 ? minValue * 1.1 : 0;
+
+  const yDomain: [number, number] = [effectiveMin, effectiveMax];
+
   return (
     <Card>
       <CardHeader>
@@ -77,87 +88,20 @@ export const GroupedBarByRole: React.FC<Props> = ({
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="role" />
             <YAxis
+              domain={yDomain}
               tickFormatter={(v) =>
-                isCurrency ? `R$ ${Math.round(v / 1000)}k` : v.toString()
+                isCurrency
+                  ? `R$ ${Math.round(v / 1000)}k`
+                  : Math.round(v).toString()
               }
             />
             <Tooltip content={<CustomTooltip unit={unit} />} />
-
-            {/* Linhas de ligação entre barras */}
-            {processed.map((entry, i) => {
-              if (i > 0) {
-                const prev = processed[i - 1];
-                return (
-                  <ReferenceLine
-                    key={`line-${i}`}
-                    y={prev.range[1]}
-                    segment={[
-                      { x: prev.role, y: prev.range[1] },
-                      { x: entry.role, y: entry.range[0] },
-                    ]}
-                    stroke="hsl(var(--muted-foreground))"
-                    strokeDasharray="2 2"
-                  />
-                );
-              }
-              return null;
-            })}
-
-            {/* Rótulo superior da variação total */}
-            <ReferenceLine
-              y={Math.max(finalValue, atualValue) + Math.abs(diffTotal) * 0.1}
-              stroke="transparent"
-              label={{
-                value: `${diffTotal > 0 ? "+" : ""}${formatValue(
-                  diffTotal
-                )} / ${diffPercent.toFixed(1)}%`,
-                position: "top",
-                fontSize: 14,
-                fill: "#333",
-              }}
-            />
 
             {/* Gráfico principal */}
             <Bar dataKey="range">
               {processed.map((entry, index) => (
                 <Cell key={index} fill={entry.color} />
               ))}
-              <LabelList
-                dataKey="diff"
-                content={({ x, y, width, value, index }) => {
-                  const role = processed[index].role;
-                  const isFixedBar =
-                    role === "Atual" ||
-                    role === "Projetado" ||
-                    role === "Baseline";
-
-                  const diff = Number(value);
-                  const end = Number(processed[index].end);
-
-                  const formatSigned = (n: number) => {
-                    const sign = n > 0 ? "+" : n < 0 ? "" : "";
-                    const abs = Math.abs(n);
-                    return `${sign}${formatValue(abs)}`;
-                  };
-
-                  const display = isFixedBar
-                    ? formatValue(end)
-                    : formatSigned(diff);
-
-                  return (
-                    <text
-                      x={Number(x ?? 0) + Number(width ?? 0) / 2}
-                      y={Number(y ?? 0) - 5}
-                      textAnchor="middle"
-                      fill="#333"
-                      fontSize={12}
-                      fontWeight="bold"
-                    >
-                      {display}
-                    </text>
-                  );
-                }}
-              />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -193,8 +137,8 @@ const CustomTooltip = ({
   const arrowColor = isPositive
     ? "text-red-600"
     : isNegative
-    ? "text-green-600"
-    : "";
+      ? "text-green-600"
+      : "";
 
   const format = (v: number) =>
     unit === "currency"

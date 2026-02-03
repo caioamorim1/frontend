@@ -71,8 +71,8 @@ export const DashboardComparativoGlobalScreen: React.FC<{
       activeTab === "global"
         ? [...(projetado.internation || []), ...(projetado.assistance || [])]
         : activeTab === "internacao"
-        ? projetado.internation || []
-        : projetado.assistance || [];
+          ? projetado.internation || []
+          : projetado.assistance || [];
 
     // 🔍 Filtro por NOME ao invés de ID (IDs podem diferir entre atual e projetado)
     const filterBySelected = (arr: any[]) => {
@@ -94,8 +94,8 @@ export const DashboardComparativoGlobalScreen: React.FC<{
     const sumCost = (arr: any[], useProjected = false) => {
       return arr.reduce((sum, sector, index) => {
         const raw = useProjected
-          ? sector.projectedCostAmount ?? sector.costAmount ?? 0
-          : sector.costAmount ?? 0;
+          ? (sector.projectedCostAmount ?? sector.costAmount ?? 0)
+          : (sector.costAmount ?? 0);
         const parsed = parseCostUtil(raw);
 
         return sum + parsed;

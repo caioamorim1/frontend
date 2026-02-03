@@ -72,7 +72,7 @@ const processWaterfallData = (data: WaterfallDataItem[]) => {
       const startValue = cumulative;
       cumulative += item.value;
       range = [startValue, cumulative];
-      color = item.value < 0 ? "hsl(var(--destructive))" : "#0b6f88";
+      color = item.value < 0 ? "#16a34a" : "#dc2626"; // verde = redução, vermelho = aumento
       pctFromBase =
         baseValue !== 0 ? (Number(item.value) / Number(baseValue)) * 100 : 0;
     } else {
@@ -117,8 +117,8 @@ const CustomTooltip = ({ active, payload, label, isCurrency }: any) => {
       Number(data.value) > 0
         ? "Aumento"
         : Number(data.value) < 0
-        ? "Redução"
-        : "Estável";
+          ? "Redução"
+          : "Estável";
     return (
       <div className="bg-background border p-3 rounded-lg shadow-lg text-sm">
         <p className="font-bold text-foreground mb-1">{label}</p>
@@ -159,21 +159,52 @@ const ReusableWaterfall: React.FC<{
       maximumFractionDigits: 0,
     }).format(n);
 
+  // Componente customizado para renderizar labels em múltiplas linhas
+  const CustomAxisTick = ({ x, y, payload }: any) => {
+    const text = payload.value;
+    const words = text.split(/\s+/);
+    const maxWidth = 80; // largura máxima em pixels
+    const lines: string[] = [];
+    let currentLine = "";
+
+    words.forEach((word: string) => {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      // Aproximação: 6 pixels por caractere
+      if (testLine.length * 6 > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    });
+    if (currentLine) lines.push(currentLine);
+
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text x={0} y={0} dy={8} textAnchor="middle" fill="#666" fontSize={11}>
+          {lines.map((line, index) => (
+            <tspan x={0} dy={12} key={index}>
+              {line}
+            </tspan>
+          ))}
+        </text>
+      </g>
+    );
+  };
+
   return (
     <div className="box-border pt-3" style={{ height: 390 }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={chartData}
-          margin={{ top: 22, right: 12, left: 12, bottom: 98 }}
+          margin={{ top: 22, right: 12, left: 12, bottom: 80 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="name"
-            tick={axisTick}
-            interval={0}
-            angle={-40}
-            textAnchor="end"
-            height={105}
+            tick={<CustomAxisTick />}
+            interval="preserveStartEnd"
+            height={80}
           />
           <YAxis
             domain={yDomain}
@@ -526,7 +557,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
         ? selectedHospitalId !== "all"
           ? selectedHospitalId
           : null
-        : hospitalId ?? null;
+        : (hospitalId ?? null);
 
       if (!targetHospitalId) {
         setStaffLastUpdateLabel(computeFromSnapshot());
@@ -534,9 +565,8 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
       }
 
       try {
-        const payload = await getUltimaAtualizacaoCargoHospital(
-          targetHospitalId
-        );
+        const payload =
+          await getUltimaAtualizacaoCargoHospital(targetHospitalId);
         const iso = payload?.ultimaAtualizacao;
         if (iso) {
           const dt = new Date(iso);
@@ -814,23 +844,23 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
                   selectedHospitalId !== "all"
                     ? undefined
                     : selectedRegionId !== "all"
-                    ? `Região: ${String(
-                        regiaoSelecionada?.regiaoNome ??
-                          regiaoSelecionada?.nome ??
-                          ""
-                      )}`
-                    : selectedGroupId !== "all"
-                    ? `Grupo: ${String(
-                        grupoSelecionado?.grupoNome ??
-                          grupoSelecionado?.nome ??
-                          ""
-                      )}`
-                    : `Rede: ${String(
-                        redeNode?.redeNome ??
-                          redeNode?.nome ??
-                          redeNode?.name ??
-                          ""
-                      )}`
+                      ? `Região: ${String(
+                          regiaoSelecionada?.regiaoNome ??
+                            regiaoSelecionada?.nome ??
+                            ""
+                        )}`
+                      : selectedGroupId !== "all"
+                        ? `Grupo: ${String(
+                            grupoSelecionado?.grupoNome ??
+                              grupoSelecionado?.nome ??
+                              ""
+                          )}`
+                        : `Rede: ${String(
+                            redeNode?.redeNome ??
+                              redeNode?.nome ??
+                              redeNode?.name ??
+                              ""
+                          )}`
                 }
               />
             </TabsContent>
@@ -1273,9 +1303,9 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
         profissionaisBaselineExibicao,
       ] as [number, number],
       color:
-        profissionaisBaselineExibicao - profissionaisAtualRealExibicao >= 0
-          ? "#4ADE80"
-          : "#EF4444",
+        profissionaisBaselineExibicao - profissionaisAtualRealExibicao < 0
+          ? "#16a34a"
+          : "#dc2626",
     },
     {
       name: `Baseline\n(${baselineDate})`,
@@ -1288,10 +1318,10 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
       value: variacaoProfissionaisBaselineParaProjetado,
       range: [profissionaisBaselineExibicao, profissionaisProjetados] as [
         number,
-        number
+        number,
       ],
       color:
-        variacaoProfissionaisBaselineParaProjetado >= 0 ? "#4ADE80" : "#EF4444",
+        variacaoProfissionaisBaselineParaProjetado < 0 ? "#16a34a" : "#dc2626",
     },
     {
       name: "Projetado",

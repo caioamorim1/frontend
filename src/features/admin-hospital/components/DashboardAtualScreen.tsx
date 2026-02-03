@@ -117,26 +117,49 @@ const axisTick = {
 
 interface InfoCardProps {
   title: string;
-  value: string | number; // Pode ser um número ou uma string
-  icon?: React.ReactNode; // Opcional: para passar um ícone como um componente React
+  value: string | number;
+  icon?: React.ReactNode;
+  subtitle?: string;
+  variant?: "primary" | "warning" | "success";
 }
 
-export const InfoCard: React.FC<InfoCardProps> = ({ title, value, icon }) => {
-  return (
-    <div className="flex items-center space-x-4 p-4 border rounded-lg shadow-sm bg-white min-w-[200px]">
-      {/* Container do Ícone (se existir) */}
-      {icon && (
-        <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-600">
-          {icon}
-        </div>
-      )}
+export const InfoCard: React.FC<InfoCardProps> = ({
+  title,
+  value,
+  icon,
+  subtitle,
+  variant = "primary",
+}) => {
+  const variantStyles = {
+    primary:
+      "shadow-[0_4px_12px_rgba(0,93,151,0.3)] border-l-4 border-[#005D97]",
+    warning:
+      "shadow-[0_4px_12px_rgba(0,112,185,0.3)] border-l-4 border-[#0070B9]",
+    success:
+      "shadow-[0_4px_12px_rgba(38,140,204,0.3)] border-l-4 border-[#268CCC]",
+  };
 
-      {/* Título e Valor */}
-      <div>
-        <h4 className="text-sm font-medium text-gray-500">{title}</h4>
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
-      </div>
-    </div>
+  return (
+    <Card className={variantStyles[variant]}>
+      <CardContent className="pt-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-muted-foreground break-words">
+              {title}
+            </p>
+            <h3 className="mt-2 font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)]">
+              {value}
+            </h3>
+            {subtitle && (
+              <p className="mt-1 text-sm text-muted-foreground leading-snug break-words">
+                {subtitle}
+              </p>
+            )}
+          </div>
+          {icon && <div className="shrink-0 text-muted-foreground">{icon}</div>}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -477,16 +500,18 @@ const GlobalTabContent: React.FC<{
 
   return (
     <div className="space-y-12">
-      <div className="flex gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <InfoCard
           title="Total de Funcionários"
           value={totalStaff}
           icon={<Building size={24} />}
+          variant="primary"
         />
         <InfoCard
           title="Custo Total"
           value={formatAmountBRL(amountTotal)}
           icon={<CircleDollarSign size={24} />}
+          variant="success"
         />
       </div>
       <BargraphicChart
@@ -746,26 +771,30 @@ const TabContentInternacao: React.FC<{
 
   return (
     <div className="space-y-12">
-      <div className="flex gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <InfoCard
           title="Custo Total"
           value={formatAmountBRL(amountTotal)}
           icon={<DollarSign size={24} />}
+          variant="success"
         />
         <InfoCard
           title="Total de Funcionários"
           value={totalStaff}
           icon={<Users size={24} />}
+          variant="primary"
         />
         <InfoCard
           title="Total de Leitos"
           value={totalBeds}
           icon={<Building size={24} />}
+          variant="primary"
         />
         <InfoCard
           title="Taxa de Ocupação"
           value={`${averageOccupancyPercentage}%`}
           icon={<Building size={24} />}
+          variant="warning"
         />
         {/* <InfoCard title="Avaliações Completas" value={`${assessmentsCompletedPercentage}%`} icon={<Users size={24} />} /> */}
       </div>
@@ -978,16 +1007,18 @@ const TabContentNoInternacao: React.FC<{
 
   return (
     <div className="space-y-12">
-      <div className="flex gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <InfoCard
           title="Total de Funcionários"
           value={totalStaff}
           icon={<Building size={24} />}
+          variant="primary"
         />
         <InfoCard
           title="Custo Total"
           value={formatAmountBRL(amountTotal)}
           icon={<CircleDollarSign size={24} />}
+          variant="success"
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
@@ -1061,9 +1092,8 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = ({
     // Buscar agregados qualitativos do hospital por categoria
     if (hospitalId) {
       try {
-        const aggregatesData = await getQualitativeAggregatesByCategory(
-          hospitalId
-        );
+        const aggregatesData =
+          await getQualitativeAggregatesByCategory(hospitalId);
 
         // Armazenar dados completos para uso nas tabs
         setQualitativeAggregates(aggregatesData);
