@@ -15,14 +15,16 @@ import { CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 
-
-interface StateType{
+interface StateType {
   lid: string;
   pront: string;
   mscp: string;
 }
 // Componente para a Barra de Progresso
-const ProgressBar: React.FC<{ value: number; max: number }> = ({ value, max }) => {
+const ProgressBar: React.FC<{ value: number; max: number }> = ({
+  value,
+  max,
+}) => {
   const percentage = max > 0 ? (value / max) * 100 : 0;
   return (
     <div className="w-full bg-muted rounded-full h-2.5">
@@ -36,11 +38,16 @@ const ProgressBar: React.FC<{ value: number; max: number }> = ({ value, max }) =
 
 // Componente Principal da Página
 export default function AvaliacaoScpPage() {
-  const { unidadeId, hospitalId } = useParams<{ unidadeId: string; hospitalId: string }>();
+  const { unidadeId, hospitalId } = useParams<{
+    unidadeId: string;
+    hospitalId: string;
+  }>();
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as StateType;
-  const [leitoId, setLeitoId] = useState<string | null>(() => state?.lid ?? null);
+  const [leitoId, setLeitoId] = useState<string | null>(
+    () => state?.lid ?? null
+  );
   const [pront, setPront] = useState<string | null>(() => state?.pront ?? null);
   const [mscp, setMscp] = useState<string | null>(() => state?.mscp ?? null);
 
@@ -62,28 +69,35 @@ export default function AvaliacaoScpPage() {
     setMscp((prev) => prev ?? state.mscp ?? null);
   }, [state]);
 
-
   // Aviso ao tentar sair da página (fecha aba/navega para outro site)
   useBeforeUnload(
-    useCallback((event) => {
-      if (!avaliationCompleted) {
-        event.preventDefault();
-        return (event.returnValue = "Você tem uma avaliação em andamento. Tem certeza que deseja sair?");
-      }
-    }, [avaliationCompleted])
+    useCallback(
+      (event) => {
+        if (!avaliationCompleted) {
+          event.preventDefault();
+          return (event.returnValue =
+            "Você tem uma avaliação em andamento. Tem certeza que deseja sair?");
+        }
+      },
+      [avaliationCompleted]
+    )
   );
 
   useEffect(() => {
     const fetchData = async () => {
       if (!unidadeId) return;
       try {
-        const unidadeData = (await getUnidadeById(unidadeId)) as UnidadeInternacao;
+        const unidadeData = (await getUnidadeById(
+          unidadeId
+        )) as UnidadeInternacao;
         setUnidade(unidadeData);
         if (unidadeData.scpMetodoKey) {
           const schemaData = await getScpSchema(unidadeData.scpMetodoKey);
           setSchema(schemaData);
         } else {
-          setError("Esta unidade não possui um método de avaliação configurado.");
+          setError(
+            "Esta unidade não possui um método de avaliação configurado."
+          );
         }
       } catch (err) {
         setError("Falha ao carregar dados da avaliação.");
@@ -97,7 +111,7 @@ export default function AvaliacaoScpPage() {
   const handleOptionSelect = (questionKey: string, value: number) => {
     setRespostas((prev) => ({ ...prev, [questionKey]: value }));
   };
-  
+
   const totalQuestions = schema?.questions.length || 0;
   const answeredQuestions = Object.keys(respostas).length;
   const isFormComplete = answeredQuestions === totalQuestions;
@@ -129,24 +143,43 @@ export default function AvaliacaoScpPage() {
       }
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
-      await createSessao( {unidadeId: unidade.id, prontuario: pront, scp: mscp, leitoId,colaboradorId: user.id, itens: respostas,  });
+      await createSessao({
+        unidadeId: unidade.id,
+        prontuario: pront,
+        scp: mscp,
+        leitoId,
+        colaboradorId: user.id,
+        itens: respostas,
+      });
       setAvaliationCompleted(true); // Marca como concluída antes de navegar
       toast({ title: "Sucesso!", description: "Avaliação salva com sucesso." });
       navigate(`/hospital/${hospitalId}/unidade/${unidadeId}/leitos`);
     } catch (err) {
-      toast({ title: "Erro", description: "Não foi possível salvar a avaliação.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar a avaliação.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
-  
 
-  if (loading) return <p className="text-center p-10">Carregando formulário de avaliação...</p>;
-  if (error) return <p className="text-red-500 bg-red-50 p-4 rounded-md">{error}</p>;
-  if (!schema || !currentQuestion) return <p className="text-center p-10">Formulário de avaliação não encontrado.</p>;
+  if (loading)
+    return (
+      <p className="text-center p-10">Carregando formulário de avaliação...</p>
+    );
+  if (error)
+    return <p className="text-red-500 bg-red-50 p-4 rounded-md">{error}</p>;
+  if (!schema || !currentQuestion)
+    return (
+      <p className="text-center p-10">
+        Formulário de avaliação não encontrado.
+      </p>
+    );
 
   return (
     <>
@@ -158,9 +191,14 @@ export default function AvaliacaoScpPage() {
             <div className="mb-12">
               <div className="flex justify-between items-center text-sm text-muted-foreground mb-3">
                 <span className="text-base">Progresso</span>
-                <span className="text-base font-semibold">{currentQuestionIndex + 1} / {totalQuestions}</span>
+                <span className="text-base font-semibold">
+                  {currentQuestionIndex + 1} / {totalQuestions}
+                </span>
               </div>
-              <ProgressBar value={currentQuestionIndex + 1} max={totalQuestions} />
+              <ProgressBar
+                value={currentQuestionIndex + 1}
+                max={totalQuestions}
+              />
             </div>
 
             {/* Pergunta atual */}
@@ -176,12 +214,19 @@ export default function AvaliacaoScpPage() {
                     <Button
                       key={option.value}
                       type="button"
-                      variant={respostas[currentQuestion.key] === option.value ? "default" : "outline"}
+                      variant={
+                        respostas[currentQuestion.key] === option.value
+                          ? "default"
+                          : "outline"
+                      }
                       className={cn(
                         "h-auto py-4 px-6 text-left justify-start text-sm font-medium whitespace-normal min-h-[3rem]",
-                        respostas[currentQuestion.key] === option.value && "bg-primary text-primary-foreground"
+                        respostas[currentQuestion.key] === option.value &&
+                          "bg-primary text-primary-foreground"
                       )}
-                      onClick={() => handleOptionSelect(currentQuestion.key, option.value)}
+                      onClick={() =>
+                        handleOptionSelect(currentQuestion.key, option.value)
+                      }
                     >
                       {option.label}
                     </Button>
@@ -218,7 +263,9 @@ export default function AvaliacaoScpPage() {
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-base py-6 px-6"
                   >
                     <CheckCircle className="h-5 w-5" />
-                    {isSubmitting ? "Salvando..." : "Finalizar e Salvar Avaliação"}
+                    {isSubmitting
+                      ? "Salvando..."
+                      : "Finalizar e Salvar Avaliação"}
                   </Button>
                 )}
               </div>
