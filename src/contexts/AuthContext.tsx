@@ -182,10 +182,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const decoded = jwtDecode<UserPayload>(newToken);
 
         if (decoded.mustChangePassword) {
-          navigate("/change-password");
+          navigate("/change-password", { replace: true });
         } else if (decoded.tipo === "ADMIN" || decoded.role === "ADMIN") {
           // Admin global vai para a gestão de hospitais
-          navigate("/admin/hospitais");
+          navigate("/admin/hospitais", { replace: true });
         } else if (
           decoded.tipo === "GESTOR_ESTRATEGICO" ||
           decoded.tipo === "GESTOR_TATICO" ||
@@ -194,14 +194,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Gestor deve ir para o dashboard do seu hospital
           const hospId = decoded.hospital?.id;
           if (hospId) {
-            navigate(`/hospital/${hospId}/dashboard`);
+            navigate(`/hospital/${hospId}/dashboard`, { replace: true });
           } else {
             // Fallback se não houver hospital no token
-            navigate("/meu-hospital");
+            navigate("/meu-hospital", { replace: true });
           }
         } else {
           // Usuário comum
-          navigate("/meu-hospital");
+          navigate("/meu-hospital", { replace: true });
         }
       }
     } catch (error) {
@@ -224,7 +224,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     delete api.defaults.headers.common["Authorization"];
 
     // Redirecionar para login
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   const value = {
