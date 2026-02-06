@@ -301,7 +301,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                       {variacaoProfissionaisPercentual < 0 ? (
                         <ArrowUp className="h-6 w-6 text-red-600" />
                       ) : (
-                        <ArrowDown className="h-6 w-6 text-green-600" />
+                        <ArrowDown className="h-6 w-6 text-red-600" />
                       )}
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {Math.abs(variacaoProfissionaisPercentual).toFixed(1)}%
@@ -322,7 +322,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                       {variacaoProfissionais < 0 ? (
                         <ArrowUp className="h-6 w-6 text-red-600" />
                       ) : (
-                        <ArrowDown className="h-6 w-6 text-green-600" />
+                        <ArrowDown className="h-6 w-6 text-red-600" />
                       )}
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {Math.abs(variacaoProfissionais)}
@@ -374,7 +374,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                       {variacaoCustoPercentual < 0 ? (
                         <ArrowUp className="h-6 w-6 text-red-600" />
                       ) : (
-                        <ArrowDown className="h-6 w-6 text-green-600" />
+                        <ArrowDown className="h-6 w-6 text-red-600" />
                       )}
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {Math.abs(variacaoCustoPercentual).toFixed(1)}%
@@ -395,7 +395,7 @@ export const DashboardBaselineDetalhamento: React.FC<
                       {variacaoCusto < 0 ? (
                         <ArrowUp className="h-6 w-6 text-red-600" />
                       ) : (
-                        <ArrowDown className="h-6 w-6 text-green-600" />
+                        <ArrowDown className="h-6 w-6 text-red-600" />
                       )}
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {formatCurrency(Math.abs(variacaoCusto))}

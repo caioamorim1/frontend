@@ -310,9 +310,9 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
     toNumber(custoProjetadoResolved, 0) - toNumber(custoAtualRealResolved, 0);
 
   const variacaoCustoPercentualResolved =
-    toNumber(custoAtualRealResolved, 0) !== 0
+    toNumber(custoProjetadoResolved, 0) !== 0
       ? (toNumber(variacaoCustoReaisResolved, 0) /
-          toNumber(custoAtualRealResolved, 0)) *
+          toNumber(custoProjetadoResolved, 0)) *
         100
       : 0;
 
@@ -356,9 +356,9 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
     toNumber(profissionaisProjetadosResolved, 0) -
     toNumber(profissionaisAtuaisResolved, 0);
   const variacaoQuantidadePercentual =
-    toNumber(profissionaisAtuaisResolved, 0) !== 0
+    toNumber(profissionaisProjetadosResolved, 0) !== 0
       ? (variacaoQuantidadeResolved /
-          toNumber(profissionaisAtuaisResolved, 0)) *
+          toNumber(profissionaisProjetadosResolved, 0)) *
         100
       : 0;
 

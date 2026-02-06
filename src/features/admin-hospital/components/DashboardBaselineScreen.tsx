@@ -284,6 +284,15 @@ interface UnidadeProjetadaNaoInternacao {
   custoTotalUnidade?: number;
 }
 
+interface UnidadeNeutraProjetada {
+  unidadeId: string;
+  unidadeNome: string;
+  hospitalId?: string;
+  custoTotal: number;
+  status?: string;
+  descricao?: string;
+}
+
 interface SnapshotResponse {
   snapshot: {
     id: string;
@@ -296,6 +305,7 @@ interface SnapshotResponse {
       projetadoFinal?: {
         internacao?: UnidadeProjetadaInternacao[];
         naoInternacao?: UnidadeProjetadaNaoInternacao[];
+        neutras?: UnidadeNeutraProjetada[];
       };
     };
     resumo: {
@@ -1183,27 +1193,23 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     }
   );
 
-  // Adiciona custo das unidades neutras da situação atual (não têm projetado, mantém valor atual)
+  // Adicionar unidades neutras do projetadoFinal
   // Neutras são adicionadas apenas quando "all" está selecionado
   if (selectedSector === "all") {
-    // Adicionar neutras ao projetado (mantém o valor)
-    snapshotData.situacaoAtual?.unidadesNeutras?.forEach((unit: any) => {
-      const custoNeutro = unit.custoTotal || 0;
-
-      custoProjetado += custoNeutro;
-      // Neutras também estavam no baseline do snapshot
-      const unidadeNeutraBaseline = snapshotData.snapshot.dados.neutral?.find(
-        (n: any) => n.id === unit.unidadeId
-      );
-      if (unidadeNeutraBaseline) {
-        custoBaselineSetor += (unidadeNeutraBaseline.costAmount || 0) / 100;
+    snapshotData.snapshot.dados.projetadoFinal?.neutras?.forEach((unidade: any) => {
+      // No modo global, filtrar por hospital
+      if (
+        props.isGlobalView &&
+        selectedHospitalId !== "all" &&
+        unidade.hospitalId &&
+        unidade.hospitalId !== selectedHospitalId
+      ) {
+        return;
       }
-    });
 
-    // Adicionar neutras à situação atual real
-    snapshotData.situacaoAtual?.unidadesNeutras?.forEach((unit: any) => {
-      const custoNeutro = unit.custoTotal || 0;
-      custoAtualRealSetor += custoNeutro;
+      // Adicionar custo total da unidade neutra ao projetado
+      const custoNeutro = unidade.custoTotal || 0;
+      custoProjetado += custoNeutro;
     });
   }
 
