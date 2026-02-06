@@ -106,11 +106,11 @@ export const DashboardBaselineGlobalTab: React.FC<{
 
   const deltaPeople = profissionaisProjetados - profissionaisAtuais;
   const deltaCostPercent =
-    custoAtualReal !== 0 ? (variacaoCustoReais / custoAtualReal) * 100 : 0;
+    custoAtualReal !== 0 ? (variacaoCustoReais / custoProjetado) * 100 : 0;
   const isPositiveCost = variacaoCustoReais >= 0;
-  // Lógica invertida: redução (negativo) = verde e seta para cima, aumento (positivo) = vermelho e seta para baixo
+  // Lógica invertida: redução (negativo) = vermelho e seta para cima, aumento (positivo) = verde e seta para baixo
   const TrendIcon = isPositiveCost ? ArrowDown : ArrowUp;
-  const trendColorClass = isPositiveCost ? "text-red-600" : "text-green-600";
+  const trendColorClass = isPositiveCost ? "text-green-600" : "text-red-600";
   const costPercentLabel = `${Math.abs(deltaCostPercent).toLocaleString(
     "pt-BR",
     {
@@ -136,10 +136,39 @@ export const DashboardBaselineGlobalTab: React.FC<{
     return items;
   }, [rankingSetores, sectorRankingOrder]);
 
+  // Tooltip customizado para ranking de setores
+  const RankingSetoresTooltip = ({ active, payload }: any) => {
+    if (!active || !Array.isArray(payload) || payload.length === 0) return null;
+    const entry = payload?.[0]?.payload as BaselineRankingItem | undefined;
+    if (!entry) return null;
+    const nome = String(entry.nome ?? "-");
+    const pct = entry.variacaoPercentual ?? 0;
+    const variacaoReais = entry.variacaoReais ?? 0;
+    const pctLabel = `${Math.abs(pct).toLocaleString("pt-BR", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    })}%`;
+    const reaisLabel = `R$ ${variacaoReais.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+    return (
+      <div className="rounded-md border bg-background px-3 py-2 shadow-sm">
+        <div className="text-sm font-medium text-foreground">{nome}</div>
+        <div className="mt-1 text-sm text-muted-foreground">
+          Percentual: <span className="text-foreground">{pctLabel}</span>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          Monetário: <span className="text-foreground">{reaisLabel}</span>
+        </div>
+      </div>
+    );
+  };
+
   const renderRanking = (
     title: string,
     data: BaselineRankingItem[],
-    tooltipFormatter: (value: any, name: string, props: any) => any
+    useCustomTooltip?: boolean
   ) => {
     if (!data || data.length === 0) {
       return (
@@ -175,12 +204,14 @@ export const DashboardBaselineGlobalTab: React.FC<{
               width={yAxisWidth}
               tick={axisTick}
             />
-            <Tooltip formatter={tooltipFormatter} />
+            <Tooltip
+              content={useCustomTooltip ? <RankingSetoresTooltip /> : undefined}
+            />
             <Bar dataKey="variacaoPercentual" barSize={18}>
               {data.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
-                  fill={entry.variacaoPercentual < 0 ? "#16a34a" : "#dc2626"}
+                  fill={entry.variacaoPercentual < 0 ? "#dc2626" : "#16a34a"}
                 />
               ))}
             </Bar>
@@ -271,16 +302,7 @@ export const DashboardBaselineGlobalTab: React.FC<{
                 {renderRanking(
                   "Ranking da Variação dos Hospitais (R$) (%)",
                   rankingCusto,
-                  (value: any, _name: string, props: any) => {
-                    const variacaoReais = props?.payload?.variacaoReais;
-                    if (typeof variacaoReais === "number") {
-                      return `R$ ${variacaoReais.toLocaleString("pt-BR", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}`;
-                    }
-                    return `${Number(value).toFixed(1)}%`;
-                  }
+                  true
                 )}
               </CardContent>
             </Card>
@@ -294,8 +316,7 @@ export const DashboardBaselineGlobalTab: React.FC<{
               <CardContent>
                 {renderRanking(
                   "Ranking da Variação dos Hospitais (Qtd) (%)",
-                  rankingQuantidade,
-                  (value: any) => `${Number(value).toFixed(1)}%`
+                  rankingQuantidade
                 )}
               </CardContent>
             </Card>
@@ -399,16 +420,7 @@ export const DashboardBaselineGlobalTab: React.FC<{
               {renderRanking(
                 "Ranking por SETORES (%)",
                 orderedRankingSetores,
-                (value: any, _name: string, props: any) => {
-                  const variacaoReais = props?.payload?.variacaoReais;
-                  if (typeof variacaoReais === "number") {
-                    return `R$ ${variacaoReais.toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}`;
-                  }
-                  return `${Number(value).toFixed(1)}%`;
-                }
+                true
               )}
             </CardContent>
           </Card>

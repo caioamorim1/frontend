@@ -375,11 +375,16 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Se receber 401 ou 403, mas apenas se NÃO for a rota de login
+    // Não redirecionar automaticamente se o erro vem da rota de login
+    // O componente de login vai tratar o erro
+    if (error.config?.url === "/login") {
+      return Promise.reject(error);
+    }
+
+    // Se receber 401 ou 403 em outras rotas (token expirado/inválido)
     if (
       error.response &&
-      (error.response.status === 401 || error.response.status === 403) &&
-      error.config?.url !== "/login"
+      (error.response.status === 401 || error.response.status === 403)
     ) {
       // Limpar token do localStorage
       localStorage.removeItem("authToken");

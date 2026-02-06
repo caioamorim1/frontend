@@ -211,7 +211,9 @@ export const DashboardComparativoScreen: React.FC<{
     const variacaoCusto = custoProjetadoSnapshot - custoAtualSnapshot;
 
     const variacaoPercentual =
-      custoAtualSnapshot > 0 ? (variacaoCusto / custoAtualSnapshot) * 100 : 0;
+      custoProjetadoSnapshot > 0
+        ? (variacaoCusto / custoProjetadoSnapshot) * 100
+        : 0;
 
     // Montar dados do gráfico waterfall com 3 barras
     const financialWaterfall = [

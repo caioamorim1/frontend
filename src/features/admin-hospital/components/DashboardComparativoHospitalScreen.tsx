@@ -604,7 +604,9 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     const variacaoCusto = custoProjetadoSnapshot - custoAtualSnapshot;
 
     const variacaoPercentual =
-      custoAtualSnapshot > 0 ? (variacaoCusto / custoAtualSnapshot) * 100 : 0;
+      custoProjetadoSnapshot > 0
+        ? (variacaoCusto / custoProjetadoSnapshot) * 100
+        : 0;
 
     // Montar dados do gráfico waterfall com 4 barras
     const financialWaterfall = [
@@ -859,7 +861,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
             role: funcao,
             start: cumulativoCusto,
             end: cumulativoCusto + variacaoCustoFunc,
-            color: variacaoCustoFunc < 0 ? "#16a34a" : "#dc2626", // verde = redução, vermelho = aumento
+            color: variacaoCustoFunc < 0 ? "#dc2626" : "#16a34a", // vermelho = redução, verde = aumento
           });
           cumulativoCusto += variacaoCustoFunc;
         }
@@ -869,7 +871,7 @@ export const DashboardComparativoHospitalScreen: React.FC<{
             role: funcao,
             start: cumulativoQtd,
             end: cumulativoQtd + variacaoQtdFunc,
-            color: variacaoQtdFunc < 0 ? "#16a34a" : "#dc2626",
+            color: variacaoQtdFunc < 0 ? "#dc2626" : "#16a34a",
           });
           cumulativoQtd += variacaoQtdFunc;
         }

@@ -164,8 +164,9 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
         });
 
         const variacaoPerc =
-          qtdAtualUnidade > 0
-            ? ((qtdProjetadaUnidade - qtdAtualUnidade) / qtdAtualUnidade) * 100
+          qtdProjetadaUnidade > 0
+            ? ((qtdProjetadaUnidade - qtdAtualUnidade) / qtdProjetadaUnidade) *
+              100
             : 0;
 
         setoresVariacao.push({
@@ -197,8 +198,9 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
         });
 
         const variacaoPerc =
-          qtdAtualUnidade > 0
-            ? ((qtdProjetadaUnidade - qtdAtualUnidade) / qtdAtualUnidade) * 100
+          qtdProjetadaUnidade > 0
+            ? ((qtdProjetadaUnidade - qtdAtualUnidade) / qtdProjetadaUnidade) *
+              100
             : 0;
 
         setoresVariacao.push({
@@ -270,8 +272,8 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                       Variação (%)
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-2xl font-bold text-foreground">
-                        {variacaoProfissionaisPercentual >= 0 ? "↑" : "↓"}
+                      <span className="text-2xl font-bold text-red-600">
+                        {variacaoProfissionaisPercentual < 0 ? "↑" : "↓"}
                       </span>
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {Math.abs(variacaoProfissionaisPercentual).toFixed(1)}%
@@ -290,8 +292,8 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                       Variação (Qtd)
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-2xl font-bold text-foreground">
-                        {variacaoProfissionais >= 0 ? "↑" : "↓"}
+                      <span className="text-2xl font-bold text-red-600">
+                        {variacaoProfissionais < 0 ? "↑" : "↓"}
                       </span>
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {Math.abs(variacaoProfissionais)}
@@ -342,8 +344,8 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                       Variação monetária (%)
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-2xl font-bold text-foreground">
-                        {variacaoCustoPercentual >= 0 ? "↑" : "↓"}
+                      <span className="text-2xl font-bold text-red-600">
+                        {variacaoCustoPercentual < 0 ? "↑" : "↓"}
                       </span>
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {Math.abs(variacaoCustoPercentual).toFixed(1)}%
@@ -362,8 +364,8 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                       Variação monetária (R$)
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-2xl font-bold text-foreground">
-                        {variacaoCusto >= 0 ? "↑" : "↓"}
+                      <span className="text-2xl font-bold text-red-600">
+                        {variacaoCusto < 0 ? "↑" : "↓"}
                       </span>
                       <h3 className="font-bold leading-tight tabular-nums break-words text-[clamp(1.05rem,1.8vw,1.5rem)] text-foreground">
                         {formatCurrency(Math.abs(variacaoCusto))}
@@ -1849,11 +1851,29 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                         ];
                       }}
                     />
+                    <Legend
+                      wrapperStyle={{ paddingTop: "20px" }}
+                      formatter={(value: string) => {
+                        if (value === "Baseline") {
+                          const baselineDate = snapshotData.snapshot.dataHora
+                            ? new Date(snapshotData.snapshot.dataHora)
+                                .toLocaleDateString("pt-BR", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "2-digit",
+                                })
+                                .replace(/\//g, ".")
+                            : "";
+                          return `Baseline (${baselineDate})`;
+                        }
+                        return value;
+                      }}
+                    />
                     <Bar dataKey="Atual" fill="#003151" name="Atual"></Bar>
                     <Bar
                       dataKey="Baseline"
                       fill="#5CA6DD"
-                      name="Baseline (5D MM JJ)"
+                      name="Baseline"
                     ></Bar>
                     <Bar
                       dataKey="Projetado"
@@ -3009,6 +3029,24 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     />
                     <YAxis tick={axisTick} />
                     <Tooltip />
+                    <Legend
+                      wrapperStyle={{ paddingTop: "20px" }}
+                      formatter={(value: string) => {
+                        if (value === "Baseline") {
+                          const baselineDate = snapshotData.snapshot.dataHora
+                            ? new Date(snapshotData.snapshot.dataHora)
+                                .toLocaleDateString("pt-BR", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "2-digit",
+                                })
+                                .replace(/\//g, ".")
+                            : "";
+                          return `Baseline (${baselineDate})`;
+                        }
+                        return value;
+                      }}
+                    />
                     <Bar dataKey="Atual" fill="#003151" name="Atual"></Bar>
                     <Bar
                       dataKey="Baseline"

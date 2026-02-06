@@ -57,6 +57,7 @@ const axisTick = {
 // Processamento de dados waterfall
 const processWaterfallData = (data: WaterfallDataItem[]) => {
   const baseValue = data?.[0]?.value ?? 0;
+  const endValue = data?.[data.length - 1]?.value ?? 0;
   let cumulative = 0;
   return data.map((item, index) => {
     const isStart = index === 0;
@@ -72,9 +73,11 @@ const processWaterfallData = (data: WaterfallDataItem[]) => {
       const startValue = cumulative;
       cumulative += item.value;
       range = [startValue, cumulative];
-      color = item.value < 0 ? "#16a34a" : "#dc2626"; // verde = redução, vermelho = aumento
+      // Lógica invertida: redução (negativo) = vermelho, aumento (positivo) = verde
+      color = item.value < 0 ? "#dc2626" : "#16a34a";
+      // Percentual calculado em relação ao valor projetado (endValue)
       pctFromBase =
-        baseValue !== 0 ? (Number(item.value) / Number(baseValue)) * 100 : 0;
+        endValue !== 0 ? (Number(item.value) / Number(endValue)) * 100 : 0;
     } else {
       range = [0, item.value];
       color = "#003151";
@@ -281,6 +284,15 @@ interface UnidadeProjetadaNaoInternacao {
   custoTotalUnidade?: number;
 }
 
+interface UnidadeNeutraProjetada {
+  unidadeId: string;
+  unidadeNome: string;
+  hospitalId?: string;
+  custoTotal: number;
+  status?: string;
+  descricao?: string;
+}
+
 interface SnapshotResponse {
   snapshot: {
     id: string;
@@ -293,6 +305,7 @@ interface SnapshotResponse {
       projetadoFinal?: {
         internacao?: UnidadeProjetadaInternacao[];
         naoInternacao?: UnidadeProjetadaNaoInternacao[];
+        neutras?: UnidadeNeutraProjetada[];
       };
     };
     resumo: {
@@ -341,7 +354,8 @@ const InfoCard: React.FC<{
   subtitle: string;
   icon: React.ReactNode;
   variant: "primary" | "warning" | "success";
-}> = ({ title, value, subtitle, icon, variant }) => {
+  subtitleColor?: "red" | "green" | "muted";
+}> = ({ title, value, subtitle, icon, variant, subtitleColor = "muted" }) => {
   const variantStyles = {
     primary:
       "shadow-[0_4px_12px_rgba(0,93,151,0.3)] border-l-4 border-[#005D97]",
@@ -349,6 +363,12 @@ const InfoCard: React.FC<{
       "shadow-[0_4px_12px_rgba(0,112,185,0.3)] border-l-4 border-[#0070B9]",
     success:
       "shadow-[0_4px_12px_rgba(38,140,204,0.3)] border-l-4 border-[#268CCC]",
+  };
+
+  const subtitleColorStyles = {
+    red: "text-red-600",
+    green: "text-green-600",
+    muted: "text-muted-foreground",
   };
 
   return (
@@ -363,7 +383,9 @@ const InfoCard: React.FC<{
               {value}
             </h3>
             {subtitle ? (
-              <p className="mt-1 text-sm text-muted-foreground leading-snug break-words">
+              <p
+                className={`mt-1 text-sm leading-snug break-words ${subtitleColorStyles[subtitleColor]}`}
+              >
                 {subtitle}
               </p>
             ) : null}
@@ -1171,27 +1193,23 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     }
   );
 
-  // Adiciona custo das unidades neutras da situação atual (não têm projetado, mantém valor atual)
+  // Adicionar unidades neutras do projetadoFinal
   // Neutras são adicionadas apenas quando "all" está selecionado
   if (selectedSector === "all") {
-    // Adicionar neutras ao projetado (mantém o valor)
-    snapshotData.situacaoAtual?.unidadesNeutras?.forEach((unit: any) => {
-      const custoNeutro = unit.custoTotal || 0;
-
-      custoProjetado += custoNeutro;
-      // Neutras também estavam no baseline do snapshot
-      const unidadeNeutraBaseline = snapshotData.snapshot.dados.neutral?.find(
-        (n: any) => n.id === unit.unidadeId
-      );
-      if (unidadeNeutraBaseline) {
-        custoBaselineSetor += (unidadeNeutraBaseline.costAmount || 0) / 100;
+    snapshotData.snapshot.dados.projetadoFinal?.neutras?.forEach((unidade: any) => {
+      // No modo global, filtrar por hospital
+      if (
+        props.isGlobalView &&
+        selectedHospitalId !== "all" &&
+        unidade.hospitalId &&
+        unidade.hospitalId !== selectedHospitalId
+      ) {
+        return;
       }
-    });
 
-    // Adicionar neutras à situação atual real
-    snapshotData.situacaoAtual?.unidadesNeutras?.forEach((unit: any) => {
-      const custoNeutro = unit.custoTotal || 0;
-      custoAtualRealSetor += custoNeutro;
+      // Adicionar custo total da unidade neutra ao projetado
+      const custoNeutro = unidade.custoTotal || 0;
+      custoProjetado += custoNeutro;
     });
   }
 
@@ -1229,12 +1247,10 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
   const variacaoProfissionais =
     profissionaisProjetados - profissionaisAtualRealExibicao;
   const variacaoCustoPercentual =
-    custoAtualRealExibicao > 0
-      ? (variacaoCusto / custoAtualRealExibicao) * 100
-      : 0;
+    custoProjetado > 0 ? (variacaoCusto / custoProjetado) * 100 : 0;
   const variacaoProfissionaisPercentual =
-    profissionaisAtualRealExibicao > 0
-      ? (variacaoProfissionais / profissionaisAtualRealExibicao) * 100
+    profissionaisProjetados > 0
+      ? (variacaoProfissionais / profissionaisProjetados) * 100
       : 0;
 
   // Variações entre Baseline e Projetado (para o gráfico waterfall)
@@ -1304,8 +1320,8 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
       ] as [number, number],
       color:
         profissionaisBaselineExibicao - profissionaisAtualRealExibicao < 0
-          ? "#16a34a"
-          : "#dc2626",
+          ? "#dc2626"
+          : "#16a34a",
     },
     {
       name: `Baseline\n(${baselineDate})`,
@@ -1321,7 +1337,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
         number,
       ],
       color:
-        variacaoProfissionaisBaselineParaProjetado < 0 ? "#16a34a" : "#dc2626",
+        variacaoProfissionaisBaselineParaProjetado < 0 ? "#dc2626" : "#16a34a",
     },
     {
       name: "Projetado",
@@ -1366,8 +1382,9 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
       );
 
       const variacaoPerc =
-        custoAtualUnidade > 0
-          ? ((custoProjetadoUnidade - custoAtualUnidade) / custoAtualUnidade) *
+        custoProjetadoUnidade > 0
+          ? ((custoProjetadoUnidade - custoAtualUnidade) /
+              custoProjetadoUnidade) *
             100
           : 0;
 
@@ -1414,9 +1431,9 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
         );
 
         const variacaoPerc =
-          custoAtualUnidade > 0
+          custoProjetadoUnidade > 0
             ? ((custoProjetadoUnidade - custoAtualUnidade) /
-                custoAtualUnidade) *
+                custoProjetadoUnidade) *
               100
             : 0;
 

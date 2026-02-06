@@ -229,7 +229,7 @@ export default function BaselinePage() {
     const custoProjetadoTotal = resumo.custoTotalProjetado || 0;
     const variacao = custoProjetadoTotal - custoAtualTotal;
     const percentualVariacao =
-      custoAtualTotal > 0 ? (variacao / custoAtualTotal) * 100 : 0;
+      custoProjetadoTotal > 0 ? (variacao / custoProjetadoTotal) * 100 : 0;
 
     return {
       custoAtual: custoAtualTotal,
