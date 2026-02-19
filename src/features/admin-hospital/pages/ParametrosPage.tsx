@@ -12,7 +12,6 @@ import {
 } from "@/lib/api";
 import { Settings } from "lucide-react";
 import { useAlert } from "@/contexts/AlertContext";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -247,9 +246,16 @@ export default function ParametrosPage() {
           parametros.cargaHorariaTecnico !== null
             ? Number(parametros.cargaHorariaTecnico as any)
             : undefined,
-        // diasSemana sempre 7 (padrão)
-        diasSemana: "7",
+        diasSemana: parametros.diasSemana ?? "7",
       } as CreateParametrosDTO;
+
+      console.log("📤 [PARAMETROS INTERNAÇÃO] Payload sendo enviado:", payload);
+      console.log(
+        "📤 [PARAMETROS INTERNAÇÃO] diasSemana:",
+        payload.diasSemana,
+        "tipo:",
+        typeof payload.diasSemana
+      );
 
       await saveParametros(setorId, payload);
       showAlert("success", "Sucesso", "Parâmetros salvos com sucesso!");
@@ -306,6 +312,20 @@ export default function ParametrosPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium mb-2">
+              Método de Cálculo
+            </label>
+            <input
+              name="metodoCalculo"
+              value={(parametros as any).metodoCalculo || ""}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-md"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">
               Jornada Semanal Enfermeiro (horas)
             </label>
             <input
@@ -348,6 +368,21 @@ export default function ParametrosPage() {
               className="w-full p-2 border rounded-md"
             />
           </div>
+          <div className="w-48">
+            <label className="block text-sm font-medium mb-2">
+              Dias de Trabalho por Semana
+            </label>
+            <input
+              name="diasSemana"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={7}
+              value={(parametros as any).diasSemana ?? ""}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-md"
+            />
+          </div>
           <div className="flex items-start gap-3 flex-1 pt-7">
             <input
               id="aplicarIST"
@@ -376,619 +411,573 @@ export default function ParametrosPage() {
       {/* Informações de Dimensionamento (apenas para Internação) */}
       {isInternacao && analise && (
         <div className="space-y-6">
-          {/* Seção de Informações Gerais */}
+          {/* ── Informações da Unidade ── */}
           <div className="bg-white p-6 rounded-lg border shadow-sm">
             <h3 className="text-lg font-bold text-primary mb-4">
               Informações da Unidade
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {analise.agregados.unidadeNome && (
-                <Card className="border">
-                  <CardContent className="pt-4 pb-4">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">
-                      Unidade
-                    </p>
-                    <p className="text-sm font-bold text-gray-900">
-                      {analise.agregados.unidadeNome}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {analise.agregados.metodoAvaliacaoSCP && (
-                <Card className="border">
-                  <CardContent className="pt-4 pb-4">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">
-                      Método SCP
-                    </p>
-                    <p className="text-sm font-bold text-gray-900">
-                      {analise.agregados.metodoAvaliacaoSCP.title ||
-                        analise.agregados.metodoAvaliacaoSCP.key ||
-                        "-"}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-
-              <Card className="border">
-                <CardContent className="pt-4 pb-4">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">
-                    Total de Leitos
-                  </p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {analise.agregados.totalLeitos || 0}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border">
-                <CardContent className="pt-4 pb-4">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">
-                    Leitos/Dia (Período)
-                  </p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {analise.agregados.totalLeitosDia || 0}
-                  </p>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-3 divide-x border rounded-md overflow-hidden">
+              <div className="px-4 py-3">
+                <p className="text-xs font-semibold text-muted-foreground mb-1">
+                  Unidade
+                </p>
+                <p className="text-sm font-bold text-gray-900">
+                  {analise.agregados.unidadeNome || "-"}
+                </p>
+              </div>
+              <div className="px-4 py-3">
+                <p className="text-xs font-semibold text-muted-foreground mb-1">
+                  Método SCP
+                </p>
+                <p className="text-sm font-bold text-gray-900">
+                  {analise.agregados.metodoAvaliacaoSCP?.title ||
+                    analise.agregados.metodoAvaliacaoSCP?.key ||
+                    "-"}
+                </p>
+              </div>
+              <div className="px-4 py-3">
+                <p className="text-xs font-semibold text-muted-foreground mb-1">
+                  Total de Leitos
+                </p>
+                <p className="text-lg font-bold text-gray-900">
+                  {analise.agregados.totalLeitos || 0}
+                </p>
+              </div>
             </div>
           </div>
-          {/* Seção de Período */}
+
+          {/* ── Período de Análise ── */}
           {analise.agregados.periodo && (
             <div className="bg-white p-6 rounded-lg border shadow-sm">
               <h3 className="text-lg font-bold text-primary mb-4">
                 Período de Análise
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="border">
-                  <CardContent className="pt-4 pb-4 text-center">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">
-                      Data Início
-                    </p>
-                    <p className="text-sm font-bold text-primary">
-                      {new Date(
-                        analise.agregados.periodo.inicio
-                      ).toLocaleDateString("pt-BR")}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border">
-                  <CardContent className="pt-4 pb-4 text-center">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">
-                      Data Fim
-                    </p>
-                    <p className="text-sm font-bold text-primary">
-                      {new Date(
-                        analise.agregados.periodo.fim
-                      ).toLocaleDateString("pt-BR")}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border">
-                  <CardContent className="pt-4 pb-4 text-center">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">
-                      Total de Dias
-                    </p>
-                    <p className="text-2xl font-bold text-primary">
-                      {analise.agregados.periodo.dias}
-                    </p>
-                  </CardContent>
-                </Card>
+              <div className="grid grid-cols-3 divide-x border rounded-md overflow-hidden">
+                <div className="px-4 py-3 text-center">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">
+                    Data Início
+                  </p>
+                  <p className="text-sm font-bold text-primary">
+                    {new Date(
+                      analise.agregados.periodo.inicio
+                    ).toLocaleDateString("pt-BR")}
+                  </p>
+                </div>
+                <div className="px-4 py-3 text-center">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">
+                    Data Fim
+                  </p>
+                  <p className="text-sm font-bold text-primary">
+                    {new Date(analise.agregados.periodo.fim).toLocaleDateString(
+                      "pt-BR"
+                    )}
+                  </p>
+                </div>
+                <div className="px-4 py-3 text-center">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">
+                    Total de Dias
+                  </p>
+                  <p className="text-2xl font-bold text-primary">
+                    {analise.agregados.periodo.dias}
+                  </p>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Seção de Taxa de Ocupação e Avaliações */}
+          {/* ── Ocupação e Avaliações ── */}
           <div className="bg-white p-6 rounded-lg border shadow-sm">
             <h3 className="text-lg font-bold text-primary mb-4">
               Ocupação e Avaliações
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="border">
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">
-                    Taxa de Ocupação
+            <div className="grid grid-cols-4 sm:grid-cols-8 divide-x border rounded-md overflow-hidden">
+              {[
+                {
+                  label: "Taxa Média de Ocupação (Período)",
+                  value: analise.agregados.taxaOcupacaoPeriodoPercent
+                    ? `${Number(analise.agregados.taxaOcupacaoPeriodoPercent).toFixed(2)}%`
+                    : "-",
+                },
+                {
+                  label: "Leitos Avaliados (%)",
+                  value: analise.agregados.percentualLeitosAvaliados
+                    ? `${Number(analise.agregados.percentualLeitosAvaliados).toFixed(1)}%`
+                    : "-",
+                },
+                {
+                  label: "Leitos Dia/Período",
+                  value: analise.agregados.totalLeitosDia || 0,
+                },
+                {
+                  label: "Total de Avaliações",
+                  value: analise.agregados.totalAvaliacoes || 0,
+                },
+                {
+                  label: "Leitos Ocupados",
+                  value: analise.agregados.leitosOcupados || 0,
+                },
+                {
+                  label: "Leitos Vagos",
+                  value: analise.agregados.leitosVagos || 0,
+                },
+                {
+                  label: "Leitos Inativos",
+                  value: analise.agregados.leitosInativos || 0,
+                },
+                {
+                  label: "Leitos Pendentes",
+                  value: (analise.agregados as any)?.leitosPendentes ?? "-",
+                },
+              ].map((item, i) => (
+                <div key={i} className="px-3 py-3 text-center">
+                  <p className="text-xs font-semibold text-muted-foreground leading-tight mb-1">
+                    {item.label}
                   </p>
-                  <p className="text-2xl font-bold text-primary">
-                    {analise.agregados.taxaOcupacaoPeriodoPercent
+                  <p className="text-lg font-bold text-primary">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Base de Cálculo ── */}
+          <div className="bg-white p-6 rounded-lg border shadow-sm">
+            <h3 className="text-lg font-bold text-primary mb-4">
+              Base de Cálculo
+            </h3>
+            <div className="grid grid-cols-3 divide-x border rounded-md overflow-hidden">
+              <div className="px-4 py-3">
+                <p className="text-xs font-semibold text-muted-foreground mb-1">
+                  Taxa de Ocupação (para fins de cálculo)
+                </p>
+                <p className="text-lg font-bold text-primary">
+                  {(analise.agregados as any)?.taxaOcupacaoCustomizada?.taxa
+                    ? `${(analise.agregados as any).taxaOcupacaoCustomizada.taxa}%`
+                    : analise.agregados.taxaOcupacaoPeriodoPercent
                       ? `${Number(analise.agregados.taxaOcupacaoPeriodoPercent).toFixed(2)}%`
                       : "-"}
-                  </p>
-                </CardContent>
-              </Card>
-
-              {analise.agregados.taxaOcupacaoCustomizada && (
-                <Card className="border">
-                  <CardContent className="pt-4 pb-4 text-center">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">
-                      Taxa Customizada
-                    </p>
-                    <p className="text-2xl font-bold text-primary">
-                      {analise.agregados.taxaOcupacaoCustomizada.taxa}%
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-
-              <Card className="border">
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">
-                    Total de Avaliações
-                  </p>
-                  <p className="text-2xl font-bold text-primary">
-                    {analise.agregados.totalAvaliacoes || 0}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border">
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">
-                    Pacientes Médio/Dia
-                  </p>
-                  <p className="text-2xl font-bold text-primary">
-                    {analise.agregados.totalPacientesMedio
-                      ? Number(analise.agregados.totalPacientesMedio).toFixed(2)
-                      : "-"}
-                  </p>
-                </CardContent>
-              </Card>
+                </p>
+              </div>
+              <div className="px-4 py-3 text-center">
+                <p className="text-xs font-semibold text-muted-foreground mb-1">
+                  Leitos Ocupados
+                </p>
+                <p className="text-lg font-bold text-primary">
+                  {analise.agregados.leitosOcupados || 0}
+                </p>
+              </div>
+              <div className="px-4 py-3 text-center">
+                <p className="text-xs font-semibold text-muted-foreground mb-1">
+                  Pacientes Médio/dia
+                </p>
+                <p className="text-2xl font-bold text-primary">
+                  {analise.agregados.totalPacientesMedio
+                    ? Number(analise.agregados.totalPacientesMedio).toFixed(2)
+                    : "-"}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Seção de Status dos Leitos */}
-          <div className="bg-white p-6 rounded-lg border shadow-sm">
-            <h3 className="text-lg font-bold text-primary mb-4">
-              Status dos Leitos
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="border">
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">
-                    Leitos Ocupados
-                  </p>
-                  <p className="text-2xl font-bold text-primary">
-                    {analise.agregados.leitosOcupados || 0}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border">
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">
-                    Leitos Vagos
-                  </p>
-                  <p className="text-2xl font-bold text-primary">
-                    {analise.agregados.leitosVagos || 0}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border">
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">
-                    Leitos Inativos
-                  </p>
-                  <p className="text-2xl font-bold text-primary">
-                    {analise.agregados.leitosInativos || 0}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border">
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">
-                    Leitos Avaliados
-                  </p>
-                  <p className="text-2xl font-bold text-primary">
-                    {analise.agregados.percentualLeitosAvaliados
-                      ? `${Number(analise.agregados.percentualLeitosAvaliados).toFixed(1)}%`
-                      : "-"}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-          {/* Seção de Distribuição de Classificação */}
+          {/* ── Distribuição + Horas + Classificação + QP ── */}
           {analise.agregados.distribuicaoTotalClassificacao &&
             Object.keys(analise.agregados.distribuicaoTotalClassificacao)
-              .length > 0 && (
-              <div className="bg-white p-6 rounded-lg border shadow-sm">
-                <h3 className="text-lg font-bold text-primary mb-4">
-                  Distribuição de Classificação
-                </h3>
+              .length > 0 &&
+            (() => {
+              const ag = analise?.agregados as any;
+              const totalAvaliacoes = analise.agregados.totalAvaliacoes || 0;
+              const ORDEM_CLASSIFICACOES = [
+                "MINIMOS",
+                "INTERMEDIARIOS",
+                "ALTA_DEPENDENCIA",
+                "SEMI_INTENSIVOS",
+                "INTENSIVOS",
+              ];
+              const rawClassificacoes = Object.entries(
+                analise.agregados.distribuicaoTotalClassificacao
+              );
+              const classificacoes = [
+                ...ORDEM_CLASSIFICACOES.map((key) =>
+                  rawClassificacoes.find(([k]) => k === key)
+                ).filter(
+                  (entry): entry is [string, number] => entry !== undefined
+                ),
+                ...rawClassificacoes.filter(
+                  ([k]) => !ORDEM_CLASSIFICACOES.includes(k)
+                ),
+              ];
+              const colCount = classificacoes.length + 1;
 
-                {/* Cards de Classificação */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  {Object.entries(
-                    analise.agregados.distribuicaoTotalClassificacao
-                  ).map(([classificacao, total]) => {
-                    const ag = analise?.agregados as any;
-                    const mediaDiaria =
-                      ag?.mediaDiariaClassificacao?.[classificacao];
+              const PERCENTUAIS: Record<string, { enf: number; tec: number }> =
+                {
+                  MINIMOS: { enf: 33, tec: 67 },
+                  INTERMEDIARIOS: { enf: 33, tec: 67 },
+                  ALTA_DEPENDENCIA: { enf: 16, tec: 84 },
+                  SEMI_INTENSIVOS: { enf: 42, tec: 58 },
+                  INTENSIVOS: { enf: 52, tec: 48 },
+                };
+              const getPercentuais = (classificacao: string) => {
+                const key = classificacao.toUpperCase().replace(/ /g, "_");
+                return (
+                  PERCENTUAIS[key] ??
+                  PERCENTUAIS[classificacao] ?? { enf: "-", tec: "-" }
+                );
+              };
 
-                    return (
-                      <Card key={classificacao} className="border">
-                        <CardContent className="pt-4 pb-4 text-center">
-                          <p className="text-xs font-semibold text-muted-foreground mb-1">
-                            {classificacao.replace(/_/g, " ")}
-                          </p>
-                          <p className="text-2xl font-bold text-primary">
-                            {total}
-                          </p>
-                          {mediaDiaria !== undefined && (
-                            <p className="text-xs text-muted-foreground mt-2">
-                              Média diária: {Number(mediaDiaria).toFixed(2)}
+              return (
+                <>
+                  {/* Distribuição da Classificação */}
+                  <div className="bg-white p-6 rounded-lg border shadow-sm">
+                    <h3 className="text-lg font-bold text-primary mb-4">
+                      Distribuição da Classificação
+                    </h3>
+                    <div
+                      className="grid divide-x border rounded-md overflow-hidden"
+                      style={{
+                        gridTemplateColumns: `repeat(${colCount}, 1fr)`,
+                      }}
+                    >
+                      {classificacoes.map(([classificacao, total], i) => {
+                        const pct =
+                          totalAvaliacoes > 0
+                            ? (Number(total) / totalAvaliacoes) * 100
+                            : 0;
+                        const mediaDiaria =
+                          ag?.mediaDiariaClassificacao?.[classificacao];
+                        return (
+                          <div
+                            key={classificacao}
+                            className="px-3 py-3 text-center"
+                          >
+                            <p className="text-xs font-semibold text-muted-foreground mb-1">
+                              {classificacao.replace(/_/g, " ")}
                             </p>
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-
-                {/* Tabela de Horas de Enfermagem */}
-                <div>
-                  <h4 className="text-md font-semibold text-primary mb-3">
-                    Horas de Enfermagem por Classificação
-                  </h4>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="font-bold">
-                            Classificação
-                          </TableHead>
-                          <TableHead className="text-center font-bold">
-                            Hora/Paciente (Tabelado)
-                          </TableHead>
-                          <TableHead className="text-center font-bold">
-                            Média Diária de Pacientes
-                          </TableHead>
-                          <TableHead className="text-center font-bold">
-                            Horas de Enfermagem (THE)
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(() => {
-                          let totalHorasEnfermagem = 0;
-                          const rows = Object.entries(
-                            analise.agregados.distribuicaoTotalClassificacao
-                          ).map(([classificacao, total]) => {
-                            const ag = analise?.agregados as any;
-                            const mediaDiaria =
-                              ag?.mediaDiariaClassificacao?.[classificacao];
-
-                            // Console.log para debug
-                            console.log("=== DEBUG CLASSIFICAÇÃO ===");
-                            console.log(
-                              "Classificação recebida:",
-                              classificacao
-                            );
-                            console.log("Tipo:", typeof classificacao);
-                            console.log("Total pacientes:", total);
-                            console.log("Média diária:", mediaDiaria);
-
-                            // Usar a função para obter as horas tabeladas
-                            const horasPorPaciente =
-                              getHorasTabeladas(classificacao);
-
-                            console.log(
-                              "Horas tabeladas encontradas:",
-                              horasPorPaciente
-                            );
-
-                            // Calcular THE usando a média diária ao invés do total
-                            const horasEnfermagem =
-                              horasPorPaciente !== undefined &&
-                              mediaDiaria !== undefined
-                                ? horasPorPaciente * Number(mediaDiaria)
-                                : ag?.horasEnfermagemPorClassificacao?.[
-                                    classificacao
-                                  ];
-
-                            console.log("THE calculado:", horasEnfermagem);
-                            console.log("===========================");
-
-                            if (horasEnfermagem !== undefined) {
-                              totalHorasEnfermagem += Number(horasEnfermagem);
-                            }
-
-                            return (
-                              <TableRow key={classificacao}>
-                                <TableCell className="font-medium">
-                                  {classificacao.replace(/_/g, " ")}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  {horasPorPaciente !== undefined
-                                    ? `${Number(horasPorPaciente)}h`
-                                    : "-"}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  {mediaDiaria !== undefined
-                                    ? Number(mediaDiaria).toFixed(2)
-                                    : "-"}
-                                </TableCell>
-                                <TableCell className="text-center font-semibold">
-                                  {horasEnfermagem !== undefined
-                                    ? `${Number(horasEnfermagem).toFixed(2)}h`
-                                    : "-"}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          });
-
-                          return (
-                            <>
-                              {rows}
-                              <TableRow className="bg-muted/50 font-bold border-t-2">
-                                <TableCell colSpan={3} className="text-right">
-                                  Total de Horas de Enfermagem:
-                                </TableCell>
-                                <TableCell className="text-center text-primary">
-                                  {totalHorasEnfermagem.toFixed(2)}h
-                                </TableCell>
-                              </TableRow>
-                            </>
-                          );
-                        })()}
-                      </TableBody>
-                    </Table>
+                            <p className="text-xl font-bold text-primary">
+                              {pct.toFixed(2)}%
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {Number(total)}
+                            </p>
+                          </div>
+                        );
+                      })}
+                      <div className="px-3 py-3 text-center">
+                        <p className="text-xs font-semibold text-muted-foreground mb-1">
+                          (%) Período
+                        </p>
+                        <p className="text-xl font-bold text-primary">100%</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
 
-          {/* Seção de Nível de Cuidado */}
-          {analise.agregados.nivelCuidadoPredominante && (
-            <div className="bg-white p-6 rounded-lg border shadow-sm">
-              <h3 className="text-lg font-bold text-primary mb-4">
-                Classificação de Pacientes
-              </h3>
-              <Card className="border">
-                <CardContent className="pt-4 pb-4">
-                  <p className="text-xs font-semibold text-muted-foreground mb-2">
-                    Nível de Cuidado Predominante
-                  </p>
-                  <p className="text-base font-bold text-primary">
-                    {analise.agregados.nivelCuidadoPredominante}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-          {/* Seção de Quadro de Pessoal */}
-          <div className="bg-white p-6 rounded-lg border shadow-sm">
-            <h3 className="text-lg font-bold text-primary mb-4">
-              Quadro de Pessoal Dimensionado
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="border">
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">
-                    QP Enfermeiros
-                  </p>
-                  <p className="text-2xl font-bold text-primary">
-                    {analise.agregados.qpEnfermeiros || 0}
-                  </p>
-                </CardContent>
-              </Card>
+                  {/* Horas de Enfermagem por Classificação */}
+                  <div className="bg-white p-6 rounded-lg border shadow-sm">
+                    <h3 className="text-lg font-bold text-primary mb-4">
+                      Horas de Enfermagem por Classificação
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="font-bold">
+                              Classificação
+                            </TableHead>
+                            <TableHead className="text-center font-bold">
+                              Hora/Paciente
+                              <br />
+                              (Art. 3°, I)
+                            </TableHead>
+                            <TableHead className="text-center font-bold">
+                              Enfermeiros %<br />
+                              (Tabela Art. 3°, II)
+                            </TableHead>
+                            <TableHead className="text-center font-bold">
+                              Técnicos/Aux %<br />
+                              (Tabela Art. 3°, II)
+                            </TableHead>
+                            <TableHead className="text-center font-bold">
+                              Média Diária
+                              <br />
+                              de Pacientes
+                            </TableHead>
+                            <TableHead className="text-center font-bold">
+                              Horas de Enfermagem
+                              <br />
+                              (THE)
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(() => {
+                            let totalHoras = 0;
+                            const rows = classificacoes.map(
+                              ([classificacao]) => {
+                                const mediaDiaria =
+                                  ag?.mediaDiariaClassificacao?.[classificacao];
+                                const horasPorPaciente =
+                                  getHorasTabeladas(classificacao);
+                                const horasEnfermagem =
+                                  horasPorPaciente !== undefined &&
+                                  mediaDiaria !== undefined
+                                    ? horasPorPaciente * Number(mediaDiaria)
+                                    : ag?.horasEnfermagemPorClassificacao?.[
+                                        classificacao
+                                      ];
+                                if (horasEnfermagem !== undefined)
+                                  totalHoras += Number(horasEnfermagem);
+                                const pcts = getPercentuais(classificacao);
+                                return (
+                                  <TableRow key={classificacao}>
+                                    <TableCell className="font-medium">
+                                      {classificacao.replace(/_/g, " ")}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      {horasPorPaciente !== undefined
+                                        ? `${horasPorPaciente}h`
+                                        : "-"}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      {typeof pcts.enf === "number"
+                                        ? `${pcts.enf}%`
+                                        : "-"}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      {typeof pcts.tec === "number"
+                                        ? `${pcts.tec}%`
+                                        : "-"}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      {mediaDiaria !== undefined
+                                        ? Number(mediaDiaria).toFixed(2)
+                                        : "-"}
+                                    </TableCell>
+                                    <TableCell className="text-center font-semibold">
+                                      {horasEnfermagem !== undefined
+                                        ? `${Number(horasEnfermagem).toFixed(2)}h`
+                                        : "-"}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              }
+                            );
+                            return (
+                              <>
+                                {rows}
+                                <TableRow className="bg-muted/50 font-bold border-t-2">
+                                  <TableCell colSpan={5} className="text-right">
+                                    Total de Horas de Enfermagem:
+                                  </TableCell>
+                                  <TableCell className="text-center text-primary">
+                                    {totalHoras.toFixed(2)}h
+                                  </TableCell>
+                                </TableRow>
+                              </>
+                            );
+                          })()}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
 
-              <Card className="border">
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">
-                    QP Técnicos
-                  </p>
-                  <p className="text-2xl font-bold text-primary">
-                    {analise.agregados.qpTecnicos || 0}
-                  </p>
-                </CardContent>
-              </Card>
+                  {/* Classificação de Paciente */}
+                  <div className="bg-white p-6 rounded-lg border shadow-sm">
+                    <h3 className="text-lg font-bold text-primary mb-4">
+                      Classificação de Paciente
+                    </h3>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 divide-x border rounded-md overflow-hidden">
+                      {[
+                        {
+                          label: "Total Horas Enfermagem (Período)",
+                          value:
+                            analise.agregados.totalHorasEnfermagem !== undefined
+                              ? `${Number(analise.agregados.totalHorasEnfermagem).toFixed(2)}h`
+                              : (() => {
+                                  let t = 0;
+                                  classificacoes.forEach(([clf]) => {
+                                    const md =
+                                      ag?.mediaDiariaClassificacao?.[clf];
+                                    const hp = getHorasTabeladas(clf);
+                                    if (hp !== undefined && md !== undefined)
+                                      t += hp * Number(md);
+                                  });
+                                  return `${t.toFixed(2)}h`;
+                                })(),
+                        },
+                        {
+                          label: "KM (Enfermeiro)",
+                          value:
+                            ag?.kmEnfermeiro !== undefined
+                              ? Number(ag.kmEnfermeiro).toLocaleString(
+                                  "pt-BR",
+                                  {
+                                    minimumFractionDigits: 3,
+                                    maximumFractionDigits: 3,
+                                  }
+                                )
+                              : "-",
+                        },
+                        {
+                          label: "KM (Técnico)",
+                          value:
+                            ag?.kmTecnico !== undefined
+                              ? Number(ag.kmTecnico).toLocaleString("pt-BR", {
+                                  minimumFractionDigits: 3,
+                                  maximumFractionDigits: 3,
+                                })
+                              : "-",
+                        },
+                        {
+                          label: "Nível de Cuidado Predominante",
+                          value:
+                            analise.agregados.nivelCuidadoPredominante || "-",
+                        },
+                        {
+                          label: "% Enfermeiro",
+                          value:
+                            ag?.percentualEnfermeiroPercent !== undefined
+                              ? `${Number(ag.percentualEnfermeiroPercent).toFixed(0)}%`
+                              : ag?.percentualEnfermeiro !== undefined
+                                ? `${(Number(ag.percentualEnfermeiro) * 100).toFixed(0)}%`
+                                : "-",
+                        },
+                        {
+                          label: "% Técnico",
+                          value:
+                            ag?.percentualTecnicoPercent !== undefined
+                              ? `${Number(ag.percentualTecnicoPercent).toFixed(0)}%`
+                              : ag?.percentualTecnico !== undefined
+                                ? `${(Number(ag.percentualTecnico) * 100).toFixed(0)}%`
+                                : "-",
+                        },
+                      ].map((item, i) => (
+                        <div key={i} className="px-3 py-3 text-center">
+                          <p className="text-xs font-semibold text-muted-foreground leading-tight mb-1">
+                            {item.label}
+                          </p>
+                          <p className="text-lg font-bold text-primary">
+                            {item.value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-              <Card className="border">
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">
-                    QP Total
-                  </p>
-                  <p className="text-2xl font-bold text-primary">
-                    {analise.agregados.qpTotal || 0}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Seção de Constantes e Percentuais */}
-          <div className="bg-white p-6 rounded-lg border shadow-sm">
-            <h3 className="text-lg font-bold text-primary mb-4">
-              Constantes de Marinho e Distribuição
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="border bg-white">
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-sm font-semibold text-muted-foreground">
-                    Constante de Marinho (Enfermeiro)
-                  </p>
-                  <p className="mt-1 text-xl font-bold tracking-tight text-primary">
-                    {(() => {
-                      const ag = analise?.agregados as any;
-                      const v = ag?.kmEnfermeiro;
-                      if (v === undefined || v === null) return "-";
-                      return Number(v).toLocaleString("pt-BR", {
-                        minimumFractionDigits: 3,
-                        maximumFractionDigits: 3,
-                      });
-                    })()}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border bg-white">
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-sm font-semibold text-muted-foreground">
-                    Constante de Marinho (Técnico)
-                  </p>
-                  <p className="mt-1 text-xl font-bold tracking-tight text-primary">
-                    {(() => {
-                      const ag = analise?.agregados as any;
-                      const v = ag?.kmTecnico;
-                      if (v === undefined || v === null) return "-";
-                      return Number(v).toLocaleString("pt-BR", {
-                        minimumFractionDigits: 3,
-                        maximumFractionDigits: 3,
-                      });
-                    })()}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border bg-white">
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-sm font-semibold text-muted-foreground">
-                    Percentual Enfermeiro
-                  </p>
-                  <p className="mt-1 text-xl font-bold tracking-tight text-primary">
-                    {(() => {
-                      const ag = analise?.agregados as any;
-                      const enf =
-                        ag?.percentualEnfermeiroPercent ??
-                        (typeof ag?.percentualEnfermeiro === "number"
-                          ? ag.percentualEnfermeiro * 100
-                          : null);
-                      if (enf === null) return "-";
-                      return `${Number(enf).toFixed(0)}%`;
-                    })()}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border bg-white">
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-sm font-semibold text-muted-foreground">
-                    Percentual Técnico
-                  </p>
-                  <p className="mt-1 text-xl font-bold tracking-tight text-primary">
-                    {(() => {
-                      const ag = analise?.agregados as any;
-                      const tec =
-                        ag?.percentualTecnicoPercent ??
-                        (typeof ag?.percentualTecnico === "number"
-                          ? ag.percentualTecnico * 100
-                          : null);
-                      if (tec === null) return "-";
-                      return `${Number(tec).toFixed(0)}%`;
-                    })()}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Seção de Parâmetros Utilizados */}
-          {analise.agregados.parametros && (
-            <div className="bg-white p-6 rounded-lg border shadow-sm">
-              <h3 className="text-lg font-bold text-primary mb-4">
-                Parâmetros Utilizados no Cálculo
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {analise.agregados.parametros.istPercent !== undefined && (
-                  <Card className="border">
-                    <CardContent className="pt-4 pb-4 text-center">
-                      <p className="text-xs font-semibold text-muted-foreground mb-1">
-                        IST (Índice Segurança Técnica)
-                      </p>
-                      <p className="text-2xl font-bold text-primary">
-                        {analise.agregados.parametros.istPercent}%
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {analise.agregados.parametros.cargaHorariaEnfermeiro && (
-                  <Card className="border">
-                    <CardContent className="pt-4 pb-4 text-center">
-                      <p className="text-xs font-semibold text-muted-foreground mb-1">
-                        Jornada Enfermeiro
-                      </p>
-                      <p className="text-2xl font-bold text-primary">
-                        {analise.agregados.parametros.cargaHorariaEnfermeiro}h
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {analise.agregados.parametros.cargaHorariaTecnico && (
-                  <Card className="border">
-                    <CardContent className="pt-4 pb-4 text-center">
-                      <p className="text-xs font-semibold text-muted-foreground mb-1">
-                        Jornada Técnico
-                      </p>
-                      <p className="text-2xl font-bold text-primary">
-                        {analise.agregados.parametros.cargaHorariaTecnico}h
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {analise.agregados.parametros.diasTrabalhoSemana !==
-                  undefined && (
-                  <Card className="border">
-                    <CardContent className="pt-4 pb-4 text-center">
-                      <p className="text-xs font-semibold text-muted-foreground mb-1">
-                        Dias/Semana
-                      </p>
-                      <p className="text-2xl font-bold text-primary">
-                        {analise.agregados.parametros.diasTrabalhoSemana}
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {analise.agregados.parametros.equipeComRestricoes !==
-                  undefined && (
-                  <Card className="border">
-                    <CardContent className="pt-4 pb-4 text-center">
-                      <p className="text-xs font-semibold text-muted-foreground mb-1">
-                        Equipe com Restrições
-                      </p>
-                      <p className="text-lg font-bold text-primary">
-                        {analise.agregados.parametros.equipeComRestricoes
-                          ? "Sim"
-                          : "Não"}
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Seção de Horas Totais */}
-          {analise.agregados.totalHorasEnfermagem !== undefined && (
-            <div className="bg-white p-6 rounded-lg border shadow-sm">
-              <h3 className="text-lg font-bold text-primary mb-4">
-                Horas de Enfermagem
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Card className="border">
-                  <CardContent className="pt-4 pb-4 text-center">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">
-                      Total Horas Enfermagem (Período)
+                  {/* Quadro de Pessoal Dimensionado */}
+                  <div className="bg-white p-6 rounded-lg border shadow-sm">
+                    <h3 className="text-lg font-bold text-primary mb-1">
+                      Quadro de Pessoal Dimensionado
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      TOTAL de Profissionais:{" "}
+                      <span className="font-bold text-primary">
+                        {analise.agregados.qpTotal !== undefined
+                          ? Number(analise.agregados.qpTotal).toLocaleString(
+                              "pt-BR",
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }
+                            )
+                          : "-"}
+                      </span>
                     </p>
-                    <p className="text-2xl font-bold text-primary">
-                      {Number(analise.agregados.totalHorasEnfermagem).toFixed(
-                        2
-                      )}
-                      h
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="font-bold"></TableHead>
+                            <TableHead className="text-center font-bold">
+                              THE Semanal (Enfermagem)
+                            </TableHead>
+                            <TableHead className="text-center font-bold">
+                              THE Semanal (Técnicos)
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          <TableRow>
+                            <TableCell className="font-medium">
+                              Cuidado
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {ag?.cuidadoEnfermeiro !== undefined
+                                ? Number(ag.cuidadoEnfermeiro).toLocaleString(
+                                    "pt-BR",
+                                    {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    }
+                                  )
+                                : "-"}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {ag?.cuidadoTecnico !== undefined
+                                ? Number(ag.cuidadoTecnico).toLocaleString(
+                                    "pt-BR",
+                                    {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    }
+                                  )
+                                : "-"}
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell className="font-medium">
+                              Segurança técnica (IST)
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {ag?.segurancaEnfermeiro !== undefined
+                                ? Number(ag.segurancaEnfermeiro).toLocaleString(
+                                    "pt-BR",
+                                    {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    }
+                                  )
+                                : "-"}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {ag?.segurancaTecnico !== undefined
+                                ? Number(ag.segurancaTecnico).toLocaleString(
+                                    "pt-BR",
+                                    {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    }
+                                  )
+                                : "-"}
+                            </TableCell>
+                          </TableRow>
+                          <TableRow className="bg-muted/50 font-bold border-t-2">
+                            <TableCell>TOTAL de Profissionais</TableCell>
+                            <TableCell className="text-center text-primary">
+                              {analise.agregados.qpEnfermeiros !== undefined
+                                ? Number(
+                                    analise.agregados.qpEnfermeiros
+                                  ).toLocaleString("pt-BR", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })
+                                : "-"}
+                            </TableCell>
+                            <TableCell className="text-center text-primary">
+                              {analise.agregados.qpTecnicos !== undefined
+                                ? Number(
+                                    analise.agregados.qpTecnicos
+                                  ).toLocaleString("pt-BR", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })
+                                : "-"}
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
         </div>
       )}
     </div>

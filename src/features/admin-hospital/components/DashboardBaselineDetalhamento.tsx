@@ -1768,6 +1768,18 @@ export const DashboardBaselineDetalhamento: React.FC<
                           });
                         }
                       );
+                      snapshotData.snapshot.dados.neutral?.forEach(
+                        (unidade: any) => {
+                          unidade.staff?.forEach((staff: any) => {
+                            if (staff.id && staff.unitCost) {
+                              custoUnitarioPorCargo.set(
+                                staff.id,
+                                staff.unitCost
+                              );
+                            }
+                          });
+                        }
+                      );
                       // Processar Baseline (Internação)
                       snapshotData.snapshot.dados.internation?.forEach(
                         (unidade: any) => {
@@ -1814,6 +1826,26 @@ export const DashboardBaselineDetalhamento: React.FC<
                             const qtd = staff.quantity || 0;
                             entry.baseline += qtd * custoUnit;
                           });
+                        }
+                      );
+                      // Processar Baseline (Neutro)
+                      snapshotData.snapshot.dados.neutral?.forEach(
+                        (unidade: any) => {
+                          if (
+                            selectedSector !== "all" &&
+                            unidade.id !== selectedSector
+                          )
+                            return;
+                          const setorNome = unidade.name;
+                          if (!setorComparativo.has(setorNome)) {
+                            setorComparativo.set(setorNome, {
+                              atual: 0,
+                              baseline: 0,
+                              projetado: 0,
+                            });
+                          }
+                          const entry = setorComparativo.get(setorNome)!;
+                          entry.baseline += (unidade.costAmount || 0) / 100;
                         }
                       );
                       // Processar Projetado (Internação)
@@ -1868,6 +1900,27 @@ export const DashboardBaselineDetalhamento: React.FC<
                           });
                         }
                       );
+                      // Processar Projetado (Neutro) - mesmo valor do baseline (snapshot)
+                      snapshotData.snapshot.dados.neutral?.forEach(
+                        (unidade: any) => {
+                          if (
+                            selectedSector !== "all" &&
+                            unidade.id !== selectedSector
+                          )
+                            return;
+                          const setorNome = unidade.name;
+                          if (!setorNome) return;
+                          if (!setorComparativo.has(setorNome)) {
+                            setorComparativo.set(setorNome, {
+                              atual: 0,
+                              baseline: 0,
+                              projetado: 0,
+                            });
+                          }
+                          const entry = setorComparativo.get(setorNome)!;
+                          entry.projetado += (unidade.costAmount || 0) / 100;
+                        }
+                      );
                       // Processar Atual
                       snapshotData.situacaoAtual?.unidades.forEach(
                         (unidade: any) => {
@@ -1890,6 +1943,27 @@ export const DashboardBaselineDetalhamento: React.FC<
                             const qtd = cargo.quantidadeFuncionarios || 0;
                             entry.atual += qtd * custoUnit;
                           });
+                        }
+                      );
+                      // Processar Atual (Unidades Neutras)
+                      snapshotData.situacaoAtual?.unidadesNeutras?.forEach(
+                        (unidade: any) => {
+                          if (
+                            selectedSector !== "all" &&
+                            unidade.unidadeId !== selectedSector
+                          )
+                            return;
+                          const setorNome = unidade.unidadeNome;
+                          if (!setorNome) return;
+                          if (!setorComparativo.has(setorNome)) {
+                            setorComparativo.set(setorNome, {
+                              atual: 0,
+                              baseline: 0,
+                              projetado: 0,
+                            });
+                          }
+                          const entry = setorComparativo.get(setorNome)!;
+                          entry.atual += unidade.custoTotal || 0;
                         }
                       );
                       // Converter para array e ordenar por maior custo projetado
