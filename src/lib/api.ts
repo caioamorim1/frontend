@@ -18,8 +18,8 @@ export type {
   QuestionOption,
 };
 
-//export const API_BASE_URL = "http://localhost:3110";
-export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
+export const API_BASE_URL = "http://localhost:3110";
+//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
 const getApiOrigin = (): string => {
   const base = String(API_BASE_URL || "");
 
@@ -829,6 +829,7 @@ export interface CreateParametrosDTO {
   diasSemana?: string;
   cargaHorariaEnfermeiro?: number;
   cargaHorariaTecnico?: number;
+  metodoCalculo?: string;
 }
 export type ParametrosUnidade = CreateParametrosDTO & { id: string };
 
@@ -1986,7 +1987,7 @@ export const updateSitioFuncional = async (
 
     return response.data;
   } catch (error: any) {
-    console.error("❌ API - Erro:", error.response?.data || error.message);
+    console.error(" API - Erro:", error.response?.data || error.message);
     throw error;
   }
 };

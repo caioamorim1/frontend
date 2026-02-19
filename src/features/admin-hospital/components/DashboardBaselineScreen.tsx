@@ -664,7 +664,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
 
     const regioes = Array.isArray(grupoSelecionado?.regioes)
       ? grupoSelecionado.regioes
-      : [];
+      : grupos.flatMap((g: any) => (Array.isArray(g.regioes) ? g.regioes : []));
     const regioesDisponiveis = regioes.map((r: any) => ({
       id: String(r.regiaoId ?? r.id),
       name: String(r.regiaoNome ?? r.nome ?? r.name ?? "Região"),
@@ -733,10 +733,6 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
             </TabsList>
 
             <div className="mt-4 space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Atualização do nº de colaboradores em:
-              </p>
-
               {activeTab === "global" ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
@@ -1196,21 +1192,23 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
   // Adicionar unidades neutras do projetadoFinal
   // Neutras são adicionadas apenas quando "all" está selecionado
   if (selectedSector === "all") {
-    snapshotData.snapshot.dados.projetadoFinal?.neutras?.forEach((unidade: any) => {
-      // No modo global, filtrar por hospital
-      if (
-        props.isGlobalView &&
-        selectedHospitalId !== "all" &&
-        unidade.hospitalId &&
-        unidade.hospitalId !== selectedHospitalId
-      ) {
-        return;
-      }
+    snapshotData.snapshot.dados.projetadoFinal?.neutras?.forEach(
+      (unidade: any) => {
+        // No modo global, filtrar por hospital
+        if (
+          props.isGlobalView &&
+          selectedHospitalId !== "all" &&
+          unidade.hospitalId &&
+          unidade.hospitalId !== selectedHospitalId
+        ) {
+          return;
+        }
 
-      // Adicionar custo total da unidade neutra ao projetado
-      const custoNeutro = unidade.custoTotal || 0;
-      custoProjetado += custoNeutro;
-    });
+        // Adicionar custo total da unidade neutra ao projetado
+        const custoNeutro = unidade.custoTotal || 0;
+        custoProjetado += custoNeutro;
+      }
+    );
   }
 
   // Se não houver projetadoFinal (ex: dados externos ainda sem projeção), manter baseline
