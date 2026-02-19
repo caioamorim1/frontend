@@ -923,7 +923,7 @@ export default function ParametrosPage() {
                           </TableRow>
                           <TableRow>
                             <TableCell className="font-medium">
-                              Segurança técnica (IST)
+                              Segurança técnica
                             </TableCell>
                             <TableCell className="text-center">
                               {ag?.segurancaEnfermeiro !== undefined
