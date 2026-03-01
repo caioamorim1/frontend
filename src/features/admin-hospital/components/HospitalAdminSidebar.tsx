@@ -13,6 +13,7 @@ import {
   ChevronRight,
   LogOut,
   Home,
+  FileDown,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -147,6 +148,11 @@ export default function HospitalAdminSidebar() {
       to: `/hospital/${hospitalId}/baseline`,
       icon: <BarChart3 size={18} />,
       label: "Baseline",
+    },
+    {
+      to: `/hospital/${hospitalId}/relatorios`,
+      icon: <FileDown size={18} />,
+      label: "Relatórios",
     },
   ];
 

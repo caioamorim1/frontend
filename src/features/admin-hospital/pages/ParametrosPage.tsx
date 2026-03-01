@@ -8,9 +8,11 @@ import {
   getAnaliseInternacao,
   AnaliseInternacaoResponse,
   getUnidadeById,
-  getPeriodoTravado,
+  getControlePeriodoByUnidadeId,
+  exportDimensionamentoPdf,
 } from "@/lib/api";
-import { Settings } from "lucide-react";
+import { Settings, FileDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAlert } from "@/contexts/AlertContext";
 import {
   Table,
@@ -58,6 +60,20 @@ export default function ParametrosPage() {
     null
   );
   const [isInternacao, setIsInternacao] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [periodo, setPeriodo] = useState<{ inicio: string; fim: string } | null>(null);
+
+  const handleExportPdf = async () => {
+    if (!setorId) return;
+    try {
+      setIsExportingPdf(true);
+      await exportDimensionamentoPdf(setorId, periodo ?? undefined);
+    } catch {
+      showAlert("destructive", "Erro", "Não foi possível gerar o relatório PDF.");
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -73,19 +89,23 @@ export default function ParametrosPage() {
           setIsInternacao(unidadeData.tipo === "internacao");
         }
 
-        // Se for internação, buscar período travado e então análise para exibir os cards
+        // Se for internação, buscar período salvo e então análise para exibir os cards
         if (unidadeData.tipo === "internacao") {
           try {
-            // Primeiro buscar o período travado
-            const periodoTravado = await getPeriodoTravado(setorId);
+            // Buscar o período salvo (travado ou não)
+            const periodoSalvo = await getControlePeriodoByUnidadeId(setorId);
 
-            // Montar parâmetros de período se existir período travado
-            const params = periodoTravado
+            // Montar parâmetros de período se existir período salvo
+            const params = periodoSalvo
               ? {
-                  inicio: periodoTravado.dataInicial.split("T")[0], // YYYY-MM-DD
-                  fim: periodoTravado.dataFinal.split("T")[0], // YYYY-MM-DD
+                  inicio: periodoSalvo.dataInicial.split("T")[0], // YYYY-MM-DD
+                  fim: periodoSalvo.dataFinal.split("T")[0], // YYYY-MM-DD
                 }
               : undefined;
+
+            if (mounted && params) {
+              setPeriodo(params);
+            }
 
             const analiseData = await getAnaliseInternacao(setorId, params);
             if (mounted) {
@@ -160,14 +180,14 @@ export default function ParametrosPage() {
     if (!setorId || !isInternacao) return;
 
     try {
-      // Buscar período travado
-      const periodoTravado = await getPeriodoTravado(setorId);
+      // Buscar o período salvo (travado ou não)
+      const periodoSalvo = await getControlePeriodoByUnidadeId(setorId);
 
-      // Montar parâmetros de período se existir período travado
-      const params = periodoTravado
+      // Montar parâmetros de período se existir período salvo
+      const params = periodoSalvo
         ? {
-            inicio: periodoTravado.dataInicial.split("T")[0],
-            fim: periodoTravado.dataFinal.split("T")[0],
+            inicio: periodoSalvo.dataInicial.split("T")[0],
+            fim: periodoSalvo.dataFinal.split("T")[0],
           }
         : undefined;
 
@@ -398,7 +418,16 @@ export default function ParametrosPage() {
             </label>
           </div>
         </div>
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportPdf}
+            disabled={isExportingPdf}
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            {isExportingPdf ? "Gerando PDF..." : "Exportar Relatório"}
+          </Button>
           <button
             type="submit"
             className="px-4 py-2 text-white bg-green-600 rounded-md"

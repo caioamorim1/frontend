@@ -46,6 +46,8 @@ interface DashboardBaselineDetalhamentoProps {
   // Dados Situação Atual Real (agora)
   profissionaisAtuaisReal: number;
   custoAtualReal: number;
+  // Última atualização do quadro de colaboradores
+  staffLastUpdateLabel?: string;
   // Variações Baseline -> Projetado
   variacaoCustoPercentual: number;
   variacaoProfissionaisPercentual: number;
@@ -74,6 +76,7 @@ export const DashboardBaselineDetalhamento: React.FC<
   custoProjetado,
   profissionaisAtuaisReal,
   custoAtualReal,
+  staffLastUpdateLabel,
   variacaoCustoPercentual,
   variacaoProfissionaisPercentual,
   variacaoCusto,
@@ -457,6 +460,11 @@ export const DashboardBaselineDetalhamento: React.FC<
                       )
                     : "N/A"}
                 </p>
+                {staffLastUpdateLabel && (
+                  <p className="mt-1 text-sm text-muted-foreground leading-snug break-words">
+                    Última atualização: {staffLastUpdateLabel}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>

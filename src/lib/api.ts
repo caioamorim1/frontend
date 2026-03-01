@@ -18,8 +18,8 @@ export type {
   QuestionOption,
 };
 
-// export const API_BASE_URL = "http://localhost:3110";
-export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
+export const API_BASE_URL = "http://localhost:3110";
+// vb    export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
 const getApiOrigin = (): string => {
   const base = String(API_BASE_URL || "");
 
@@ -156,12 +156,12 @@ export async function getNetworkProjectedSectors(
     return res.data as HospitalProjectedResponse;
   } catch (error) {
     console.error(
-      "❌ [API] getNetworkProjectedSectors - Erro capturado:",
+      "[API] getNetworkProjectedSectors - Erro capturado:",
       error
     );
     if ((error as any).response) {
-      console.error("❌ [API] Status:", (error as any).response.status);
-      console.error("❌ [API] Data:", (error as any).response.data);
+      console.error("[API] Status:", (error as any).response.status);
+      console.error(" [API] Data:", (error as any).response.data);
     }
     throw error;
   }
@@ -173,9 +173,9 @@ export interface SectorOccupation {
   sectorName: string;
   sectorType: "internacao" | "nao_internacao";
   taxaOcupacao: number; // Taxa mensal/histórica
-  taxaOcupacaoDia: number; // 🆕 Taxa média do dia inteiro
-  taxaOcupacaoHoje: number; // 🆕 Taxa de ocupação no momento atual
-  ocupacaoMaximaAtendivel: number; // 🆕 Nova métrica baseada no quadro de pessoal
+  taxaOcupacaoDia: number; // Taxa média do dia inteiro
+  taxaOcupacaoHoje: number; // Taxa de ocupação no momento atual
+  ocupacaoMaximaAtendivel: number; // Nova métrica baseada no quadro de pessoal
   ociosidade: number;
   superlotacao: number;
   capacidadeProdutiva: number;
@@ -184,16 +184,16 @@ export interface SectorOccupation {
   leitosVagos: number;
   leitosInativos: number;
   leitosAvaliados: number;
-  quadroAtualEnfermeiros: number; // 🆕 Quantidade de enfermeiros
-  quadroAtualTecnicos: number; // 🆕 Quantidade de técnicos
+  quadroAtualEnfermeiros: number; //  Quantidade de enfermeiros
+  quadroAtualTecnicos: number; //  Quantidade de técnicos
 }
 
 export interface OccupationSummary {
   sectorName: string;
   taxaOcupacao: number; // Taxa mensal/histórica
-  taxaOcupacaoDia: number; // 🆕 Taxa média do dia inteiro
-  taxaOcupacaoHoje: number; // 🆕 Taxa de ocupação no momento atual
-  ocupacaoMaximaAtendivel: number; // 🆕 Nova métrica baseada no quadro de pessoal
+  taxaOcupacaoDia: number; //  Taxa média do dia inteiro
+  taxaOcupacaoHoje: number; //  Taxa de ocupação no momento atual
+  ocupacaoMaximaAtendivel: number; //  Nova métrica baseada no quadro de pessoal
   ociosidade: number;
   superlotacao: number;
   capacidadeProdutiva: number;
@@ -2595,6 +2595,55 @@ export async function getSnapshotDashboard(
     params: { tipo, id },
   });
   return response.data;
+}
+
+// --- EXPORTAR PDF RELATÓRIO VARIAÇÃO SNAPSHOT ---
+export type RelatorioTipo = "MAPA" | "DETALHAMENTO";
+export type RelatorioEscopo = "QUANTIDADE" | "FINANCEIRO" | "GERAL";
+
+export async function exportSnapshotVariacaoPdf(
+  hospitalId: string,
+  tipo: RelatorioTipo,
+  escopo: RelatorioEscopo
+): Promise<void> {
+  const response = await api.get(
+    `/export/snapshot/${hospitalId}/variacao/pdf`,
+    { responseType: "blob", params: { tipo, escopo } }
+  );
+  const url = window.URL.createObjectURL(
+    new Blob([response.data], { type: "application/pdf" })
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute(
+    "download",
+    `relatorio-${tipo.toLowerCase()}-${escopo.toLowerCase()}-${hospitalId}.pdf`
+  );
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+// --- EXPORTAR PDF ---
+export async function exportDimensionamentoPdf(
+  unidadeId: string,
+  params?: { inicio?: string; fim?: string }
+): Promise<void> {
+  const response = await api.get(
+    `/export/dimensionamento/${unidadeId}/pdf`,
+    { responseType: "blob", params }
+  );
+  const url = window.URL.createObjectURL(
+    new Blob([response.data], { type: "application/pdf" })
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", `dimensionamento-${unidadeId}.pdf`);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
 }
 
 export default api;
