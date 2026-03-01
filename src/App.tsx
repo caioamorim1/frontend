@@ -31,6 +31,7 @@ import AjustesPage from "./features/admin-global/pages/AjustesPage";
 import HospitalDashboardPage from "./features/colab/pages/DashboardPage";
 import GlobalDashboardPage from "./features/admin-global/pages/GlobalDashboardPage";
 import HospitalHomePage from "./features/admin-hospital/pages/HospitalHomePage";
+import RelatoriosPage from "./features/admin-hospital/pages/RelatoriosPage";
 
 // NOVOS IMPORTS PARA COLETA
 import ColetasPage from "./features/colab/pages/ColetasPage";
@@ -85,6 +86,7 @@ function App() {
           <Route path="cargos" element={<CargosPage />} />
           <Route path="pareto" element={<ParetoPage />} />
           <Route path="baseline" element={<BaselinePage />} />
+          <Route path="relatorios" element={<RelatoriosPage />} />
           <Route path="coletas" element={<HistoricoColetasPage />} />
           {/* Rotas de leitos e avaliações dentro do contexto do hospital */}
           <Route
@@ -107,6 +109,7 @@ function App() {
             <Route path="setores" element={<SetoresPage />} />
             <Route path="unidades-leitos" element={<MinhasUnidadesPage />} />
             <Route path="baseline" element={<BaselinePage />} />
+            <Route path="relatorios" element={<RelatoriosPage />} />
             <Route path="usuarios" element={<UsuariosPage />} />
             <Route path="cargos" element={<CargosPage />} />
             <Route path="gerir-setores" element={<SetoresPage />} />

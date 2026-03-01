@@ -1694,6 +1694,7 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
               custoProjetado={custoProjetado}
               profissionaisAtuaisReal={profissionaisAtualRealExibicao}
               custoAtualReal={custoAtualRealExibicao}
+              staffLastUpdateLabel={staffLastUpdateLabel}
               variacaoCustoPercentual={variacaoCustoPercentual}
               variacaoProfissionaisPercentual={variacaoProfissionaisPercentual}
               variacaoCusto={variacaoCusto}

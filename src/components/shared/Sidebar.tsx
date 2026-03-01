@@ -18,6 +18,7 @@ import {
   BarChart3,
   Home,
   Settings,
+  FileDown,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getHospitais, getRedes, Hospital, Rede } from "@/lib/api";
@@ -197,6 +198,11 @@ const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
       to: `/hospital/${hospital.id}/baseline`,
       icon: <BarChart3 size={16} />,
       label: "Baseline",
+    },
+    {
+      to: `/hospital/${hospital.id}/relatorios`,
+      icon: <FileDown size={16} />,
+      label: "Relatórios",
     },
   ];
 
@@ -444,6 +450,11 @@ export default function Sidebar() {
                     to="/meu-hospital/baseline"
                     icon={<BarChart3 size={16} />}
                     label="Baseline"
+                  />
+                  <NavItem
+                    to="/meu-hospital/relatorios"
+                    icon={<FileDown size={16} />}
+                    label="Relatórios"
                   />
                   <ExpandableSubItem
                     label="Cadastros"
