@@ -183,6 +183,8 @@ export default function ProjetadoTab({
     cargoNome: string;
   }>({ isOpen: false, cargoId: "", cargoNome: "" });
 
+  const today = new Date().toISOString().split("T")[0];
+
   const [dataInicial, setDataInicial] = useState<string>(
     dateRange?.inicio ?? ""
   );
@@ -631,6 +633,7 @@ export default function ProjetadoTab({
                     <input
                       type="date"
                       value={dataInicial}
+                      max={dataFinal || today}
                       onChange={(e) => setDataInicial(e.target.value)}
                       disabled={temStatusConclusao}
                       className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -643,6 +646,8 @@ export default function ProjetadoTab({
                     <input
                       type="date"
                       value={dataFinal}
+                      min={dataInicial}
+                      max={today}
                       onChange={(e) => setDataFinal(e.target.value)}
                       disabled={temStatusConclusao}
                       className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"

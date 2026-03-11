@@ -72,8 +72,8 @@ export default function SetorDetailPage() {
           controlePeriodo.dataFinal
         ) {
           setDateRange({
-            inicio: controlePeriodo.dataInicial,
-            fim: controlePeriodo.dataFinal,
+            inicio: controlePeriodo.dataInicial.substring(0, 10),
+            fim: controlePeriodo.dataFinal.substring(0, 10),
           });
         }
         setTravadoControle(Boolean(controlePeriodo?.travado));

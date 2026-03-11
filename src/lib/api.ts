@@ -19,7 +19,7 @@ export type {
 };
 
 export const API_BASE_URL = "http://localhost:3110";
-// vb    export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
+//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
 const getApiOrigin = (): string => {
   const base = String(API_BASE_URL || "");
 
@@ -1750,10 +1750,19 @@ export const getAnaliseInternacao = async (
   unidadeId: string,
   params?: { inicio?: string; fim?: string }
 ): Promise<AnaliseInternacaoResponse> => {
+  const queryString =
+    params && (params.inicio || params.fim)
+      ? "?" + new URLSearchParams(params as Record<string, string>).toString()
+      : "";
+  console.log(
+    "[getAnaliseInternacao] URL:",
+    `${API_BASE_URL}/dimensionamento/internacao/${unidadeId}${queryString}`
+  );
   const response = await api.get(
     `/dimensionamento/internacao/${unidadeId}`,
     params && (params.inicio || params.fim) ? { params } : undefined
   );
+  console.log("[getAnaliseInternacao] Resposta:", response.data);
   return response.data;
 };
 
