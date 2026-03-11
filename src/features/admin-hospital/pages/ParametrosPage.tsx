@@ -95,11 +95,19 @@ export default function ParametrosPage() {
             // Buscar o período salvo (travado ou não)
             const periodoSalvo = await getControlePeriodoByUnidadeId(setorId);
 
+            // Somar 12h antes de extrair a data evita deslocamento de timezone:
+            // o banco pode retornar meia-noite UTC (ex: 2026-01-24T21:00Z = meia-noite UTC-3),
+            // que sem correção produziria um dia a menos.
+            const safeDate = (iso: string) =>
+              new Date(new Date(iso).getTime() + 12 * 60 * 60 * 1000)
+                .toISOString()
+                .split("T")[0];
+
             // Montar parâmetros de período se existir período salvo
             const params = periodoSalvo
               ? {
-                  inicio: periodoSalvo.dataInicial.split("T")[0], // YYYY-MM-DD
-                  fim: periodoSalvo.dataFinal.split("T")[0], // YYYY-MM-DD
+                  inicio: safeDate(periodoSalvo.dataInicial),
+                  fim: safeDate(periodoSalvo.dataFinal),
                 }
               : undefined;
 
@@ -183,11 +191,16 @@ export default function ParametrosPage() {
       // Buscar o período salvo (travado ou não)
       const periodoSalvo = await getControlePeriodoByUnidadeId(setorId);
 
+      const safeDate = (iso: string) =>
+        new Date(new Date(iso).getTime() + 12 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0];
+
       // Montar parâmetros de período se existir período salvo
       const params = periodoSalvo
         ? {
-            inicio: periodoSalvo.dataInicial.split("T")[0],
-            fim: periodoSalvo.dataFinal.split("T")[0],
+            inicio: safeDate(periodoSalvo.dataInicial),
+            fim: safeDate(periodoSalvo.dataFinal),
           }
         : undefined;
 
@@ -487,9 +500,7 @@ export default function ParametrosPage() {
                     Data Início
                   </p>
                   <p className="text-sm font-bold text-primary">
-                    {new Date(
-                      analise.agregados.periodo.inicio
-                    ).toLocaleDateString("pt-BR")}
+                    {analise.agregados.periodo.inicio.substring(0, 10).split("-").reverse().join("/")}
                   </p>
                 </div>
                 <div className="px-4 py-3 text-center">
@@ -497,9 +508,7 @@ export default function ParametrosPage() {
                     Data Fim
                   </p>
                   <p className="text-sm font-bold text-primary">
-                    {new Date(analise.agregados.periodo.fim).toLocaleDateString(
-                      "pt-BR"
-                    )}
+                    {analise.agregados.periodo.fim.substring(0, 10).split("-").reverse().join("/")}
                   </p>
                 </div>
                 <div className="px-4 py-3 text-center">
@@ -573,38 +582,40 @@ export default function ParametrosPage() {
             <h3 className="text-lg font-bold text-primary mb-4">
               Base de Cálculo
             </h3>
-            <div className="grid grid-cols-3 divide-x border rounded-md overflow-hidden">
-              <div className="px-4 py-3">
-                <p className="text-xs font-semibold text-muted-foreground mb-1">
-                  Taxa de Ocupação (para fins de cálculo)
-                </p>
-                <p className="text-lg font-bold text-primary">
-                  {(analise.agregados as any)?.taxaOcupacaoCustomizada?.taxa
-                    ? `${(analise.agregados as any).taxaOcupacaoCustomizada.taxa}%`
-                    : analise.agregados.taxaOcupacaoPeriodoPercent
-                      ? `${Number(analise.agregados.taxaOcupacaoPeriodoPercent).toFixed(2)}%`
-                      : "-"}
-                </p>
-              </div>
-              <div className="px-4 py-3 text-center">
-                <p className="text-xs font-semibold text-muted-foreground mb-1">
-                  Leitos Ocupados
-                </p>
-                <p className="text-lg font-bold text-primary">
-                  {analise.agregados.leitosOcupados || 0}
-                </p>
-              </div>
-              <div className="px-4 py-3 text-center">
-                <p className="text-xs font-semibold text-muted-foreground mb-1">
-                  Pacientes Médio/dia
-                </p>
-                <p className="text-2xl font-bold text-primary">
-                  {analise.agregados.totalPacientesMedio
-                    ? Number(analise.agregados.totalPacientesMedio).toFixed(2)
-                    : "-"}
-                </p>
-              </div>
-            </div>
+            {(() => {
+              const custom = (analise.agregados as any)?.taxaOcupacaoCustomizada;
+              const taxa = custom?.taxa
+                ? `${custom.taxa}%`
+                : analise.agregados.taxaOcupacaoPeriodoPercent
+                  ? `${Number(analise.agregados.taxaOcupacaoPeriodoPercent).toFixed(2)}%`
+                  : "-";
+              const leitosOcupados = custom?.leitosOcupados ?? analise.agregados.leitosOcupados ?? 0;
+              const pacientesMedio = custom?.totalPacientesMedio ?? analise.agregados.totalPacientesMedio;
+              return (
+                <div className="grid grid-cols-3 divide-x border rounded-md overflow-hidden">
+                  <div className="px-4 py-3">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">
+                      Taxa de Ocupação (para fins de cálculo)
+                    </p>
+                    <p className="text-lg font-bold text-primary">{taxa}</p>
+                  </div>
+                  <div className="px-4 py-3 text-center">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">
+                      Leitos Ocupados
+                    </p>
+                    <p className="text-lg font-bold text-primary">{leitosOcupados}</p>
+                  </div>
+                  <div className="px-4 py-3 text-center">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">
+                      Pacientes Médio/dia
+                    </p>
+                    <p className="text-2xl font-bold text-primary">
+                      {pacientesMedio ? Number(pacientesMedio).toFixed(2) : "-"}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* ── Distribuição + Horas + Classificação + QP ── */}
@@ -613,7 +624,9 @@ export default function ParametrosPage() {
               .length > 0 &&
             (() => {
               const ag = analise?.agregados as any;
-              const totalAvaliacoes = analise.agregados.totalAvaliacoes || 0;
+              const totalAvaliacoes = Object.values(
+                analise.agregados.distribuicaoTotalClassificacao!
+              ).reduce((acc, v) => acc + Number(v), 0);
               const ORDEM_CLASSIFICACOES = [
                 "MINIMOS",
                 "INTERMEDIARIOS",
@@ -634,13 +647,13 @@ export default function ParametrosPage() {
                   ([k]) => !ORDEM_CLASSIFICACOES.includes(k)
                 ),
               ];
-              const colCount = classificacoes.length + 1;
+              const colCount = classificacoes.length ;
 
               const PERCENTUAIS: Record<string, { enf: number; tec: number }> =
                 {
                   MINIMOS: { enf: 33, tec: 67 },
                   INTERMEDIARIOS: { enf: 33, tec: 67 },
-                  ALTA_DEPENDENCIA: { enf: 16, tec: 84 },
+                  ALTA_DEPENDENCIA: { enf: 38, tec: 62 },
                   SEMI_INTENSIVOS: { enf: 42, tec: 58 },
                   INTENSIVOS: { enf: 52, tec: 48 },
                 };
@@ -689,12 +702,7 @@ export default function ParametrosPage() {
                           </div>
                         );
                       })}
-                      <div className="px-3 py-3 text-center">
-                        <p className="text-xs font-semibold text-muted-foreground mb-1">
-                          (%) Período
-                        </p>
-                        <p className="text-xl font-bold text-primary">100%</p>
-                      </div>
+                      
                     </div>
                   </div>
 
@@ -915,10 +923,10 @@ export default function ParametrosPage() {
                           <TableRow>
                             <TableHead className="font-bold"></TableHead>
                             <TableHead className="text-center font-bold">
-                              THE Semanal (Enfermagem)
+                              Enfermeiros
                             </TableHead>
                             <TableHead className="text-center font-bold">
-                              THE Semanal (Técnicos)
+                              Técnicos
                             </TableHead>
                           </TableRow>
                         </TableHeader>
