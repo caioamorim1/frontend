@@ -653,7 +653,7 @@ export default function ParametrosPage() {
                 {
                   MINIMOS: { enf: 33, tec: 67 },
                   INTERMEDIARIOS: { enf: 33, tec: 67 },
-                  ALTA_DEPENDENCIA: { enf: 38, tec: 62 },
+                  ALTA_DEPENDENCIA: { enf: 36, tec: 64 },
                   SEMI_INTENSIVOS: { enf: 42, tec: 58 },
                   INTENSIVOS: { enf: 52, tec: 48 },
                 };
