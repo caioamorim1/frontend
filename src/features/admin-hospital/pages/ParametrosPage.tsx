@@ -66,6 +66,7 @@ export default function ParametrosPage() {
   const handleExportPdf = async () => {
     if (!setorId) return;
     try {
+      console.log("[ExportPdf] periodo:", periodo);
       setIsExportingPdf(true);
       await exportDimensionamentoPdf(setorId, periodo ?? undefined);
     } catch {
@@ -824,20 +825,17 @@ export default function ParametrosPage() {
                       {[
                         {
                           label: "Total Horas Enfermagem (Período)",
-                          value:
-                            analise.agregados.totalHorasEnfermagem !== undefined
-                              ? `${Number(analise.agregados.totalHorasEnfermagem).toFixed(2)}h`
-                              : (() => {
-                                  let t = 0;
-                                  classificacoes.forEach(([clf]) => {
-                                    const md =
-                                      ag?.mediaDiariaClassificacao?.[clf];
-                                    const hp = getHorasTabeladas(clf);
-                                    if (hp !== undefined && md !== undefined)
-                                      t += hp * Number(md);
-                                  });
-                                  return `${t.toFixed(2)}h`;
-                                })(),
+                          value: (() => {
+                            let t = 0;
+                            classificacoes.forEach(([clf]) => {
+                              const md =
+                                ag?.mediaDiariaClassificacao?.[clf];
+                              const hp = getHorasTabeladas(clf);
+                              if (hp !== undefined && md !== undefined)
+                                t += hp * Number(md);
+                            });
+                            return `${t.toFixed(2)}h`;
+                          })(),
                         },
                         {
                           label: "KM (Enfermeiro)",

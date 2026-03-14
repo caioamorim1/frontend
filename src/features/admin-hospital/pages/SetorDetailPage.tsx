@@ -25,6 +25,7 @@ import ProjetadoNaoInternacaoTab from "../components/ProjetadoNaoInternacaoTab";
 import AtualTab from "../components/AtualTab"; // Importa o novo componente
 import QuadroFuncionariosResumo from "../components/BaselineTab";
 import BaselineTabBySitio from "../components/BaselineTabBySitio";
+import ExportRelatorioDropdown from "../components/ExportRelatorioDropdown";
 
 export default function SetorDetailPage() {
   const { hospitalId, setorId } = useParams<{
@@ -198,6 +199,14 @@ export default function SetorDetailPage() {
       <CardInfo
         unidade={unidade as any}
         sessoes={sessoes}
+        actions={
+          hospitalId && setorId ? (
+            <ExportRelatorioDropdown
+              hospitalId={hospitalId}
+              unidadeId={setorId}
+            />
+          ) : undefined
+        }
         initialRange={dateRange}
         initialTravado={travadoControle}
         onCalculate={(range) => {
