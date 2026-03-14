@@ -35,11 +35,13 @@ interface CardInfoProps {
   ) => void;
   initialRange?: { inicio?: string; fim?: string } | null;
   initialTravado?: boolean;
+  actions?: ReactNode;
 }
 
 export default function CardInfo({
   unidade,
   sessoes,
+  actions,
 }: CardInfoProps) {
   if (unidade.tipo === "internacao") {
     const unidadeInternacao = unidade as UnidadeInternacao;
@@ -51,7 +53,7 @@ export default function CardInfo({
           Informações da Unidade
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
           <InfoItem
             icon={<Activity size={24} />}
             label="Método SCP"
@@ -62,6 +64,11 @@ export default function CardInfo({
             label="Total de Leitos"
             value={totalLeitos}
           />
+          {actions && (
+            <div className="flex justify-end">
+              {actions}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -116,6 +123,11 @@ export default function CardInfo({
             value={cargosUnicos.size}
           />
         </div>
+        {actions && (
+          <div className="flex justify-end mt-4 pt-4 border-t">
+            {actions}
+          </div>
+        )}
       </div>
     );
   }

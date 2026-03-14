@@ -19,7 +19,7 @@ export type {
 };
 
 export const API_BASE_URL = "http://localhost:3110";
-// export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
+//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
 const getApiOrigin = (): string => {
   const base = String(API_BASE_URL || "");
 
@@ -2613,20 +2613,22 @@ export type RelatorioEscopo = "QUANTIDADE" | "FINANCEIRO" | "GERAL";
 export async function exportSnapshotVariacaoPdf(
   hospitalId: string,
   tipo: RelatorioTipo,
-  escopo: RelatorioEscopo
+  escopo: RelatorioEscopo,
+  unidadeId?: string
 ): Promise<void> {
   const response = await api.get(
     `/export/snapshot/${hospitalId}/variacao/pdf`,
-    { responseType: "blob", params: { tipo, escopo } }
+    { responseType: "blob", params: { tipo, escopo, unidadeId } }
   );
   const url = window.URL.createObjectURL(
     new Blob([response.data], { type: "application/pdf" })
   );
   const link = document.createElement("a");
   link.href = url;
+  const suffix = unidadeId ?? hospitalId;
   link.setAttribute(
     "download",
-    `relatorio-${tipo.toLowerCase()}-${escopo.toLowerCase()}-${hospitalId}.pdf`
+    `relatorio-${tipo.toLowerCase()}-${escopo.toLowerCase()}-${suffix}.pdf`
   );
   document.body.appendChild(link);
   link.click();

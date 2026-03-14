@@ -149,11 +149,6 @@ export default function HospitalAdminSidebar() {
       icon: <BarChart3 size={18} />,
       label: "Baseline",
     },
-    {
-      to: `/hospital/${hospitalId}/relatorios`,
-      icon: <FileDown size={18} />,
-      label: "Relatórios",
-    },
   ];
 
   const cadastrosItems = [

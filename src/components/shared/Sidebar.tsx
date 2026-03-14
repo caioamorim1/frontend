@@ -199,11 +199,6 @@ const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
       icon: <BarChart3 size={16} />,
       label: "Baseline",
     },
-    {
-      to: `/hospital/${hospital.id}/relatorios`,
-      icon: <FileDown size={16} />,
-      label: "Relatórios",
-    },
   ];
 
   const cadastrosItems = [
@@ -450,11 +445,6 @@ export default function Sidebar() {
                     to="/meu-hospital/baseline"
                     icon={<BarChart3 size={16} />}
                     label="Baseline"
-                  />
-                  <NavItem
-                    to="/meu-hospital/relatorios"
-                    icon={<FileDown size={16} />}
-                    label="Relatórios"
                   />
                   <ExpandableSubItem
                     label="Cadastros"
