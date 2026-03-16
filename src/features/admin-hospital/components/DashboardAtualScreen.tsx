@@ -34,6 +34,7 @@ import RadarChartComponent from "./graphicsComponents/RadarChart";
 import {
   getQualitativeAggregatesByCategory,
   getHospitalOccupationDashboard,
+  getNetworkOccupationDashboard,
   type OccupationDashboardResponse,
 } from "@/lib/api";
 import { PieChartComp } from "./graphicsComponents/PieChartComp";
@@ -568,12 +569,31 @@ const TabContentInternacao: React.FC<{
     useState(false);
 
   useEffect(() => {
-    if (!hospitalId) return;
+    const redeId =
+      isGlobalView && aggregationType === "rede" ? entityId : undefined;
+
+    if (!hospitalId && !redeId) return;
     const fetch = async () => {
       try {
         setLoadingOccupationHistorical(true);
-        const data = await getHospitalOccupationDashboard(hospitalId);
-        setOccupationHistorical(data);
+        if (redeId) {
+          const data = await getNetworkOccupationDashboard(redeId);
+          setOccupationHistorical({
+            hospitalId: String(data?.redeId ?? ""),
+            hospitalName: String(data?.redeName ?? "Rede"),
+            sectors: [],
+            summary: {
+              ocupacaoMaximaAtendivel:
+                data?.global?.ocupacaoMaximaAtendivel ?? 0,
+              historico4Meses: Array.isArray(data?.global?.historico4Meses)
+                ? data.global.historico4Meses
+                : [],
+            },
+          });
+        } else {
+          const data = await getHospitalOccupationDashboard(hospitalId!);
+          setOccupationHistorical(data);
+        }
       } catch (err) {
         console.error("[TabContentInternacao] Erro ao carregar ocupação:", err);
       } finally {
@@ -581,7 +601,7 @@ const TabContentInternacao: React.FC<{
       }
     };
     fetch();
-  }, [hospitalId]);
+  }, [hospitalId, isGlobalView, aggregationType, entityId]);
 
   // Gerar dados do radar baseado na seleção do setor
   const radarDataForSector = useMemo(() => {
@@ -889,7 +909,8 @@ const TabContentInternacao: React.FC<{
           }
         />
       )}
-      {!isGlobalView && hospitalId && (
+      {((!isGlobalView && hospitalId) ||
+        (isGlobalView && aggregationType === "rede" && entityId)) && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
