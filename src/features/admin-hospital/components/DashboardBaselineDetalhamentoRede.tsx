@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -89,6 +89,10 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
   const [loadingOccupation, setLoadingOccupation] = useState(true);
 
   const [analysisTab, setAnalysisTab] = useState<"custo" | "pessoal">("custo");
+  const [rankingOrderCusto, setRankingOrderCusto] = useState<"asc" | "desc">("asc");
+  const [rankingOrderQtd, setRankingOrderQtd] = useState<"asc" | "desc">("asc");
+  const [cargoOrderCusto, setCargoOrderCusto] = useState<"asc" | "desc">("asc");
+  const [cargoOrderQtd, setCargoOrderQtd] = useState<"asc" | "desc">("asc");
 
   const formatCurrency = (value: number) =>
     `R$ ${Number(value || 0).toLocaleString("pt-BR", {
@@ -125,89 +129,78 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
     fetchOccupationData();
   }, [hospitalId]);
 
-  // Calcular rankingSetores para Gráfico 1
+  // Calcular rankingSetores — fórmula: Variação (%) = Variação (R$) / Projetado (R$)
   const setoresVariacao: Array<{
     nome: string;
     variacaoPercentual: number;
+    variacaoReais: number;
   }> = [];
-
-  // Função auxiliar para calcular custo
-  const calcularCustoSetor = (
-    custos: Record<string, number>,
-    quantidades: Record<string, number>
-  ) => {
-    let total = 0;
-    Object.keys(custos).forEach((cargoId) => {
-      const custoUnitario = custos[cargoId] || 0;
-      const quantidade = quantidades[cargoId] || 0;
-      total += custoUnitario * quantidade;
-    });
-    return total;
-  };
 
   // Processar internação
   snapshotData.snapshot.dados.projetadoFinal?.internacao?.forEach(
     (unidade: any) => {
-      // Buscar situação atual da unidade
-      const unidadeAtual = snapshotData.situacaoAtual?.unidades.find(
-        (u: any) => u.unidadeId === unidade.unidadeId
+      const baselineSector = (
+        snapshotData?.snapshot?.dados?.internation || []
+      ).find((s: any) => s.name === unidade.unidadeNome);
+      const baselineStaff: any[] = baselineSector?.staff || [];
+      const unitCostMap = new Map<string, number>();
+      baselineStaff.forEach((s: any) => {
+        unitCostMap.set(String(s.id), s.unitCost || 0);
+      });
+      const custoAtualSetor = baselineStaff.reduce(
+        (sum: number, s: any) => sum + (s.quantity || 0) * (s.unitCost || 0),
+        0
       );
-
-      if (unidadeAtual) {
-        // Calcular quantidade atual de profissionais
-        const qtdAtualUnidade = unidadeAtual.totalFuncionarios;
-
-        // Calcular quantidade projetada
-        let qtdProjetadaUnidade = 0;
-        unidade.cargos.forEach((cargo: any) => {
-          qtdProjetadaUnidade += cargo.projetadoFinal;
-        });
-
-        const variacaoPerc =
-          qtdProjetadaUnidade > 0
-            ? ((qtdProjetadaUnidade - qtdAtualUnidade) / qtdProjetadaUnidade) *
-              100
-            : 0;
-
-        setoresVariacao.push({
-          nome: unidade.unidadeNome,
-          variacaoPercentual: variacaoPerc,
-        });
-      }
+      let custoProjetadoSetor = 0;
+      (unidade.cargos || []).forEach((cargo: any) => {
+        const uc = unitCostMap.get(String(cargo.cargoId)) || 0;
+        custoProjetadoSetor += (cargo.projetadoFinal || 0) * uc;
+      });
+      const variacaoReais = custoProjetadoSetor - custoAtualSetor;
+      const variacaoPerc =
+        custoProjetadoSetor !== 0
+          ? (variacaoReais / custoProjetadoSetor) * 100
+          : 0;
+      setoresVariacao.push({
+        nome: unidade.unidadeNome,
+        variacaoPercentual: variacaoPerc,
+        variacaoReais,
+      });
     }
   );
 
   // Processar não-internação
   snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.forEach(
     (unidade: any) => {
-      // Buscar situação atual da unidade
-      const unidadeAtual = snapshotData.situacaoAtual?.unidades.find(
-        (u: any) => u.unidadeId === unidade.unidadeId
+      const baselineSector = (
+        snapshotData?.snapshot?.dados?.assistance || []
+      ).find((s: any) => s.name === unidade.unidadeNome);
+      const baselineStaff: any[] = baselineSector?.staff || [];
+      const unitCostMap = new Map<string, number>();
+      baselineStaff.forEach((s: any) => {
+        unitCostMap.set(String(s.id), s.unitCost || 0);
+      });
+      const custoAtualSetor = baselineStaff.reduce(
+        (sum: number, s: any) => sum + (s.quantity || 0) * (s.unitCost || 0),
+        0
       );
-
-      if (unidadeAtual) {
-        // Calcular quantidade atual de profissionais
-        const qtdAtualUnidade = unidadeAtual.totalFuncionarios;
-
-        // Calcular quantidade projetada (somando todos os sítios)
-        let qtdProjetadaUnidade = 0;
-        unidade.sitios.forEach((sitio: any) => {
-          sitio.cargos.forEach((cargo: any) => {
-            qtdProjetadaUnidade += cargo.projetadoFinal;
-          });
+      let custoProjetadoSetor = 0;
+      (unidade.sitios || []).forEach((sitio: any) => {
+        (sitio.cargos || []).forEach((cargo: any) => {
+          const uc = unitCostMap.get(String(cargo.cargoId)) || 0;
+          custoProjetadoSetor += (cargo.projetadoFinal || 0) * uc;
         });
-
-        const variacaoPerc =
-          qtdProjetadaUnidade > 0
-            ? ((qtdProjetadaUnidade - qtdAtualUnidade) / qtdProjetadaUnidade) *
-              100
-            : 0;
-
-        setoresVariacao.push({
-          nome: unidade.unidadeNome,
-          variacaoPercentual: variacaoPerc,
-        });
-      }
+      });
+      const variacaoReais = custoProjetadoSetor - custoAtualSetor;
+      const variacaoPerc =
+        custoProjetadoSetor !== 0
+          ? (variacaoReais / custoProjetadoSetor) * 100
+          : 0;
+      setoresVariacao.push({
+        nome: unidade.unidadeNome,
+        variacaoPercentual: variacaoPerc,
+        variacaoReais,
+      });
     }
   );
 
@@ -217,16 +210,16 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
 
   // Custom tick com quebra de linha automática
   const CustomAxisTick = (props: any) => {
-    const { x, y, payload } = props;
-    const maxWidth = 100; // largura máxima em pixels
+    const { x, y, payload, width, visibleTicksCount } = props;
+    const widthPerTick = visibleTicksCount > 0 ? width / visibleTicksCount : 80;
+    const fontSize = Math.max(8, Math.min(11, Math.floor(widthPerTick / 7)));
+    const maxLineWidth = Math.max(40, widthPerTick * 0.95);
     const words = String(payload.value).split(" ");
     const lines: string[] = [];
     let currentLine = "";
-
     words.forEach((word) => {
       const testLine = currentLine ? `${currentLine} ${word}` : word;
-      // Aproximação: 6 pixels por caractere
-      if (testLine.length * 6 > maxWidth && currentLine) {
+      if (testLine.length * fontSize * 0.6 > maxLineWidth && currentLine) {
         lines.push(currentLine);
         currentLine = word;
       } else {
@@ -234,12 +227,11 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
       }
     });
     if (currentLine) lines.push(currentLine);
-
     return (
       <g transform={`translate(${x},${y})`}>
-        <text x={0} y={0} dy={8} textAnchor="middle" fill="#666" fontSize={11}>
+        <text x={0} y={0} dy={8} textAnchor="middle" fill="#666" fontSize={fontSize}>
           {lines.map((line, index) => (
-            <tspan x={0} dy={12} key={index}>
+            <tspan x={0} dy={fontSize + 2} key={index}>
               {line}
             </tspan>
           ))}
@@ -257,6 +249,146 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
     if (abs >= 1_000) return `R$ ${(n / 1_000).toFixed(0)}k`;
     return `R$ ${n.toFixed(0)}`;
   };
+
+  // --- RANKING DE VARIAÇÃO POR CARGO ---
+  const [selectedCargo, setSelectedCargo] = useState<string>("all");
+
+  const allSectorsDataForCargo = [
+    ...(snapshotData?.snapshot?.dados?.internation || []),
+    ...(snapshotData?.snapshot?.dados?.assistance || []),
+  ];
+
+  const todosCargos = useMemo(
+    () =>
+      Array.from(
+        new Set<string>(
+          allSectorsDataForCargo.flatMap((sector: any) =>
+            (sector.staff || []).map((s: any) => String(s.role))
+          )
+        )
+      ).sort(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [snapshotData]
+  );
+
+  const cargoVariacaoPorSetor: Array<{
+    nome: string;
+    baselineQtd: number;
+    projetadoQtd: number;
+    unitCost: number;
+    variacaoQtd: number;
+    variacaoCusto: number;
+  }> = useMemo(() => {
+    return allSectorsDataForCargo.flatMap((sector: any) => {
+      let baselineQtd = 0;
+      let unitCost = 0;
+      let cargoId: string | undefined;
+
+      if (selectedCargo === "all") {
+        baselineQtd = (sector.staff || []).reduce(
+          (sum: number, s: any) => sum + (s.quantity || 0),
+          0
+        );
+      } else {
+        const staffEntry = (sector.staff || []).find(
+          (s: any) => s.role === selectedCargo
+        );
+        if (!staffEntry) return [];
+        baselineQtd = staffEntry.quantity || 0;
+        unitCost = staffEntry.unitCost || 0;
+        cargoId = staffEntry.id;
+      }
+
+      const projetadoInternacao =
+        snapshotData?.snapshot?.dados?.projetadoFinal?.internacao?.find(
+          (u: any) => u.unidadeNome === sector.name
+        );
+      const projetadoNaoInternacao =
+        snapshotData?.snapshot?.dados?.projetadoFinal?.naoInternacao?.find(
+          (u: any) => u.unidadeNome === sector.name
+        );
+      const projetadoSetor = projetadoInternacao || projetadoNaoInternacao;
+
+      let projetadoQtd = 0;
+      if (projetadoSetor) {
+        if (selectedCargo === "all") {
+          if ("cargos" in projetadoSetor) {
+            projetadoQtd = (projetadoSetor as any).cargos.reduce(
+              (sum: number, c: any) => sum + (c.projetadoFinal || 0),
+              0
+            );
+          } else if ("sitios" in projetadoSetor) {
+            (projetadoSetor as any).sitios.forEach((sitio: any) => {
+              sitio.cargos.forEach((c: any) => {
+                projetadoQtd += c.projetadoFinal || 0;
+              });
+            });
+          }
+        } else {
+          if ("cargos" in projetadoSetor) {
+            const cp = (projetadoSetor as any).cargos.find(
+              (c: any) => c.cargoId === cargoId
+            );
+            projetadoQtd = cp?.projetadoFinal || 0;
+          } else if ("sitios" in projetadoSetor) {
+            (projetadoSetor as any).sitios.forEach((sitio: any) => {
+              const cp = sitio.cargos.find(
+                (c: any) => c.cargoId === cargoId
+              );
+              if (cp) projetadoQtd += cp.projetadoFinal || 0;
+            });
+          }
+        }
+      }
+
+      return [
+        {
+          nome: sector.name,
+          baselineQtd,
+          projetadoQtd,
+          unitCost,
+          variacaoQtd: projetadoQtd - baselineQtd,
+          variacaoCusto: (projetadoQtd - baselineQtd) * unitCost,
+        },
+      ];
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshotData, selectedCargo]);
+
+  const cargoBaselineTotalQtd = cargoVariacaoPorSetor.reduce(
+    (sum, s) => sum + s.baselineQtd,
+    0
+  );
+  const cargoProjetadoTotalQtd = cargoVariacaoPorSetor.reduce(
+    (sum, s) => sum + s.projetadoQtd,
+    0
+  );
+  const cargoBaselineTotalCusto = cargoVariacaoPorSetor.reduce(
+    (sum, s) => sum + s.baselineQtd * s.unitCost,
+    0
+  );
+  const cargoProjetadoTotalCusto = cargoVariacaoPorSetor.reduce(
+    (sum, s) => sum + s.projetadoQtd * s.unitCost,
+    0
+  );
+  const sortedCargoVariacaoCusto = useMemo(
+    () =>
+      [...cargoVariacaoPorSetor].sort((a, b) =>
+        cargoOrderCusto === "asc"
+          ? a.variacaoCusto - b.variacaoCusto
+          : b.variacaoCusto - a.variacaoCusto
+      ),
+    [cargoVariacaoPorSetor, cargoOrderCusto]
+  );
+  const sortedCargoVariacaoQtd = useMemo(
+    () =>
+      [...cargoVariacaoPorSetor].sort((a, b) =>
+        cargoOrderQtd === "asc"
+          ? a.variacaoQtd - b.variacaoQtd
+          : b.variacaoQtd - a.variacaoQtd
+      ),
+    [cargoVariacaoPorSetor, cargoOrderQtd]
+  );
 
   return (
     <TabsContent value="detalhamento" className="space-y-6">
@@ -474,101 +606,153 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
             {/* Gráfico 1: Ranking da Variação dos Setores (%) */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">
-                  Ranking da Variação dos Setores (%)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart
-                    data={rankingSetores.map((setor) => {
-                      // Calcular variação em reais para cada setor
-                      const unidadeProjetada =
-                        snapshotData.snapshot.dados.projetadoFinal?.internacao?.find(
-                          (u: any) => u.unidadeNome === setor.nome
-                        ) ||
-                        snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.find(
-                          (u: any) => u.unidadeNome === setor.nome
-                        );
-
-                      const unidadeBaseline =
-                        snapshotData.snapshot.dados.internation?.find(
-                          (u: any) => u.name === setor.nome
-                        ) ||
-                        snapshotData.snapshot.dados.assistance?.find(
-                          (u: any) => u.name === setor.nome
-                        );
-
-                      let custoAtual = 0;
-                      let custoProjetado = 0;
-
-                      if (unidadeBaseline) {
-                        unidadeBaseline.staff?.forEach((s: any) => {
-                          custoAtual += (s.quantity || 0) * (s.unitCost || 0);
-                        });
-                      }
-
-                      if (unidadeProjetada) {
-                        const custoPorCargo = new Map<string, number>();
-
-                        // Construir mapa de custos
-                        if (unidadeBaseline) {
-                          unidadeBaseline.staff?.forEach((s: any) => {
-                            custoPorCargo.set(s.id, s.unitCost || 0);
-                          });
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-base">
+                    Ranking da Variação dos Setores (%)
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      Ordenação
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={
+                          rankingOrderCusto === "asc"
+                            ? "text-xs font-medium text-foreground whitespace-nowrap"
+                            : "text-xs text-muted-foreground whitespace-nowrap"
                         }
-
-                        if ("cargos" in unidadeProjetada) {
-                          unidadeProjetada.cargos.forEach((cargo: any) => {
-                            const custoUnit =
-                              custoPorCargo.get(cargo.cargoId) || 0;
-                            custoProjetado += cargo.projetadoFinal * custoUnit;
-                          });
-                        } else if ("sitios" in unidadeProjetada) {
-                          unidadeProjetada.sitios.forEach((sitio: any) => {
-                            sitio.cargos.forEach((cargo: any) => {
-                              const custoUnit =
-                                custoPorCargo.get(cargo.cargoId) || 0;
-                              custoProjetado +=
-                                cargo.projetadoFinal * custoUnit;
-                            });
-                          });
+                      >
+                        Maior
+                      </span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={rankingOrderCusto === "desc"}
+                        onClick={() =>
+                          setRankingOrderCusto((prev) =>
+                            prev === "asc" ? "desc" : "asc"
+                          )
                         }
-                      }
-
-                      return {
-                        nome: setor.nome,
-                        variacaoReais: custoProjetado - custoAtual,
-                      };
-                    })}
-                    layout="vertical"
-                    margin={{ left: 150, right: 10, top: 5, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis type="category" dataKey="nome" width={140} />
-                    <Tooltip
-                      formatter={(value: any) =>
-                        `R$ ${value.toLocaleString("pt-BR", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`
-                      }
-                    />
-                    <Bar dataKey="variacaoReais">
-                      {rankingSetores.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={
-                            entry.variacaoPercentual < 0
-                              ? "rgb(220,38,38)"
-                              : "rgb(22,163,74)"
+                        className={
+                          "relative inline-flex h-6 w-11 items-center rounded-full border transition-colors " +
+                          (rankingOrderCusto === "desc"
+                            ? "bg-primary/10 border-primary/40"
+                            : "bg-muted border-border")
+                        }
+                        title={
+                          rankingOrderCusto === "desc"
+                            ? "Maior → Menor"
+                            : "Menor → Maior"
+                        }
+                      >
+                        <span
+                          className={
+                            "inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform " +
+                            (rankingOrderCusto === "desc"
+                              ? "translate-x-5"
+                              : "translate-x-0")
                           }
                         />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                      </button>
+                      <span
+                        className={
+                          rankingOrderCusto === "desc"
+                            ? "text-xs font-medium text-foreground whitespace-nowrap"
+                            : "text-xs text-muted-foreground whitespace-nowrap"
+                        }
+                      >
+                        Menor
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const rawData = rankingSetores.map((setor) => {
+                    const unidadeProjetada =
+                      snapshotData.snapshot.dados.projetadoFinal?.internacao?.find(
+                        (u: any) => u.unidadeNome === setor.nome
+                      ) ||
+                      snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.find(
+                        (u: any) => u.unidadeNome === setor.nome
+                      );
+                    const unidadeBaseline =
+                      snapshotData.snapshot.dados.internation?.find(
+                        (u: any) => u.name === setor.nome
+                      ) ||
+                      snapshotData.snapshot.dados.assistance?.find(
+                        (u: any) => u.name === setor.nome
+                      );
+                    let custoAtual = 0;
+                    let custoProjetado = 0;
+                    if (unidadeBaseline) {
+                      unidadeBaseline.staff?.forEach((s: any) => {
+                        custoAtual += (s.quantity || 0) * (s.unitCost || 0);
+                      });
+                    }
+                    if (unidadeProjetada) {
+                      const custoPorCargo = new Map<string, number>();
+                      if (unidadeBaseline) {
+                        unidadeBaseline.staff?.forEach((s: any) => {
+                          custoPorCargo.set(s.id, s.unitCost || 0);
+                        });
+                      }
+                      if ("cargos" in unidadeProjetada) {
+                        unidadeProjetada.cargos.forEach((cargo: any) => {
+                          const custoUnit = custoPorCargo.get(cargo.cargoId) || 0;
+                          custoProjetado += cargo.projetadoFinal * custoUnit;
+                        });
+                      } else if ("sitios" in unidadeProjetada) {
+                        unidadeProjetada.sitios.forEach((sitio: any) => {
+                          sitio.cargos.forEach((cargo: any) => {
+                            const custoUnit = custoPorCargo.get(cargo.cargoId) || 0;
+                            custoProjetado += cargo.projetadoFinal * custoUnit;
+                          });
+                        });
+                      }
+                    }
+                    return { nome: setor.nome, variacaoReais: custoProjetado - custoAtual };
+                  });
+                  const sortedData = [...rawData].sort((a, b) =>
+                    rankingOrderCusto === "asc"
+                      ? a.variacaoReais - b.variacaoReais
+                      : b.variacaoReais - a.variacaoReais
+                  );
+                  return (
+                    <ResponsiveContainer width="100%" height={350}>
+                      <BarChart
+                        data={sortedData}
+                        layout="vertical"
+                        margin={{ left: 150, right: 10, top: 5, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis type="category" dataKey="nome" width={140} />
+                        <Tooltip
+                          formatter={(value: any) =>
+                            `R$ ${value.toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}`
+                          }
+                        />
+                        <Bar dataKey="variacaoReais">
+                          {sortedData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={
+                                entry.variacaoReais < 0
+                                  ? "rgb(220,38,38)"
+                                  : "rgb(22,163,74)"
+                              }
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  );
+                })()}
               </CardContent>
             </Card>
 
@@ -639,7 +823,7 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <XAxis
                       dataKey="name"
                       tick={<CustomAxisTick />}
-                      interval="preserveStartEnd"
+                      interval={0}
                       height={80}
                     />
                     <YAxis
@@ -711,102 +895,126 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
               </CardContent>
             </Card>
 
-            {/* Gráfico 3: Taxa de Ocupação Atual Vs Dimensionada (%) */}
+            {/* Gráfico 3: Ranking de Variação por Cargo (Custo) */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">
-                  Taxa de Ocupação (4 últimos meses)
-                </CardTitle>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-base">
+                    Ranking de Variação por Cargo
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">Ordenação</span>
+                    <div className="flex items-center gap-2">
+                      <span className={cargoOrderCusto === "asc" ? "text-xs font-medium text-foreground whitespace-nowrap" : "text-xs text-muted-foreground whitespace-nowrap"}>Maior</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={cargoOrderCusto === "desc"}
+                        onClick={() => setCargoOrderCusto((prev) => prev === "asc" ? "desc" : "asc")}
+                        className={"relative inline-flex h-6 w-11 items-center rounded-full border transition-colors " + (cargoOrderCusto === "desc" ? "bg-primary/10 border-primary/40" : "bg-muted border-border")}
+                        title={cargoOrderCusto === "desc" ? "Maior → Menor" : "Menor → Maior"}
+                      >
+                        <span className={"inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform " + (cargoOrderCusto === "desc" ? "translate-x-5" : "translate-x-0")} />
+                      </button>
+                      <span className={cargoOrderCusto === "desc" ? "text-xs font-medium text-foreground whitespace-nowrap" : "text-xs text-muted-foreground whitespace-nowrap"}>Menor</span>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent>
-                {loadingOccupation ? (
-                  <div className="h-[350px] flex items-center justify-center">
-                    <p className="text-muted-foreground">Carregando dados...</p>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    Filtro: Cargo
+                  </p>
+                  <Select
+                    value={selectedCargo}
+                    onValueChange={setSelectedCargo}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Todos os cargos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os cargos</SelectItem>
+                      {todosCargos.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {role}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs font-semibold text-center text-muted-foreground">
+                  Variação por Cargo (R$)
+                </p>
+                {sortedCargoVariacaoCusto.length === 0 ? (
+                  <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">
+                    Dados insuficientes para análise.
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={350}>
-                    <ComposedChart
-                      data={(() => {
-                        if (!occupationData) return [];
-
-                        // Determinar qual conjunto de dados usar baseado no filtro
-                        let dataSource;
-                        if (selectedSector === "all") {
-                          // Usar dados consolidados (summary)
-                          dataSource = {
-                            historico4Meses:
-                              occupationData.summary.historico4Meses,
-                            ocupacaoMaximaAtendivel:
-                              occupationData.summary.ocupacaoMaximaAtendivel,
-                          };
-                        } else {
-                          // Buscar setor específico
-                          const sector = occupationData.sectors.find(
-                            (s) => s.sectorId === selectedSector
-                          );
-                          if (!sector) return [];
-
-                          dataSource = {
-                            historico4Meses: sector.historico4Meses,
-                            ocupacaoMaximaAtendivel:
-                              sector.ocupacaoMaximaAtendivel,
-                          };
-                        }
-
-                        // Formatar dados para o gráfico
-                        return dataSource.historico4Meses.map((mes) => {
-                          // Extrair mês/ano do monthLabel (ex: "Setembro/2025" -> "SET")
-                          const mesNome = mes.monthLabel
-                            .split("/")[0]
-                            .substring(0, 3)
-                            .toUpperCase();
-
-                          return {
-                            mes: mesNome,
-                            taxaOcupacao: mes.taxaOcupacao,
-                            taxaAtendivel: dataSource.ocupacaoMaximaAtendivel,
-                          };
-                        });
-                      })()}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                      <Tooltip
-                        formatter={(value: any, name: string) => {
-                          const label =
-                            name === "taxaOcupacao"
-                              ? "Taxa de Ocupação"
-                              : "Taxa Máxima Atendível";
-                          return [`${Number(value).toFixed(1)}%`, label];
-                        }}
-                      />
-                      <Legend
-                        formatter={(value: string) => {
-                          if (value === "taxaOcupacao")
-                            return "Taxa de Ocupação";
-                          if (value === "taxaAtendivel")
-                            return "Taxa Máxima Atendível";
-                          return value;
-                        }}
-                      />
-                      <Bar
-                        dataKey="taxaOcupacao"
-                        fill="#5CA6DD"
-                        name="taxaOcupacao"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="taxaAtendivel"
-                        stroke="#FF6B6B"
-                        strokeWidth={2}
-                        dot={false}
-                        name="taxaAtendivel"
-                      />
-                    </ComposedChart>
-                  </ResponsiveContainer>
+                  <div
+                    style={{
+                      height: Math.max(180, sortedCargoVariacaoCusto.length * 38),
+                    }}
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={sortedCargoVariacaoCusto}
+                        layout="vertical"
+                        margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          type="number"
+                          tick={axisTick}
+                          tickFormatter={formatCurrencyAxisTick}
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="nome"
+                          width={110}
+                          tick={axisTick}
+                        />
+                        <Tooltip
+                          formatter={(v: any) => [
+                            formatCurrency(Number(v)),
+                            "Variação Custo",
+                          ]}
+                          labelFormatter={(l: any) => String(l)}
+                        />
+                        <Bar dataKey="variacaoCusto" barSize={16}>
+                          {sortedCargoVariacaoCusto.map((entry, i) => (
+                            <Cell
+                              key={`cargo-custo-${i}`}
+                              fill={
+                                entry.variacaoCusto < 0 ? "#dc2626" : "#16a34a"
+                              }
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 )}
+                <div className="rounded border p-3 text-xs space-y-1 bg-muted/30">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Atual:</span>
+                    <span className="font-semibold">
+                      {formatCurrency(custoAtualReal)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Baseline:</span>
+                    <span className="font-semibold">
+                      {formatCurrency(cargoBaselineTotalCusto)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Projetado:</span>
+                    <span className="font-semibold">
+                      {formatCurrency(cargoProjetadoTotalCusto)}
+                    </span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -921,7 +1129,7 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <XAxis
                       dataKey="name"
                       tick={<CustomAxisTick />}
-                      interval="preserveStartEnd"
+                      interval={0}
                       height={80}
                     />
                     <YAxis
@@ -1373,7 +1581,7 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <XAxis
                       dataKey="name"
                       tick={<CustomAxisTick />}
-                      interval="preserveStartEnd"
+                      interval={0}
                       height={80}
                     />
                     <YAxis
@@ -1834,7 +2042,7 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <XAxis
                       dataKey="setor"
                       tick={<CustomAxisTick />}
-                      interval="preserveStartEnd"
+                      interval={0}
                       height={80}
                     />
                     <YAxis
@@ -1894,109 +2102,166 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
             {/* Gráfico 1: Ranking da Variação dos Setores (QTD) */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">
-                  Ranking da Variação dos Setores (QTD)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart
-                    data={rankingSetores.map((setor) => {
-                      // Calcular variação em quantidade para cada setor (Atual vs Projetado)
-                      const unidadeProjetada =
-                        snapshotData.snapshot.dados.projetadoFinal?.internacao?.find(
-                          (u: any) => u.unidadeNome === setor.nome
-                        ) ||
-                        snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.find(
-                          (u: any) => u.unidadeNome === setor.nome
-                        );
-
-                      const unidadeAtual =
-                        snapshotData.situacaoAtual?.unidades.find(
-                          (u: any) => u.unidadeNome === setor.nome
-                        );
-
-                      let qtdAtual = 0;
-                      let qtdProjetada = 0;
-                      let custoAtual = 0;
-                      let custoProjetado = 0;
-
-                      if (unidadeAtual) {
-                        qtdAtual = unidadeAtual.totalFuncionarios;
-                        custoAtual = unidadeAtual.custoTotal;
-                      }
-
-                      // Construir mapa de custos unitários
-                      const custosUnit: Record<string, number> = {};
-                      if (unidadeAtual) {
-                        unidadeAtual.cargos.forEach((cargo: any) => {
-                          custosUnit[cargo.cargoId] = cargo.custoUnitario;
-                        });
-                      }
-
-                      if (unidadeProjetada) {
-                        if ("cargos" in unidadeProjetada) {
-                          unidadeProjetada.cargos.forEach((cargo: any) => {
-                            qtdProjetada += cargo.projetadoFinal;
-                            custoProjetado +=
-                              (custosUnit[cargo.cargoId] || 0) *
-                              cargo.projetadoFinal;
-                          });
-                        } else if ("sitios" in unidadeProjetada) {
-                          unidadeProjetada.sitios.forEach((sitio: any) => {
-                            sitio.cargos.forEach((cargo: any) => {
-                              qtdProjetada += cargo.projetadoFinal;
-                              custoProjetado +=
-                                (custosUnit[cargo.cargoId] || 0) *
-                                cargo.projetadoFinal;
-                            });
-                          });
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-base">
+                    Ranking da Variação dos Setores (QTD)
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      Ordenação
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={
+                          rankingOrderQtd === "asc"
+                            ? "text-xs font-medium text-foreground whitespace-nowrap"
+                            : "text-xs text-muted-foreground whitespace-nowrap"
                         }
-                      }
-
-                      return {
-                        nome: setor.nome,
-                        variacaoQtd: qtdProjetada - qtdAtual,
-                        variacaoReais: custoProjetado - custoAtual,
-                      };
-                    })}
-                    layout="vertical"
-                    margin={{ left: 150, right: 10, top: 5, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis type="category" dataKey="nome" width={140} />
-                    <Tooltip
-                      formatter={(value: any, name: any, props: any) => {
-                        if (name === "variacaoQtd") {
-                          const variacaoReais = props.payload.variacaoReais;
-                          return [
-                            `${value} funcionários (${
-                              variacaoReais >= 0 ? "+" : ""
-                            }R$ ${variacaoReais.toLocaleString("pt-BR", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })})`,
-                            "Variação",
-                          ];
+                      >
+                        Maior
+                      </span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={rankingOrderQtd === "desc"}
+                        onClick={() =>
+                          setRankingOrderQtd((prev) =>
+                            prev === "asc" ? "desc" : "asc"
+                          )
                         }
-                        return [value, name];
-                      }}
-                    />
-                    <Bar dataKey="variacaoQtd">
-                      {rankingSetores.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={
-                            entry.variacaoPercentual < 0
-                              ? "rgb(220,38,38)"
-                              : "rgb(22,163,74)"
+                        className={
+                          "relative inline-flex h-6 w-11 items-center rounded-full border transition-colors " +
+                          (rankingOrderQtd === "desc"
+                            ? "bg-primary/10 border-primary/40"
+                            : "bg-muted border-border")
+                        }
+                        title={
+                          rankingOrderQtd === "desc"
+                            ? "Maior → Menor"
+                            : "Menor → Maior"
+                        }
+                      >
+                        <span
+                          className={
+                            "inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform " +
+                            (rankingOrderQtd === "desc"
+                              ? "translate-x-5"
+                              : "translate-x-0")
                           }
                         />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                      </button>
+                      <span
+                        className={
+                          rankingOrderQtd === "desc"
+                            ? "text-xs font-medium text-foreground whitespace-nowrap"
+                            : "text-xs text-muted-foreground whitespace-nowrap"
+                        }
+                      >
+                        Menor
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const rawData = rankingSetores.map((setor) => {
+                    const unidadeProjetada =
+                      snapshotData.snapshot.dados.projetadoFinal?.internacao?.find(
+                        (u: any) => u.unidadeNome === setor.nome
+                      ) ||
+                      snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.find(
+                        (u: any) => u.unidadeNome === setor.nome
+                      );
+                    const unidadeAtual =
+                      snapshotData.situacaoAtual?.unidades.find(
+                        (u: any) => u.unidadeNome === setor.nome
+                      );
+                    let qtdAtual = 0;
+                    let qtdProjetada = 0;
+                    let custoAtual = 0;
+                    let custoProjetado = 0;
+                    if (unidadeAtual) {
+                      qtdAtual = unidadeAtual.totalFuncionarios;
+                      custoAtual = unidadeAtual.custoTotal;
+                    }
+                    const custosUnit: Record<string, number> = {};
+                    if (unidadeAtual) {
+                      unidadeAtual.cargos.forEach((cargo: any) => {
+                        custosUnit[cargo.cargoId] = cargo.custoUnitario;
+                      });
+                    }
+                    if (unidadeProjetada) {
+                      if ("cargos" in unidadeProjetada) {
+                        unidadeProjetada.cargos.forEach((cargo: any) => {
+                          qtdProjetada += cargo.projetadoFinal;
+                          custoProjetado +=
+                            (custosUnit[cargo.cargoId] || 0) * cargo.projetadoFinal;
+                        });
+                      } else if ("sitios" in unidadeProjetada) {
+                        unidadeProjetada.sitios.forEach((sitio: any) => {
+                          sitio.cargos.forEach((cargo: any) => {
+                            qtdProjetada += cargo.projetadoFinal;
+                            custoProjetado +=
+                              (custosUnit[cargo.cargoId] || 0) * cargo.projetadoFinal;
+                          });
+                        });
+                      }
+                    }
+                    return {
+                      nome: setor.nome,
+                      variacaoQtd: qtdProjetada - qtdAtual,
+                      variacaoReais: custoProjetado - custoAtual,
+                    };
+                  });
+                  const sortedData = [...rawData].sort((a, b) =>
+                    rankingOrderQtd === "asc"
+                      ? a.variacaoQtd - b.variacaoQtd
+                      : b.variacaoQtd - a.variacaoQtd
+                  );
+                  return (
+                    <ResponsiveContainer width="100%" height={350}>
+                      <BarChart
+                        data={sortedData}
+                        layout="vertical"
+                        margin={{ left: 150, right: 10, top: 5, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis type="category" dataKey="nome" width={140} />
+                        <Tooltip
+                          formatter={(value: any, name: any, props: any) => {
+                            if (name === "variacaoQtd") {
+                              const variacaoReais = props.payload.variacaoReais;
+                              return [
+                                `${value} funcionários (${
+                                  variacaoReais >= 0 ? "+" : ""
+                                }R$ ${variacaoReais.toLocaleString("pt-BR", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })})`,
+                                "Variação",
+                              ];
+                            }
+                            return [value, name];
+                          }}
+                        />
+                        <Bar dataKey="variacaoQtd">
+                          {sortedData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={
+                                entry.variacaoQtd < 0
+                                  ? "rgb(220,38,38)"
+                                  : "rgb(22,163,74)"
+                              }
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  );
+                })()}
               </CardContent>
             </Card>
 
@@ -2064,7 +2329,7 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <XAxis
                       dataKey="name"
                       tick={<CustomAxisTick />}
-                      interval="preserveStartEnd"
+                      interval={0}
                       height={80}
                     />
                     <YAxis tick={axisTick} />
@@ -2128,106 +2393,113 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
               </CardContent>
             </Card>
 
-            {/* Gráfico 3: Taxa de Ocupação (4 últimos meses) */}
+            {/* Gráfico 3: Ranking de Variação por Cargo (Pessoal) */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">
-                  Taxa de Ocupação (4 últimos meses)
-                </CardTitle>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-base">
+                    Ranking de Variação por Cargo
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">Ordenação</span>
+                    <div className="flex items-center gap-2">
+                      <span className={cargoOrderQtd === "asc" ? "text-xs font-medium text-foreground whitespace-nowrap" : "text-xs text-muted-foreground whitespace-nowrap"}>Maior</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={cargoOrderQtd === "desc"}
+                        onClick={() => setCargoOrderQtd((prev) => prev === "asc" ? "desc" : "asc")}
+                        className={"relative inline-flex h-6 w-11 items-center rounded-full border transition-colors " + (cargoOrderQtd === "desc" ? "bg-primary/10 border-primary/40" : "bg-muted border-border")}
+                        title={cargoOrderQtd === "desc" ? "Maior → Menor" : "Menor → Maior"}
+                      >
+                        <span className={"inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform " + (cargoOrderQtd === "desc" ? "translate-x-5" : "translate-x-0")} />
+                      </button>
+                      <span className={cargoOrderQtd === "desc" ? "text-xs font-medium text-foreground whitespace-nowrap" : "text-xs text-muted-foreground whitespace-nowrap"}>Menor</span>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent>
-                {(() => {
-                  return null;
-                })()}
-                {loadingOccupation ? (
-                  <div className="h-[350px] flex items-center justify-center">
-                    <p className="text-muted-foreground">Carregando dados...</p>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    Filtro: Cargo
+                  </p>
+                  <Select
+                    value={selectedCargo}
+                    onValueChange={setSelectedCargo}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Todos os cargos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os cargos</SelectItem>
+                      {todosCargos.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {role}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs font-semibold text-center text-muted-foreground">
+                  Variação por Cargo (QTD)
+                </p>
+                {sortedCargoVariacaoQtd.length === 0 ? (
+                  <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">
+                    Dados insuficientes para análise.
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={350}>
-                    <ComposedChart
-                      data={(() => {
-                        if (!occupationData) return [];
-
-                        // Determinar qual conjunto de dados usar baseado no filtro
-                        let dataSource;
-                        if (selectedSector === "all") {
-                          // Usar dados consolidados (summary)
-                          dataSource = {
-                            historico4Meses:
-                              occupationData.summary.historico4Meses,
-                            ocupacaoMaximaAtendivel:
-                              occupationData.summary.ocupacaoMaximaAtendivel,
-                          };
-                        } else {
-                          // Buscar setor específico
-                          const sector = occupationData.sectors.find(
-                            (s) => s.sectorId === selectedSector
-                          );
-                          if (!sector) return [];
-
-                          dataSource = {
-                            historico4Meses: sector.historico4Meses,
-                            ocupacaoMaximaAtendivel:
-                              sector.ocupacaoMaximaAtendivel,
-                          };
-                        }
-
-                        // Formatar dados para o gráfico
-                        return dataSource.historico4Meses.map((mes) => {
-                          // Extrair mês/ano do monthLabel (ex: "Setembro/2025" -> "SET")
-                          const mesNome = mes.monthLabel
-                            .split("/")[0]
-                            .substring(0, 3)
-                            .toUpperCase();
-
-                          return {
-                            mes: mesNome,
-                            taxaOcupacao: mes.taxaOcupacao,
-                            taxaAtendivel: dataSource.ocupacaoMaximaAtendivel,
-                          };
-                        });
-                      })()}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                      <Tooltip
-                        formatter={(value: any, name: string) => {
-                          const label =
-                            name === "taxaOcupacao"
-                              ? "Taxa de Ocupação"
-                              : "Taxa Máxima Atendível";
-
-                          return [`${Number(value).toFixed(1)}%`, label];
-                        }}
-                      />
-                      <Legend
-                        formatter={(value: string) => {
-                          if (value === "taxaOcupacao")
-                            return "Taxa de Ocupação";
-                          if (value === "taxaAtendivel")
-                            return "Taxa Máxima Atendível";
-                          return value;
-                        }}
-                      />
-                      <Bar
-                        dataKey="taxaOcupacao"
-                        fill="#5CA6DD"
-                        name="taxaOcupacao"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="taxaAtendivel"
-                        stroke="#FF6B6B"
-                        strokeWidth={2}
-                        dot={false}
-                        name="taxaAtendivel"
-                      />
-                    </ComposedChart>
-                  </ResponsiveContainer>
+                  <div
+                    style={{
+                      height: Math.max(180, sortedCargoVariacaoQtd.length * 38),
+                    }}
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={sortedCargoVariacaoQtd}
+                        layout="vertical"
+                        margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" tick={axisTick} />
+                        <YAxis
+                          type="category"
+                          dataKey="nome"
+                          width={110}
+                          tick={axisTick}
+                        />
+                        <Tooltip
+                          formatter={(v: any) => [v, "Variação QTD"]}
+                          labelFormatter={(l: any) => String(l)}
+                        />
+                        <Bar dataKey="variacaoQtd" barSize={16}>
+                          {sortedCargoVariacaoQtd.map((entry, i) => (
+                            <Cell
+                              key={`cargo-qtd-${i}`}
+                              fill={
+                                entry.variacaoQtd < 0 ? "#dc2626" : "#16a34a"
+                              }
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 )}
+                <div className="rounded border p-3 text-xs space-y-1 bg-muted/30">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Atual:</span>
+                    <span className="font-semibold">{profissionaisAtuaisReal}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Baseline:</span>
+                    <span className="font-semibold">{cargoBaselineTotalQtd}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Projetado:</span>
+                    <span className="font-semibold">{cargoProjetadoTotalQtd}</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -2264,7 +2536,7 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <XAxis
                       dataKey="name"
                       tick={<CustomAxisTick />}
-                      interval="preserveStartEnd"
+                      interval={0}
                       height={80}
                     />
                     <YAxis tick={axisTick} />
@@ -2601,7 +2873,7 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <XAxis
                       dataKey="name"
                       tick={<CustomAxisTick />}
-                      interval="preserveStartEnd"
+                      interval={0}
                       height={80}
                     />
                     <YAxis tick={axisTick} />
@@ -3024,7 +3296,7 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                     <XAxis
                       dataKey="cargo"
                       tick={<CustomAxisTick />}
-                      interval="preserveStartEnd"
+                      interval={0}
                       height={80}
                     />
                     <YAxis tick={axisTick} />
