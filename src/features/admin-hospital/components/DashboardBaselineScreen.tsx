@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import {
   BarChart,
@@ -25,6 +25,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getSnapshotHospitalSectors,
   getUltimaAtualizacaoCargoHospital,
+  getRedes,
+  getGrupos,
+  getRegioes,
+  getHospitais,
 } from "@/lib/api";
 import { Building2, TrendingUp, Target } from "lucide-react";
 import { DashboardBaselineDetalhamento } from "./DashboardBaselineDetalhamento";
@@ -163,17 +167,16 @@ const ReusableWaterfall: React.FC<{
     }).format(n);
 
   // Componente customizado para renderizar labels em múltiplas linhas
-  const CustomAxisTick = ({ x, y, payload }: any) => {
-    const text = payload.value;
-    const words = text.split(/\s+/);
-    const maxWidth = 80; // largura máxima em pixels
+  const CustomAxisTick = ({ x, y, payload, width, visibleTicksCount }: any) => {
+    const widthPerTick = visibleTicksCount > 0 ? width / visibleTicksCount : 80;
+    const fontSize = Math.max(8, Math.min(11, Math.floor(widthPerTick / 7)));
+    const maxLineWidth = Math.max(40, widthPerTick * 0.95);
+    const words = String(payload.value).split(/\s+/);
     const lines: string[] = [];
     let currentLine = "";
-
     words.forEach((word: string) => {
       const testLine = currentLine ? `${currentLine} ${word}` : word;
-      // Aproximação: 6 pixels por caractere
-      if (testLine.length * 6 > maxWidth && currentLine) {
+      if (testLine.length * fontSize * 0.6 > maxLineWidth && currentLine) {
         lines.push(currentLine);
         currentLine = word;
       } else {
@@ -181,12 +184,11 @@ const ReusableWaterfall: React.FC<{
       }
     });
     if (currentLine) lines.push(currentLine);
-
     return (
       <g transform={`translate(${x},${y})`}>
-        <text x={0} y={0} dy={8} textAnchor="middle" fill="#666" fontSize={11}>
+        <text x={0} y={0} dy={8} textAnchor="middle" fill="#666" fontSize={fontSize}>
           {lines.map((line, index) => (
-            <tspan x={0} dy={12} key={index}>
+            <tspan x={0} dy={fontSize + 2} key={index}>
               {line}
             </tspan>
           ))}
@@ -206,7 +208,7 @@ const ReusableWaterfall: React.FC<{
           <XAxis
             dataKey="name"
             tick={<CustomAxisTick />}
-            interval="preserveStartEnd"
+            interval={0}
             height={80}
           />
           <YAxis
@@ -665,11 +667,23 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     const regioes = Array.isArray(grupoSelecionado?.regioes)
       ? grupoSelecionado.regioes
       : grupos.flatMap((g: any) => (Array.isArray(g.regioes) ? g.regioes : []));
-    const regioesDisponiveis = regioes.map((r: any) => ({
-      id: String(r.regiaoId ?? r.id),
-      name: String(r.regiaoNome ?? r.nome ?? r.name ?? "Região"),
-    }));
 
+    // Deduplicate by regiaoId/id
+    const seenRegiaoIds = new Set<string>();
+    const regioesDisponiveis = (regioes as any[]).reduce(
+      (acc: { id: string; name: string }[], r: any) => {
+        const id = String(r.regiaoId ?? r.id);
+        if (!seenRegiaoIds.has(id)) {
+          seenRegiaoIds.add(id);
+          acc.push({
+            id,
+            name: String(r.regiaoNome ?? r.nome ?? r.name ?? "Região"),
+          });
+        }
+        return acc;
+      },
+      []
+    );
     const regiaoSelecionada =
       selectedRegionId !== "all"
         ? regioes.find(
@@ -677,22 +691,75 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
           )
         : null;
 
+    // Helper: collect all hospitals from a group node (directly + via regioes)
+    const getHospitaisFromGroup = (g: any): any[] => [
+      ...(Array.isArray(g.hospitais) ? g.hospitais : []),
+      ...(Array.isArray(g.regioes)
+        ? (g.regioes as any[]).flatMap((r) =>
+            Array.isArray(r?.hospitais) ? r.hospitais : []
+          )
+        : []),
+    ];
+
     const hospitais = (() => {
-      if (regiaoSelecionada?.hospitais) return regiaoSelecionada.hospitais;
-      if (grupoSelecionado?.regioes) {
-        return (grupoSelecionado.regioes as any[]).flatMap(
-          (r) => r?.hospitais || []
-        );
+      if (regiaoSelecionada) {
+        // Hospitals inside the selected region + hospitals directly on the group
+        // that are NOT assigned to any region (to avoid losing direct-group hospitals
+        // when a region is chosen for filtering).
+        return Array.isArray(regiaoSelecionada.hospitais)
+          ? regiaoSelecionada.hospitais
+          : [];
       }
-      return grupos.flatMap((g: any) =>
-        (g?.regioes || []).flatMap((r: any) => r?.hospitais || [])
-      );
+      if (grupoSelecionado) {
+        return getHospitaisFromGroup(grupoSelecionado);
+      }
+      // No group selected — collect from rede root + all groups
+      return [
+        ...(Array.isArray(redeNode?.hospitais) ? redeNode.hospitais : []),
+        ...grupos.flatMap(getHospitaisFromGroup),
+      ];
     })();
 
-    const hospitaisDisponiveis = (hospitais as any[]).map((h: any) => ({
-      id: String(h.hospitalId ?? h.id),
-      name: String(h.hospitalNome ?? h.nome ?? h.name ?? "Hospital"),
-    }));
+    // Deduplicate by hospitalId/id to avoid duplicate entries in the dropdown
+    const seenHospitalIds = new Set<string>();
+    const hospitaisDisponiveis = (hospitais as any[]).reduce(
+      (acc: { id: string; name: string }[], h: any) => {
+        const id = String(h.hospitalId ?? h.id);
+        if (!seenHospitalIds.has(id)) {
+          seenHospitalIds.add(id);
+          acc.push({
+            id,
+            name: String(h.hospitalNome ?? h.nome ?? h.name ?? "Hospital"),
+          });
+        }
+        return acc;
+      },
+      []
+    );
+    console.log(
+      "%c[Rede Filters] DEBUG — copie e cole isso",
+      "background:#1e3a5f;color:#fff;font-weight:bold;padding:2px 6px",
+      JSON.stringify(
+        {
+          RAW_grupos: grupos.map((g: any) => ({
+            grupoId: g.grupoId,
+            id: g.id,
+            grupoNome: g.grupoNome,
+            nome: g.nome,
+            keys: Object.keys(g),
+            hospitaisDirectCount: Array.isArray(g.hospitais) ? g.hospitais.length : "não é array",
+            hospitaisDiretos: Array.isArray(g.hospitais)
+              ? (g.hospitais as any[]).map((h: any) => ({ hospitalId: h.hospitalId, id: h.id, nome: h.hospitalNome ?? h.nome }))
+              : g.hospitais,
+            regioesCount: Array.isArray(g.regioes) ? g.regioes.length : "não é array",
+          })),
+          DERIVED_gruposDisponiveis: gruposDisponiveis,
+          DERIVED_hospitaisDisponiveis: hospitaisDisponiveis,
+        },
+        null,
+        2
+      )
+    );
 
     const hospitalSelecionado =
       selectedHospitalId !== "all"

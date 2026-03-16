@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -587,6 +587,21 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
     fill: "hsl(var(--muted-foreground))",
   } as const;
 
+  type HospitalRankingOrder = "asc" | "desc";
+  const [hospitalRankingOrder, setHospitalRankingOrder] =
+    useState<HospitalRankingOrder>("asc");
+
+  const orderedRankingCusto = useMemo(() => {
+    const items = [...(rankingCustoResolved || [])];
+    if (items.length <= 1) return items;
+    items.sort((a, b) =>
+      hospitalRankingOrder === "asc"
+        ? a.variacaoPercentual - b.variacaoPercentual
+        : b.variacaoPercentual - a.variacaoPercentual
+    );
+    return items;
+  }, [rankingCustoResolved, hospitalRankingOrder]);
+
   const renderRanking = (
     _title: string,
     data: BaselineRankingItemRede[],
@@ -738,7 +753,7 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
       </div>
 
       {/* Gráficos (modo rede) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Variação R$ (Mensal)</CardTitle>
@@ -771,107 +786,71 @@ export const DashboardBaselineGlobalTabRede: React.FC<{
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Cards resumo (acima dos rankings) */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <InfoCard
-          title="Desvio Financeiro"
-          value={formatAbsCurrency(desvioFinanceiroReais)}
-          subtitle={formatArrowPct(desvioFinanceiroReais, desvioFinanceiroPct)}
-          subtitleColor={getSubtitleColor(desvioFinanceiroReais)}
-          icon={icons.variacao}
-          variant="warning"
-        />
-
-        <InfoCard
-          title="Desvio de Funcionários"
-          value={formatAbsInt(desvioFuncionarios)}
-          subtitle={formatArrowPct(desvioFuncionarios, desvioFuncionariosPct)}
-          subtitleColor={getSubtitleColor(desvioFuncionarios)}
-          icon={icons.variacao}
-          variant="warning"
-        />
-
-        <InfoCard
-          title="Hospital com Maior Desvio"
-          value={
-            hospitalMaiorDesvio?.variacaoReais !== undefined
-              ? formatAbsCurrency(
-                  toNumber(hospitalMaiorDesvio.variacaoReais, 0)
-                )
-              : hospitalMaiorDesvio
-                ? `${Math.abs(
-                    toNumber(hospitalMaiorDesvio.variacaoPercentual, 0)
-                  ).toLocaleString("pt-BR", {
-                    minimumFractionDigits: 1,
-                    maximumFractionDigits: 1,
-                  })}%`
-                : "--"
-          }
-          subtitle={
-            hospitalMaiorDesvio
-              ? `${hospitalMaiorDesvio.nome} • ${formatArrowPct(
-                  toNumber(hospitalMaiorDesvio.variacaoReais, 0),
-                  toNumber(hospitalMaiorDesvio.variacaoPercentual, 0)
-                )}`
-              : "Dados insuficientes"
-          }
-          subtitleColor={getSubtitleColor(
-            toNumber(hospitalMaiorDesvio?.variacaoReais, 0)
-          )}
-          icon={icons.atual}
-          variant="primary"
-        />
-
-        <InfoCard
-          title="Cargo com Maior Desvio"
-          value={
-            cargoMaiorDesvio
-              ? formatAbsCurrency(
-                  toNumber(cargoMaiorDesvio.variacaoCustoReais, 0)
-                )
-              : "--"
-          }
-          subtitle={
-            cargoMaiorDesvio
-              ? `${cargoMaiorDesvio.nome} • ${formatSignedInt(
-                  toNumber(cargoMaiorDesvio.variacaoQtd, 0)
-                )} funcionários`
-              : "Dados insuficientes"
-          }
-          icon={icons.funcionarios}
-          variant="primary"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Ranking Hospitais — mesmo estilo do Ranking por SETORES */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">
-              Ranking da Variação dos Hospitais (R$) (%)
-            </CardTitle>
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-base">
+                Ranking por Hospitais (%)
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  Ordenação
+                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={
+                      hospitalRankingOrder === "asc"
+                        ? "text-xs font-medium text-foreground whitespace-nowrap"
+                        : "text-xs text-muted-foreground whitespace-nowrap"
+                    }
+                  >
+                    Maior
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={hospitalRankingOrder === "desc"}
+                    onClick={() =>
+                      setHospitalRankingOrder((prev) =>
+                        prev === "asc" ? "desc" : "asc"
+                      )
+                    }
+                    className={
+                      "relative inline-flex h-6 w-11 items-center rounded-full border transition-colors " +
+                      (hospitalRankingOrder === "desc"
+                        ? "bg-primary/10 border-primary/40"
+                        : "bg-muted border-border")
+                    }
+                  >
+                    <span
+                      className={
+                        "inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform " +
+                        (hospitalRankingOrder === "desc"
+                          ? "translate-x-5"
+                          : "translate-x-0")
+                      }
+                    />
+                  </button>
+                  <span
+                    className={
+                      hospitalRankingOrder === "desc"
+                        ? "text-xs font-medium text-foreground whitespace-nowrap"
+                        : "text-xs text-muted-foreground whitespace-nowrap"
+                    }
+                  >
+                    Menor
+                  </span>
+                </div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="px-2 pb-4">
             {renderRanking(
-              "Ranking da Variação dos Hospitais (R$) (%)",
-              rankingCustoResolved,
+              "Ranking por Hospitais (%)",
+              orderedRankingCusto,
               "currency"
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              Ranking da Variação dos Hospitais (Qtd) (%)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-2 pb-4">
-            {renderRanking(
-              "Ranking da Variação dos Hospitais (Qtd) (%)",
-              rankingQuantidadeResolved,
-              "people"
             )}
           </CardContent>
         </Card>

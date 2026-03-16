@@ -9,6 +9,9 @@ import {
   ResponsiveContainer,
   Cell,
   ReferenceLine,
+  ComposedChart,
+  Line,
+  Legend,
 } from "recharts";
 import {
   Card,
@@ -28,7 +31,11 @@ import {
 } from "@/components/ui/select";
 import { DollarSign, Users, Building, CircleDollarSign } from "lucide-react";
 import RadarChartComponent from "./graphicsComponents/RadarChart";
-import { getQualitativeAggregatesByCategory } from "@/lib/api";
+import {
+  getQualitativeAggregatesByCategory,
+  getHospitalOccupationDashboard,
+  type OccupationDashboardResponse,
+} from "@/lib/api";
 import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import { HorizontalBarChartComp } from "./graphicsComponents/HorizontalBarChartComp";
 import BargraphicChart from "./graphicsComponents/BarChartComp";
@@ -555,6 +562,26 @@ const TabContentInternacao: React.FC<{
   qualitativeAggregates,
 }) => {
   const [selectedSector, setSelectedSector] = useState<string>("all");
+  const [occupationHistorical, setOccupationHistorical] =
+    useState<OccupationDashboardResponse | null>(null);
+  const [loadingOccupationHistorical, setLoadingOccupationHistorical] =
+    useState(false);
+
+  useEffect(() => {
+    if (!hospitalId) return;
+    const fetch = async () => {
+      try {
+        setLoadingOccupationHistorical(true);
+        const data = await getHospitalOccupationDashboard(hospitalId);
+        setOccupationHistorical(data);
+      } catch (err) {
+        console.error("[TabContentInternacao] Erro ao carregar ocupação:", err);
+      } finally {
+        setLoadingOccupationHistorical(false);
+      }
+    };
+    fetch();
+  }, [hospitalId]);
 
   // Gerar dados do radar baseado na seleção do setor
   const radarDataForSector = useMemo(() => {
@@ -861,6 +888,94 @@ const TabContentInternacao: React.FC<{
             selectedSector === "all" ? "Agregado de todos os setores" : ""
           }
         />
+      )}
+      {!isGlobalView && hospitalId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Taxa de Ocupação (4 últimos meses)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingOccupationHistorical ? (
+              <div className="h-[350px] flex items-center justify-center">
+                <p className="text-muted-foreground">Carregando dados...</p>
+              </div>
+            ) : occupationHistorical ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <ComposedChart
+                  data={(() => {
+                    let dataSource;
+                    if (selectedSector === "all") {
+                      dataSource = {
+                        historico4Meses:
+                          occupationHistorical.summary.historico4Meses,
+                        ocupacaoMaximaAtendivel:
+                          occupationHistorical.summary.ocupacaoMaximaAtendivel,
+                      };
+                    } else {
+                      const sector = occupationHistorical.sectors.find(
+                        (s) => s.sectorId === selectedSector
+                      );
+                      if (!sector) return [];
+                      dataSource = {
+                        historico4Meses: sector.historico4Meses,
+                        ocupacaoMaximaAtendivel:
+                          sector.ocupacaoMaximaAtendivel,
+                      };
+                    }
+                    return dataSource.historico4Meses.map((mes) => {
+                      const mesNome = mes.monthLabel
+                        .split("/")[0]
+                        .substring(0, 3)
+                        .toUpperCase();
+                      return {
+                        mes: mesNome,
+                        taxaOcupacao: mes.taxaOcupacao,
+                        taxaAtendivel: dataSource.ocupacaoMaximaAtendivel,
+                      };
+                    });
+                  })()}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="mes" />
+                  <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip
+                    formatter={(value: any, name: string) => {
+                      const label =
+                        name === "taxaOcupacao"
+                          ? "Taxa de Ocupação"
+                          : "Taxa Máxima Atendível";
+                      return [`${Number(value).toFixed(1)}%`, label];
+                    }}
+                  />
+                  <Legend
+                    formatter={(value: string) => {
+                      if (value === "taxaOcupacao") return "Taxa de Ocupação";
+                      if (value === "taxaAtendivel")
+                        return "Taxa Máxima Atendível";
+                      return value;
+                    }}
+                  />
+                  <Bar
+                    dataKey="taxaOcupacao"
+                    fill="#5CA6DD"
+                    name="taxaOcupacao"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="taxaAtendivel"
+                    stroke="#FF6B6B"
+                    strokeWidth={2}
+                    dot={false}
+                    name="taxaAtendivel"
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            ) : null}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

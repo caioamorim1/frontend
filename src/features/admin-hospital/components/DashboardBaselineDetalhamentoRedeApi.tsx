@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -20,6 +20,13 @@ import {
   type NetworkOccupationDashboardResponse,
 } from "@/lib/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Building2 } from "lucide-react";
 
 type VariacaoCargoChartItem = {
@@ -80,16 +87,16 @@ function getCargoLabel(item: VariacaoCargoChartItem): string {
 
 // Custom tick com quebra de linha automática
 const CustomAxisTick = (props: any) => {
-  const { x, y, payload } = props;
-  const maxWidth = 100; // largura máxima em pixels
+  const { x, y, payload, width, visibleTicksCount } = props;
+  const widthPerTick = visibleTicksCount > 0 ? width / visibleTicksCount : 80;
+  const fontSize = Math.max(8, Math.min(11, Math.floor(widthPerTick / 7)));
+  const maxLineWidth = Math.max(40, widthPerTick * 0.95);
   const words = String(payload.value).split(" ");
   const lines: string[] = [];
   let currentLine = "";
-
   words.forEach((word) => {
     const testLine = currentLine ? `${currentLine} ${word}` : word;
-    // Aproximação: 6 pixels por caractere
-    if (testLine.length * 6 > maxWidth && currentLine) {
+    if (testLine.length * fontSize * 0.6 > maxLineWidth && currentLine) {
       lines.push(currentLine);
       currentLine = word;
     } else {
@@ -97,12 +104,11 @@ const CustomAxisTick = (props: any) => {
     }
   });
   if (currentLine) lines.push(currentLine);
-
   return (
     <g transform={`translate(${x},${y})`}>
-      <text x={0} y={0} dy={8} textAnchor="middle" fill="#666" fontSize={11}>
+      <text x={0} y={0} dy={8} textAnchor="middle" fill="#666" fontSize={fontSize}>
         {lines.map((line, index) => (
-          <tspan x={0} dy={12} key={index}>
+          <tspan x={0} dy={fontSize + 2} key={index}>
             {line}
           </tspan>
         ))}
@@ -121,6 +127,11 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
   const isAllHospitals = selectedHospitalId === "all";
 
   const [analysisTab, setAnalysisTab] = useState<"custo" | "pessoal">("custo");
+  const [selectedCargo, setSelectedCargo] = useState<string>("all");
+  const [rankingOrderCusto, setRankingOrderCusto] = useState<"asc" | "desc">("asc");
+  const [rankingOrderQtd, setRankingOrderQtd] = useState<"asc" | "desc">("asc");
+  const [cargoOrderCusto, setCargoOrderCusto] = useState<"asc" | "desc">("asc");
+  const [cargoOrderQtd, setCargoOrderQtd] = useState<"asc" | "desc">("asc");
 
   const buildAggregatedHospital = (list: any[], title?: string) => {
     const validHospitais = Array.isArray(list) ? list : [];
@@ -226,12 +237,12 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
     const analisePorSetorUnidade = Array.from(analiseMap.values()).map((x) => {
       const variacaoCustoReais = x.projetadoCusto - x.baselineCusto;
       const variacaoCustoPercentual =
-        x.baselineCusto !== 0
-          ? (variacaoCustoReais / x.baselineCusto) * 100
+        x.projetadoCusto !== 0
+          ? (variacaoCustoReais / x.projetadoCusto) * 100
           : 0;
       const variacaoQtd = x.projetadoQtd - x.baselineQtd;
       const variacaoQtdPercentual =
-        x.baselineQtd !== 0 ? (variacaoQtd / x.baselineQtd) * 100 : 0;
+        x.projetadoQtd !== 0 ? (variacaoQtd / x.projetadoQtd) * 100 : 0;
       return {
         unidadeId: x.unidadeId,
         unidadeNome: x.unidadeNome,
@@ -342,10 +353,9 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
     const variacoesPorCargoItens = Array.from(cargoMap.values()).map((x) => {
       const variacaoQtd = x.projetadoQtd - x.baselineQtd;
       const variacaoCustoReais = x.projetadoCusto - x.baselineCusto;
-      // % relative to baseline qtd/custo if present
       const variacaoPercentual =
-        x.baselineCusto !== 0
-          ? (variacaoCustoReais / x.baselineCusto) * 100
+        x.projetadoCusto !== 0
+          ? (variacaoCustoReais / x.projetadoCusto) * 100
           : 0;
       return {
         cargoId: x.cargoId,
@@ -361,10 +371,10 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
 
     const variacaoCustoReais = projetadoCusto - baselineCusto;
     const variacaoCustoPercentual =
-      baselineCusto !== 0 ? (variacaoCustoReais / baselineCusto) * 100 : 0;
+      projetadoCusto !== 0 ? (variacaoCustoReais / projetadoCusto) * 100 : 0;
     const variacaoQtd = projetadoQtd - baselineQtd;
     const variacaoQtdPercentual =
-      baselineQtd !== 0 ? (variacaoQtd / baselineQtd) * 100 : 0;
+      projetadoQtd !== 0 ? (variacaoQtd / projetadoQtd) * 100 : 0;
 
     return {
       hospitalNome: title || "Visão Geral",
@@ -486,6 +496,53 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
   const variacoesPorCargoItens: VariacaoCargoChartItem[] =
     detalhamento?.variacoesPorCargo?.itens || [];
 
+  // Nomes únicos de cargo para o filtro
+  const todosCargosRede = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          variacoesPorCargoItens.map((it) => getCargoLabel(it))
+        )
+      )
+        .filter((n) => n !== "-")
+        .sort(),
+    [variacoesPorCargoItens]
+  );
+
+  // Itens filtrados pelo cargo selecionado
+  const cargoItensFiltered = useMemo(() => {
+    if (selectedCargo === "all") return variacoesPorCargoItens;
+    return variacoesPorCargoItens.filter(
+      (it) => getCargoLabel(it) === selectedCargo
+    );
+  }, [variacoesPorCargoItens, selectedCargo]);
+
+  // Totais para o summary box
+  const cargoSummaryAtualCusto = cargoItensFiltered.reduce(
+    (s, it) => s + toNumber((it as any).atual?.custoMensal, 0),
+    0
+  );
+  const cargoSummaryBaselineCusto = cargoItensFiltered.reduce(
+    (s, it) => s + toNumber((it as any).baseline?.custoMensal, 0),
+    0
+  );
+  const cargoSummaryProjetadoCusto = cargoItensFiltered.reduce(
+    (s, it) => s + toNumber((it as any).projetado?.custoMensal, 0),
+    0
+  );
+  const cargoSummaryAtualQtd = cargoItensFiltered.reduce(
+    (s, it) => s + toNumber((it as any).atual?.qtd, 0),
+    0
+  );
+  const cargoSummaryBaselineQtd = cargoItensFiltered.reduce(
+    (s, it) => s + toNumber((it as any).baseline?.qtd, 0),
+    0
+  );
+  const cargoSummaryProjetadoQtd = cargoItensFiltered.reduce(
+    (s, it) => s + toNumber((it as any).projetado?.qtd, 0),
+    0
+  );
+
   const analisePorSetorUnidade: any[] = Array.isArray(
     detalhamento?.analisePorSetorUnidade
   )
@@ -531,6 +588,89 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
       .filter((it) => it.nome)
       .sort((a, b) => b.variacaoPercentual - a.variacaoPercentual);
   }, [analisePorSetorUnidade]);
+
+  const orderedRankingCusto = useMemo(() => {
+    const items = [...rankingUnidadesCusto];
+    items.sort((a, b) =>
+      rankingOrderCusto === "asc"
+        ? a.variacaoPercentual - b.variacaoPercentual
+        : b.variacaoPercentual - a.variacaoPercentual
+    );
+    return items;
+  }, [rankingUnidadesCusto, rankingOrderCusto]);
+
+  const orderedRankingQtd = useMemo(() => {
+    const items = [...rankingUnidadesQuantidade];
+    items.sort((a, b) =>
+      rankingOrderQtd === "asc"
+        ? a.variacaoPercentual - b.variacaoPercentual
+        : b.variacaoPercentual - a.variacaoPercentual
+    );
+    return items;
+  }, [rankingUnidadesQuantidade, rankingOrderQtd]);
+
+  // Ranking por hospital (usado quando isAllHospitals === true)
+  const rankingHospitaisCusto = useMemo<RankingItem[]>(() => {
+    const list = Array.isArray(hospitais) ? hospitais : [];
+    return list
+      .map((h) => {
+        const baseline = toNumber(h?.detalhamento?.baseline?.custoMensal, 0);
+        const projetado = toNumber(h?.detalhamento?.projetado?.custoMensal, 0);
+        const variacaoReais = projetado - baseline;
+        const variacaoPercentual =
+          projetado !== 0 ? (variacaoReais / projetado) * 100 : 0;
+        return {
+          nome: String(h?.nome ?? h?.hospitalNome ?? h?.name ?? "-"),
+          variacaoPercentual,
+          variacaoReais,
+        };
+      })
+      .filter((it) => it.nome && it.nome !== "-");
+  }, [hospitais]);
+
+  const rankingHospitaisQtd = useMemo<RankingItem[]>(() => {
+    const list = Array.isArray(hospitais) ? hospitais : [];
+    return list
+      .map((h) => {
+        const baselineQtd = toNumber(
+          h?.detalhamento?.baseline?.totalFuncionarios,
+          0
+        );
+        const projetadoQtd = toNumber(
+          h?.detalhamento?.projetado?.totalFuncionarios,
+          0
+        );
+        const variacaoQtd = projetadoQtd - baselineQtd;
+        const variacaoPercentual =
+          projetadoQtd !== 0 ? (variacaoQtd / projetadoQtd) * 100 : 0;
+        return {
+          nome: String(h?.nome ?? h?.hospitalNome ?? h?.name ?? "-"),
+          variacaoPercentual,
+          variacaoReais: variacaoQtd,
+        };
+      })
+      .filter((it) => it.nome && it.nome !== "-");
+  }, [hospitais]);
+
+  const orderedRankingHospitaisCusto = useMemo(() => {
+    const items = [...rankingHospitaisCusto];
+    items.sort((a, b) =>
+      rankingOrderCusto === "asc"
+        ? a.variacaoPercentual - b.variacaoPercentual
+        : b.variacaoPercentual - a.variacaoPercentual
+    );
+    return items;
+  }, [rankingHospitaisCusto, rankingOrderCusto]);
+
+  const orderedRankingHospitaisQtd = useMemo(() => {
+    const items = [...rankingHospitaisQtd];
+    items.sort((a, b) =>
+      rankingOrderQtd === "asc"
+        ? a.variacaoPercentual - b.variacaoPercentual
+        : b.variacaoPercentual - a.variacaoPercentual
+    );
+    return items;
+  }, [rankingHospitaisQtd, rankingOrderQtd]);
 
   const [occupationData, setOccupationData] =
     useState<OccupationDashboardResponse | null>(null);
@@ -902,7 +1042,7 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <XAxis
                 dataKey="name"
                 tick={<CustomAxisTick />}
-                interval="preserveStartEnd"
+                interval={0}
                 height={80}
               />
               <YAxis
@@ -1094,7 +1234,7 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <XAxis
                 dataKey="name"
                 tick={<CustomAxisTick />}
-                interval="preserveStartEnd"
+                interval={0}
                 height={80}
               />
               <YAxis
@@ -1263,7 +1403,7 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <XAxis
                 dataKey={xAxisKey}
                 tick={<CustomAxisTick />}
-                interval="preserveStartEnd"
+                interval={0}
                 height={80}
               />
               <YAxis tick={axisTick} tickFormatter={formatCurrencyAxisTick} />
@@ -1347,7 +1487,7 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <XAxis
                 dataKey="name"
                 tick={<CustomAxisTick />}
-                interval="preserveStartEnd"
+                interval={0}
                 height={80}
               />
               <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
@@ -1536,7 +1676,7 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <XAxis
                 dataKey="name"
                 tick={<CustomAxisTick />}
-                interval="preserveStartEnd"
+                interval={0}
                 height={80}
               />
               <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
@@ -1647,7 +1787,7 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <XAxis
                 dataKey="cargo"
                 tick={<CustomAxisTick />}
-                interval="preserveStartEnd"
+                interval={0}
                 height={80}
               />
               <YAxis tick={axisTick} />
@@ -1712,7 +1852,7 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <XAxis
                 dataKey="name"
                 tick={<CustomAxisTick />}
-                interval="preserveStartEnd"
+                interval={0}
                 height={80}
               />
               <YAxis
@@ -1826,7 +1966,7 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
               <XAxis
                 dataKey="name"
                 tick={<CustomAxisTick />}
-                interval="preserveStartEnd"
+                interval={0}
                 height={80}
               />
               <YAxis tick={axisTick} domain={waterfallYAxisDomain} />
@@ -2069,18 +2209,189 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">
-                  Ranking da Variação dos Setores (%)
-                </CardTitle>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-base">
+                    {isAllHospitals
+                      ? "Ranking da Variação dos Hospitais (%)"
+                      : "Ranking da Variação dos Setores (%)"}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      Ordenação
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={
+                          rankingOrderCusto === "asc"
+                            ? "text-xs font-medium text-foreground whitespace-nowrap"
+                            : "text-xs text-muted-foreground whitespace-nowrap"
+                        }
+                      >
+                        Maior
+                      </span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={rankingOrderCusto === "desc"}
+                        onClick={() =>
+                          setRankingOrderCusto((prev) =>
+                            prev === "asc" ? "desc" : "asc"
+                          )
+                        }
+                        className={
+                          "relative inline-flex h-6 w-11 items-center rounded-full border transition-colors " +
+                          (rankingOrderCusto === "desc"
+                            ? "bg-primary/10 border-primary/40"
+                            : "bg-muted border-border")
+                        }
+                        title={
+                          rankingOrderCusto === "desc"
+                            ? "Maior → Menor"
+                            : "Menor → Maior"
+                        }
+                      >
+                        <span
+                          className={
+                            "inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform " +
+                            (rankingOrderCusto === "desc"
+                              ? "translate-x-5"
+                              : "translate-x-0")
+                          }
+                        />
+                      </button>
+                      <span
+                        className={
+                          rankingOrderCusto === "desc"
+                            ? "text-xs font-medium text-foreground whitespace-nowrap"
+                            : "text-xs text-muted-foreground whitespace-nowrap"
+                        }
+                      >
+                        Menor
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="px-2 pb-4">
-                {renderRanking(rankingUnidadesCusto, "currency")}
+                {renderRanking(
+                  isAllHospitals ? orderedRankingHospitaisCusto : orderedRankingCusto,
+                  "currency"
+                )}
               </CardContent>
             </Card>
 
             {renderVariacaoCustoTotalCard()}
 
-            {renderOccupationCard()}
+            {/* Ranking de Variação por Cargo (Custo) */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-base">
+                    Ranking de Variação por Cargo
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">Ordenação</span>
+                    <div className="flex items-center gap-2">
+                      <span className={cargoOrderCusto === "asc" ? "text-xs font-medium text-foreground whitespace-nowrap" : "text-xs text-muted-foreground whitespace-nowrap"}>Maior</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={cargoOrderCusto === "desc"}
+                        onClick={() => setCargoOrderCusto((prev) => prev === "asc" ? "desc" : "asc")}
+                        className={"relative inline-flex h-6 w-11 items-center rounded-full border transition-colors " + (cargoOrderCusto === "desc" ? "bg-primary/10 border-primary/40" : "bg-muted border-border")}
+                        title={cargoOrderCusto === "desc" ? "Maior → Menor" : "Menor → Maior"}
+                      >
+                        <span className={"inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform " + (cargoOrderCusto === "desc" ? "translate-x-5" : "translate-x-0")} />
+                      </button>
+                      <span className={cargoOrderCusto === "desc" ? "text-xs font-medium text-foreground whitespace-nowrap" : "text-xs text-muted-foreground whitespace-nowrap"}>Menor</span>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Filtro: Cargo</p>
+                  <Select value={selectedCargo} onValueChange={setSelectedCargo}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Todos os cargos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os cargos</SelectItem>
+                      {todosCargosRede.map((role) => (
+                        <SelectItem key={role} value={role}>{role}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs font-semibold text-center text-muted-foreground">
+                  Variação por Cargo (R$)
+                </p>
+                {cargoItensFiltered.length === 0 ? (
+                  <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">
+                    Dados insuficientes para análise.
+                  </div>
+                ) : (
+                  <div style={{ height: Math.max(180, cargoItensFiltered.length * 38) }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={[...cargoItensFiltered]
+                          .map((it) => ({
+                            nome: getCargoLabel(it),
+                            variacaoCustoReais: toNumber(it.variacaoCustoReais ?? (it as any).variacaoReais, 0),
+                          }))
+                          .sort((a, b) =>
+                            cargoOrderCusto === "asc"
+                              ? a.variacaoCustoReais - b.variacaoCustoReais
+                              : b.variacaoCustoReais - a.variacaoCustoReais
+                          )}
+                        layout="vertical"
+                        margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" tick={axisTick} tickFormatter={formatCurrencyAxisTick} />
+                        <YAxis type="category" dataKey="nome" width={110} tick={axisTick} />
+                        <Tooltip
+                          formatter={(v: any) => [formatCurrency(Number(v)), "Variação Custo"]}
+                          labelFormatter={(l: any) => String(l)}
+                        />
+                        <Bar dataKey="variacaoCustoReais" barSize={16}>
+                          {[...cargoItensFiltered]
+                            .map((it) => ({
+                              nome: getCargoLabel(it),
+                              variacaoCustoReais: toNumber(it.variacaoCustoReais ?? (it as any).variacaoReais, 0),
+                            }))
+                            .sort((a, b) =>
+                              cargoOrderCusto === "asc"
+                                ? a.variacaoCustoReais - b.variacaoCustoReais
+                                : b.variacaoCustoReais - a.variacaoCustoReais
+                            )
+                            .map((entry, i) => (
+                              <Cell
+                                key={`cc-${i}`}
+                                fill={entry.variacaoCustoReais < 0 ? "#dc2626" : "#16a34a"}
+                              />
+                            ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+                <div className="rounded border p-3 text-xs space-y-1 bg-muted/30">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Atual:</span>
+                    <span className="font-semibold">{formatCurrency(cargoSummaryAtualCusto)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Baseline:</span>
+                    <span className="font-semibold">{formatCurrency(cargoSummaryBaselineCusto)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Projetado:</span>
+                    <span className="font-semibold">{formatCurrency(cargoSummaryProjetadoCusto)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="flex items-center gap-3 pt-6 pb-2">
@@ -2103,18 +2414,189 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">
-                  Ranking da Variação dos Setores (QTD)
-                </CardTitle>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-base">
+                    {isAllHospitals
+                      ? "Ranking da Variação dos Hospitais (QTD)"
+                      : "Ranking da Variação dos Setores (QTD)"}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      Ordenação
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={
+                          rankingOrderQtd === "asc"
+                            ? "text-xs font-medium text-foreground whitespace-nowrap"
+                            : "text-xs text-muted-foreground whitespace-nowrap"
+                        }
+                      >
+                        Maior
+                      </span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={rankingOrderQtd === "desc"}
+                        onClick={() =>
+                          setRankingOrderQtd((prev) =>
+                            prev === "asc" ? "desc" : "asc"
+                          )
+                        }
+                        className={
+                          "relative inline-flex h-6 w-11 items-center rounded-full border transition-colors " +
+                          (rankingOrderQtd === "desc"
+                            ? "bg-primary/10 border-primary/40"
+                            : "bg-muted border-border")
+                        }
+                        title={
+                          rankingOrderQtd === "desc"
+                            ? "Maior → Menor"
+                            : "Menor → Maior"
+                        }
+                      >
+                        <span
+                          className={
+                            "inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform " +
+                            (rankingOrderQtd === "desc"
+                              ? "translate-x-5"
+                              : "translate-x-0")
+                          }
+                        />
+                      </button>
+                      <span
+                        className={
+                          rankingOrderQtd === "desc"
+                            ? "text-xs font-medium text-foreground whitespace-nowrap"
+                            : "text-xs text-muted-foreground whitespace-nowrap"
+                        }
+                      >
+                        Menor
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="px-2 pb-4">
-                {renderRanking(rankingUnidadesQuantidade, "people")}
+                {renderRanking(
+                  isAllHospitals ? orderedRankingHospitaisQtd : orderedRankingQtd,
+                  "people"
+                )}
               </CardContent>
             </Card>
 
             {renderVariacaoQuantidadeCard()}
 
-            {renderOccupationCard()}
+            {/* Ranking de Variação por Cargo (QTD) */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-base">
+                    Ranking de Variação por Cargo
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">Ordenação</span>
+                    <div className="flex items-center gap-2">
+                      <span className={cargoOrderQtd === "asc" ? "text-xs font-medium text-foreground whitespace-nowrap" : "text-xs text-muted-foreground whitespace-nowrap"}>Maior</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={cargoOrderQtd === "desc"}
+                        onClick={() => setCargoOrderQtd((prev) => prev === "asc" ? "desc" : "asc")}
+                        className={"relative inline-flex h-6 w-11 items-center rounded-full border transition-colors " + (cargoOrderQtd === "desc" ? "bg-primary/10 border-primary/40" : "bg-muted border-border")}
+                        title={cargoOrderQtd === "desc" ? "Maior → Menor" : "Menor → Maior"}
+                      >
+                        <span className={"inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform " + (cargoOrderQtd === "desc" ? "translate-x-5" : "translate-x-0")} />
+                      </button>
+                      <span className={cargoOrderQtd === "desc" ? "text-xs font-medium text-foreground whitespace-nowrap" : "text-xs text-muted-foreground whitespace-nowrap"}>Menor</span>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Filtro: Cargo</p>
+                  <Select value={selectedCargo} onValueChange={setSelectedCargo}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Todos os cargos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os cargos</SelectItem>
+                      {todosCargosRede.map((role) => (
+                        <SelectItem key={role} value={role}>{role}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs font-semibold text-center text-muted-foreground">
+                  Variação por Cargo (QTD)
+                </p>
+                {cargoItensFiltered.length === 0 ? (
+                  <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">
+                    Dados insuficientes para análise.
+                  </div>
+                ) : (
+                  <div style={{ height: Math.max(180, cargoItensFiltered.length * 38) }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={[...cargoItensFiltered]
+                          .map((it) => ({
+                            nome: getCargoLabel(it),
+                            variacaoQtd: toNumber(it.variacaoQtd, 0),
+                          }))
+                          .sort((a, b) =>
+                            cargoOrderQtd === "asc"
+                              ? a.variacaoQtd - b.variacaoQtd
+                              : b.variacaoQtd - a.variacaoQtd
+                          )}
+                        layout="vertical"
+                        margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" tick={axisTick} />
+                        <YAxis type="category" dataKey="nome" width={110} tick={axisTick} />
+                        <Tooltip
+                          formatter={(v: any) => [v, "Variação QTD"]}
+                          labelFormatter={(l: any) => String(l)}
+                        />
+                        <Bar dataKey="variacaoQtd" barSize={16}>
+                          {[...cargoItensFiltered]
+                            .map((it) => ({
+                              nome: getCargoLabel(it),
+                              variacaoQtd: toNumber(it.variacaoQtd, 0),
+                            }))
+                            .sort((a, b) =>
+                              cargoOrderQtd === "asc"
+                                ? a.variacaoQtd - b.variacaoQtd
+                                : b.variacaoQtd - a.variacaoQtd
+                            )
+                            .map((entry, i) => (
+                              <Cell
+                                key={`cq-${i}`}
+                                fill={entry.variacaoQtd < 0 ? "#dc2626" : "#16a34a"}
+                              />
+                            ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+                <div className="rounded border p-3 text-xs space-y-1 bg-muted/30">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Atual:</span>
+                    <span className="font-semibold">{cargoSummaryAtualQtd}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Baseline:</span>
+                    <span className="font-semibold">{cargoSummaryBaselineQtd}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Projetado:</span>
+                    <span className="font-semibold">{cargoSummaryProjetadoQtd}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="flex items-center gap-3 pt-6 pb-2">
