@@ -110,9 +110,13 @@ export default function AnaliseFinanceira({
   }, [dados, tipo]);
 
   const renderLinha = (linha: LinhaAnalise, grupoId?: string) => {
-    const custoTotalAtual = linha.quantidadeAtual * linha.custoPorFuncionario;
+    const salario = Number(linha.salario) || 0;
+    const adicionais = Number(linha.adicionais) || 0;
+    const valorHorasExtras = Number(linha.valorHorasExtras) || 0;
+    const custoPorFuncionario = Number(linha.custoPorFuncionario) || 0;
+    const custoTotalAtual = linha.quantidadeAtual * custoPorFuncionario;
     const custoTotalProjetado =
-      linha.quantidadeProjetada * linha.custoPorFuncionario;
+      linha.quantidadeProjetada * custoPorFuncionario;
     const variacaoQtd = linha.quantidadeProjetada - linha.quantidadeAtual;
     const variacaoCusto = custoTotalProjetado - custoTotalAtual;
     const variacaoPercent =
@@ -131,25 +135,25 @@ export default function AnaliseFinanceira({
           {linha.cargoNome}
         </TableCell>
         <TableCell>
-          {linha.salario.toLocaleString("pt-BR", {
+          {salario.toLocaleString("pt-BR", {
             style: "currency",
             currency: "BRL",
           })}
         </TableCell>
         <TableCell>
-          {linha.adicionais.toLocaleString("pt-BR", {
+          {adicionais.toLocaleString("pt-BR", {
             style: "currency",
             currency: "BRL",
           })}
         </TableCell>
         <TableCell>
-          {linha.valorHorasExtras.toLocaleString("pt-BR", {
+          {valorHorasExtras.toLocaleString("pt-BR", {
             style: "currency",
             currency: "BRL",
           })}
         </TableCell>
         <TableCell className="font-semibold">
-          {linha.custoPorFuncionario.toLocaleString("pt-BR", {
+          {custoPorFuncionario.toLocaleString("pt-BR", {
             style: "currency",
             currency: "BRL",
           })}
