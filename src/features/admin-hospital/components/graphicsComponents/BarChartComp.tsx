@@ -32,16 +32,17 @@ interface BargraphicChartProps {
 }
 
 const CustomAxisTick = (props: any) => {
-  const { x, y, payload } = props;
-  const maxWidth = 100; // largura máxima em pixels
+  const { x, y, payload, width, visibleTicksCount } = props;
+  const widthPerTick = visibleTicksCount > 0 ? width / visibleTicksCount : 80;
+  const fontSize = Math.max(8, Math.min(11, Math.floor(widthPerTick / 7)));
+  const maxLineWidth = Math.max(40, widthPerTick * 0.95);
   const words = String(payload.value).split(" ");
   const lines: string[] = [];
   let currentLine = "";
 
   words.forEach((word) => {
     const testLine = currentLine ? `${currentLine} ${word}` : word;
-    // Aproximação: 6 pixels por caractere
-    if (testLine.length * 6 > maxWidth && currentLine) {
+    if (testLine.length * fontSize * 0.6 > maxLineWidth && currentLine) {
       lines.push(currentLine);
       currentLine = word;
     } else {
@@ -52,9 +53,9 @@ const CustomAxisTick = (props: any) => {
 
   return (
     <g transform={`translate(${x},${y})`}>
-      <text x={0} y={0} dy={8} textAnchor="middle" fill="#666" fontSize={11}>
+      <text x={0} y={0} dy={8} textAnchor="middle" fill="#666" fontSize={fontSize}>
         {lines.map((line, index) => (
-          <tspan x={0} dy={12} key={index}>
+          <tspan x={0} dy={fontSize + 2} key={index}>
             {line}
           </tspan>
         ))}

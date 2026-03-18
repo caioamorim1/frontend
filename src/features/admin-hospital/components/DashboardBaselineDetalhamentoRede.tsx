@@ -24,10 +24,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Building2 } from "lucide-react";
 import { WaterfallDataItem } from "./DashboardBaselineScreen";
-import {
-  getHospitalOccupationDashboard,
-  type OccupationDashboardResponse,
-} from "@/lib/api";
 
 interface DashboardBaselineDetalhamentoRedeProps {
   snapshotData: any;
@@ -83,11 +79,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
   axisTick,
   ReusableWaterfall,
 }) => {
-  // State para dados de ocupação
-  const [occupationData, setOccupationData] =
-    useState<OccupationDashboardResponse | null>(null);
-  const [loadingOccupation, setLoadingOccupation] = useState(true);
-
   const [analysisTab, setAnalysisTab] = useState<"custo" | "pessoal">("custo");
   const [rankingOrderCusto, setRankingOrderCusto] = useState<"asc" | "desc">("asc");
   const [rankingOrderQtd, setRankingOrderQtd] = useState<"asc" | "desc">("asc");
@@ -106,28 +97,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
       setSelectedSector("all");
     }
   }, [selectedSector, setSelectedSector]);
-
-  // Buscar dados de ocupação
-  useEffect(() => {
-    const fetchOccupationData = async () => {
-      if (!hospitalId) {
-        return;
-      }
-
-      try {
-        setLoadingOccupation(true);
-        const data = await getHospitalOccupationDashboard(hospitalId);
-
-        setOccupationData(data);
-      } catch (error) {
-        console.error("[Occupation Dashboard] Erro ao carregar:", error);
-      } finally {
-        setLoadingOccupation(false);
-      }
-    };
-
-    fetchOccupationData();
-  }, [hospitalId]);
 
   // Calcular rankingSetores — fórmula: Variação (%) = Variação (R$) / Projetado (R$)
   const setoresVariacao: Array<{
