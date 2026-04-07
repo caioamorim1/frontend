@@ -47,6 +47,7 @@ interface BaselineParetoProps {
   hospital: any;
   collapsed: boolean;
   onToggle: () => void;
+  readOnly?: boolean;
 }
 
 interface SetorBaseline {
@@ -60,6 +61,7 @@ export default function BaselinePareto({
   hospital,
   collapsed,
   onToggle,
+  readOnly = false,
 }: BaselineParetoProps) {
   const baseline: any = hospital?.baseline;
 
@@ -314,6 +316,7 @@ export default function BaselinePareto({
                     chartData={chartData}
                     total={total}
                     toggleAtivo={toggleAtivo}
+                    readOnly={readOnly}
                   />
                 </div>
               </TabsContent>
@@ -339,6 +342,7 @@ export default function BaselinePareto({
                     total={totalSelected}
                     toggleAtivo={toggleAtivo}
                     isSelectionTable
+                    readOnly={readOnly}
                   />
                 </div>
               </TabsContent>
@@ -409,12 +413,14 @@ const CostTable = ({
   total,
   toggleAtivo,
   isSelectionTable = false,
+  readOnly = false,
 }: {
   title: string;
   chartData: any[];
   total: number;
   toggleAtivo: (nome: string) => void;
   isSelectionTable?: boolean;
+  readOnly?: boolean;
 }) => (
   <div className="bg-white rounded-lg border h-[650px] flex flex-col">
     <div className="p-4 border-b">
@@ -438,7 +444,8 @@ const CostTable = ({
                 <TableCell className="p-2">
                   <Checkbox
                     checked={d.ativo}
-                    onCheckedChange={() => toggleAtivo(d.nome)}
+                    onCheckedChange={() => !readOnly && toggleAtivo(d.nome)}
+                    disabled={readOnly}
                     id={`check-${d.nome}`}
                   />
                 </TableCell>

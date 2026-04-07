@@ -21,7 +21,7 @@ import { DollarSign, Percent, Calendar } from "lucide-react";
 import { ReusableWaterfall } from "./graphicsComponents/ReusableWaterfall";
 import { VariationCard } from "./VariationCard";
 import { formatAmountBRL } from "@/lib/utils";
-import { HospitalSector } from "@/mocks/functionSectores";
+import { HospitalSector } from "@/lib/functionSectores";
 import { getHospitalComparative } from "@/lib/api";
 import {
   parseCost as parseCostUtil,

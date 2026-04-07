@@ -24,6 +24,7 @@ import {
 } from "@/lib/api";
 import { useAlert } from "@/contexts/AlertContext";
 import { useModal } from "@/contexts/ModalContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Radar,
   RadarChart,
@@ -47,6 +48,8 @@ export const EvaluationsTab: React.FC<{
 }> = ({ onClose, unidadeInternacao, unidadeNaoInternacao }) => {
   const { showAlert } = useAlert();
   const { showModal } = useModal();
+  const { user } = useAuth();
+  const canEdit = !["GESTOR_ESTRATEGICO_HOSPITAL", "GESTOR_ESTRATEGICO_REDE"].includes(user?.tipo ?? "");
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -241,7 +244,7 @@ export const EvaluationsTab: React.FC<{
           >
             <span>Voltar</span>
           </button>
-          {!isFormOpen && (
+          {!isFormOpen && canEdit && (
             <button
               onClick={handleNewEvaluation}
               className="bg-secondary text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
@@ -274,6 +277,7 @@ export const EvaluationsTab: React.FC<{
           unidadeType={unidadeInternacao ? "internacao" : "assistencial"}
         />
       ) : (
+        <TooltipProvider delayDuration={200}>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -297,19 +301,19 @@ export const EvaluationsTab: React.FC<{
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     QUESTIONÁRIO
                   </th>
+                  {canEdit && (
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     AÇÕES
                   </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {evaluations.map((evaluation) => {
-                  // Buscar dados da avaliação específica nos agregados
                   const evaluationData = sectorAggregates?.evaluations?.find(
                     (ev: any) => ev.evaluationId === evaluation.id
                   );
 
-                  // Preparar dados para o gráfico de radar usando as categorias da avaliação
                   const radarData = evaluationData?.categories
                     ? evaluationData.categories.map((cat: any) => ({
                         category: cat.categoryName,
@@ -320,8 +324,74 @@ export const EvaluationsTab: React.FC<{
                     : [];
 
                   const isCompleted = evaluation.status === "completed";
+                  const showRadar = isCompleted && radarData.length > 0;
 
-                  const rowContent = (
+                  const scoreCell = showRadar ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-help underline decoration-dotted">
+                          {evaluationData?.totalScore ?? evaluation.calculateRate ?? 0}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        align="center"
+                        className="p-0 bg-white border shadow-xl z-50"
+                        sideOffset={10}
+                      >
+                        <div className="w-[500px] h-[400px] p-4">
+                          <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                            Gráfico da Avaliação Qualitativa
+                          </h4>
+                          <p className="text-xs text-gray-500 mb-2">
+                            Pontuação Total: {evaluationData?.totalScore}%
+                          </p>
+                          <ResponsiveContainer width="100%" height="85%">
+                            <RadarChart data={radarData}>
+                              <PolarGrid stroke="#e5e7eb" />
+                              <PolarAngleAxis
+                                dataKey="category"
+                                tick={{ fill: "#6b7280", fontSize: 11 }}
+                              />
+                              <PolarRadiusAxis
+                                angle={90}
+                                domain={[0, 100]}
+                                tick={{ fill: "#6b7280", fontSize: 10 }}
+                              />
+                              <Radar
+                                name="Pontuação"
+                                dataKey="value"
+                                stroke="#3b82f6"
+                                fill="#3b82f6"
+                                fillOpacity={0.6}
+                              />
+                              <RechartsTooltip
+                                content={({ active, payload }) => {
+                                  if (active && payload && payload.length) {
+                                    const data = payload[0].payload;
+                                    return (
+                                      <div className="bg-white border p-2 rounded shadow-sm text-xs">
+                                        <p className="font-semibold">{data.category}</p>
+                                        <p>Pontuação: {data.value}%</p>
+                                        <p className="text-gray-600">
+                                          {data.obtained}/{data.max} pontos
+                                        </p>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                }}
+                              />
+                            </RadarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <>{evaluationData?.totalScore ?? evaluation.calculateRate ?? 0}</>
+                  );
+
+                  return (
                     <tr
                       key={evaluation.id}
                       className="hover:bg-gray-50 transition-colors duration-150"
@@ -340,9 +410,7 @@ export const EvaluationsTab: React.FC<{
                       <td className="px-6 py-4">
                         <div className="flex items-center text-sm text-gray-600">
                           <Calendar className="h-4 w-4 mr-2" />
-                          {new Date(evaluation.date).toLocaleDateString(
-                            "pt-BR"
-                          )}
+                          {new Date(evaluation.date).toLocaleDateString("pt-BR")}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -355,13 +423,12 @@ export const EvaluationsTab: React.FC<{
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {evaluationData?.totalScore ??
-                          evaluation.calculateRate ??
-                          0}
+                        {scoreCell}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {evaluation.questionnaire}
                       </td>
+                      {canEdit && (
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center space-x-2">
                           <button
@@ -380,82 +447,15 @@ export const EvaluationsTab: React.FC<{
                           </button>
                         </div>
                       </td>
+                      )}
                     </tr>
                   );
-
-                  // Se for concluída e tiver dados, envolver com Tooltip
-                  if (isCompleted && radarData.length > 0) {
-                    return (
-                      <TooltipProvider key={evaluation.id} delayDuration={200}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>{rowContent}</TooltipTrigger>
-                          <TooltipContent
-                            side="top"
-                            align="center"
-                            className="p-0 bg-white border shadow-xl z-50"
-                            sideOffset={10}
-                          >
-                            <div className="w-[500px] h-[400px] p-4">
-                              <h4 className="text-sm font-semibold text-gray-900 mb-1">
-                                Gráfico da Avaliação Qualitativa
-                              </h4>
-                              <p className="text-xs text-gray-500 mb-2">
-                                Pontuação Total: {evaluationData?.totalScore}%
-                              </p>
-                              <ResponsiveContainer width="100%" height="85%">
-                                <RadarChart data={radarData}>
-                                  <PolarGrid stroke="#e5e7eb" />
-                                  <PolarAngleAxis
-                                    dataKey="category"
-                                    tick={{ fill: "#6b7280", fontSize: 11 }}
-                                  />
-                                  <PolarRadiusAxis
-                                    angle={90}
-                                    domain={[0, 100]}
-                                    tick={{ fill: "#6b7280", fontSize: 10 }}
-                                  />
-                                  <Radar
-                                    name="Pontuação"
-                                    dataKey="value"
-                                    stroke="#3b82f6"
-                                    fill="#3b82f6"
-                                    fillOpacity={0.6}
-                                  />
-                                  <RechartsTooltip
-                                    content={({ active, payload }) => {
-                                      if (active && payload && payload.length) {
-                                        const data = payload[0].payload;
-                                        return (
-                                          <div className="bg-white border p-2 rounded shadow-sm text-xs">
-                                            <p className="font-semibold">
-                                              {data.category}
-                                            </p>
-                                            <p>Pontuação: {data.value}%</p>
-                                            <p className="text-gray-600">
-                                              {data.obtained}/{data.max} pontos
-                                            </p>
-                                          </div>
-                                        );
-                                      }
-                                      return null;
-                                    }}
-                                  />
-                                </RadarChart>
-                              </ResponsiveContainer>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    );
-                  }
-
-                  // Caso contrário, retornar linha normal
-                  return rowContent;
                 })}
               </tbody>
             </table>
           </div>
         </div>
+        </TooltipProvider>
       )}
     </div>
   );

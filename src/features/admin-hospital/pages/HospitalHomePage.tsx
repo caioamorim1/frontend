@@ -45,8 +45,13 @@ export default function HospitalHomePage() {
         setLoading(true);
         const data = await getHospitalById(effectiveHospitalId);
         setHospital(data);
-      } catch (error) {
-        console.error("Erro ao carregar hospital:", error);
+      } catch (error: any) {
+        // Se 403, usa os dados básicos do JWT (nome já disponível no token)
+        if (error?.response?.status === 403 && user?.hospital) {
+          setHospital(user.hospital as any);
+        } else {
+          console.error("Erro ao carregar hospital:", error);
+        }
       } finally {
         setLoading(false);
       }
@@ -64,8 +69,15 @@ export default function HospitalHomePage() {
 
       if (stored) {
         try {
-          const parsed = JSON.parse(stored);
-          setRecentPages(parsed);
+          const parsed: RecentPage[] = JSON.parse(stored);
+          // Normaliza hrefs antigos (ex: /meu-hospital/... ou /hospital/outro-id/...)
+          // para o routePrefix actual, evitando troca de sidebar entre layouts
+          const normalized = parsed.map((p) => ({
+            ...p,
+            href: p.href.replace(/^\/(meu-hospital|hospital\/[^/]+)/, routePrefix),
+          }));
+          localStorage.setItem(storageKey, JSON.stringify(normalized));
+          setRecentPages(normalized);
         } catch (error) {
           // Se houver erro, define páginas padrão
           const defaultPages: RecentPage[] = [
@@ -82,7 +94,7 @@ export default function HospitalHomePage() {
               timestamp: Date.now() - 1000,
             },
             {
-              title: "Unidades e Leitos",
+              title: "Classificação de Leitos",
               icon: "Bed",
               href: `${routePrefix}/unidades-leitos`,
               timestamp: Date.now() - 2000,
@@ -120,7 +132,7 @@ export default function HospitalHomePage() {
             timestamp: Date.now() - 1000,
           },
           {
-            title: "Unidades e Leitos",
+            title: "Classificação de Leitos",
             icon: "Bed",
             href: `${routePrefix}/unidades-leitos`,
             timestamp: Date.now() - 2000,

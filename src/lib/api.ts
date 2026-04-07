@@ -381,16 +381,15 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Se receber 401 ou 403 em outras rotas (token expirado/inválido)
-    if (
-      error.response &&
-      (error.response.status === 401 || error.response.status === 403)
-    ) {
-      // Limpar token do localStorage
+    // Se receber 401, o token expirou ou é inválido — terminar sessão
+    // 403 significa apenas "sem permissão para este recurso" — NÃO fazer logout
+    if (error.response && error.response.status === 401) {
       localStorage.removeItem("authToken");
-
-      // Redirecionar para login usando hash router
       window.location.hash = "#/login";
+    }
+
+    if (error.response && error.response.status === 403) {
+      window.dispatchEvent(new CustomEvent("api:forbidden"));
     }
 
     return Promise.reject(error);
@@ -463,6 +462,7 @@ export interface Hospital {
   telefone: string;
   foto?: string;
   regiao?: Regiao;
+  rede?: Rede;
   baseline?: Baseline;
   tipo?: TipoHospital;
   gestao?: GestaoHospital;
@@ -488,6 +488,9 @@ export interface UnidadeInternacao {
   horas_extra_reais?: string;
   horas_extra_projetadas?: string;
   cargos_unidade?: CargoUnidade[];
+  pontuacao_max?: number | null;
+  pontuacao_min?: number | null;
+  gatilho?: number | null;
 }
 export interface UnidadeNaoInternacao {
   id: string;
@@ -499,6 +502,9 @@ export interface UnidadeNaoInternacao {
   horas_extra_reais?: string;
   horas_extra_projetadas?: string;
   cargos_unidade?: CargoUnidade[];
+  pontuacao_max?: number | null;
+  pontuacao_min?: number | null;
+  gatilho?: number | null;
 }
 export interface UnidadeNeutra {
   id: string;
@@ -529,6 +535,9 @@ export type CreateUnidadeInternacaoDTO = {
   horas_extra_reais?: string;
   horas_extra_projetadas?: string;
   cargos_unidade: { cargoId: string; quantidade_funcionarios: number }[];
+  pontuacao_max?: number | null;
+  pontuacao_min?: number | null;
+  gatilho?: number | null;
 };
 export type CreateUnidadeNaoInternacaoDTO = {
   hospitalId: string;
@@ -537,6 +546,9 @@ export type CreateUnidadeNaoInternacaoDTO = {
   horas_extra_reais?: string;
   horas_extra_projetadas?: string;
   cargos_unidade: { cargoId: string; quantidade_funcionarios: number }[];
+  pontuacao_max?: number | null;
+  pontuacao_min?: number | null;
+  gatilho?: number | null;
 };
 export type CreateUnidadeNeutraDTO = {
   hospitalId: string;
@@ -563,11 +575,12 @@ export interface Usuario {
   cpf?: string;
   permissao:
     | "ADMIN"
-    | "GESTOR_ESTRATEGICO"
-    | "GESTOR_TATICO"
     | "AVALIADOR"
-    | "CONSULTOR"
-    | "COMUM";
+    | "GESTOR_TATICO_TEC_ADM"
+    | "GESTOR_TATICO_TECNICO"
+    | "GESTOR_TATICO_ADM"
+    | "GESTOR_ESTRATEGICO_HOSPITAL"
+    | "GESTOR_ESTRATEGICO_REDE";
   coren?: string;
 }
 export interface CreateUsuarioDTO {
@@ -680,6 +693,9 @@ export interface Leito {
   id: string;
   numero: string;
   status: StatusLeito;
+  pontuacaoDentroIntervalo?: boolean | null;
+  classificacaoScp?: string | null;
+  justificativa?: string | null;
 }
 export interface CreateLeitoDTO {
   unidadeId: string;
@@ -689,6 +705,8 @@ export type UpdateLeitoDTO = Partial<{
   justificativa?: string | null;
   status: string;
   numero?: string;
+  autorId?: string;
+  autorNome?: string;
 }>;
 
 export interface SessaoAtiva {
@@ -697,6 +715,7 @@ export interface SessaoAtiva {
   prontuario: string | null;
   classificacao: string;
   itens: Record<string, number>;
+  justificativa?: string | null;
 }
 export interface AdmitirPacienteDTO {
   leitoId: string;
@@ -1391,6 +1410,14 @@ export const getRedes = async (): Promise<Rede[]> => {
   const response = await api.get("/redes");
   return response.data;
 };
+export const getRedeById = async (redeId: string): Promise<Rede> => {
+  const response = await api.get(`/redes/${redeId}`);
+  return response.data;
+};
+export const getHospitaisByRede = async (redeId: string): Promise<Pick<Hospital, "id" | "nome">[]> => {
+  const response = await api.get(`/redes/${redeId}/hospitais`);
+  return response.data;
+};
 export const createRede = async (nome: string): Promise<Rede> => {
   const response = await api.post("/redes", { nome });
   return response.data;
@@ -1447,6 +1474,7 @@ export const getUnidadesInternacao = async (
   hospitalId: string
 ): Promise<UnidadeInternacao[]> => {
   const response = await api.get(`/unidades`, { params: { hospitalId } });
+  console.log("[getUnidadesInternacao] raw response:", response.data);
   return response.data.map((u: any) => ({
     ...u,
     tipo: "internacao",
@@ -1459,6 +1487,7 @@ export const getUnidadesNaoInternacao = async (
   const response = await api.get(
     `/unidades-nao-internacao/hospital/${hospitalId}`
   );
+  console.log("[getUnidadesNaoInternacao] raw response:", response.data.data);
   return response.data.data.map((u: any) => ({
     ...u,
     tipo: "nao-internacao",
@@ -2657,4 +2686,128 @@ export async function exportDimensionamentoPdf(
   window.URL.revokeObjectURL(url);
 }
 
+// --- Comentários de Unidade ---
+export interface ComentarioUnidade {
+  id: string;
+  texto: string;
+  data: string;
+  criadoEm: string;
+  autor: { id: string; nome: string } | null;
+}
+
+export async function getComentariosUnidade(
+  unidadeId: string,
+  data: string
+): Promise<ComentarioUnidade[]> {
+  const response = await api.get(
+    `/unidades/${unidadeId}/comentarios?data=${data}`
+  );
+  return response.data;
+}
+
+export async function createComentarioUnidade(
+  unidadeId: string,
+  autorId: string,
+  data: string,
+  texto: string
+): Promise<ComentarioUnidade> {
+  const response = await api.post(`/unidades/${unidadeId}/comentarios`, {
+    autorId,
+    data,
+    texto,
+  });
+  return response.data;
+}
+
+export async function deleteComentarioUnidade(
+  unidadeId: string,
+  comentarioId: string
+): Promise<void> {
+  await api.delete(`/unidades/${unidadeId}/comentarios/${comentarioId}`);
+}
+
+// ===== DASHBOARD TERMÔMETRO =====
+
+export interface TermometroGlobalResponse {
+  taxaOcupacaoHospital: number;
+  leitosAvaliadosHospital: number;
+  data: string;
+  nivelPredominante: string;
+  desviosPerfil: number;
+  setoresOcupacao: { nome: string; hoje: number; ontem: number }[];
+  setoresDesvio: { nome: string; subutilizacao: number; risco: number }[];
+  niveis: {
+    nivel: string;
+    label: string;
+    totalPacientes: number;
+    percentualTotal: number;
+    setores: { nome: string; percentual: number }[];
+  }[];
+}
+
+export async function getTermometroGlobal(
+  hospitalId: string
+): Promise<TermometroGlobalResponse> {
+  const res = await api.get(`/termometro/${hospitalId}/global`);
+  return res.data;
+}
+
+export interface TermometroDetalhamentoResponse {
+  taxaOcupacaoMedia: number;
+  leitosAvaliadosPerc: number;
+  totalLeitos: number;
+  totalAvaliacoes: number;
+  metodoScp: string;
+  nivelPredominante: string;
+  nivelPredominanteLabel: string;
+  desvios: number;
+  riscos: number;
+  subutilizacao: number;
+  estadosLeitos: { name: string; value: number }[];
+  niveisCuidado: { name: string; value: number }[];
+  setores: { id: string | null; nome: string }[];
+}
+
+export async function getTermometroDetalhamento(
+  hospitalId: string,
+  params?: { setorId?: string; dataInicial?: string; dataFinal?: string }
+): Promise<TermometroDetalhamentoResponse> {
+  const res = await api.get(`/termometro/${hospitalId}/detalhamento`, { params });
+  return res.data;
+}
+
+export interface TermometroSerieHistoricaResponse {
+  granularidade: "dia" | "mes";
+  ocupacao: { label: string; data: string; taxa: number; taxaMaxima: number }[];
+  niveis: {
+    label: string;
+    data: string;
+    minimos: number;
+    intermediarios: number;
+    altaDependencia: number;
+    semiIntensivos: number;
+    intensivos: number;
+    qtdMinimos?: number;
+    qtdIntermediarios?: number;
+    qtdAltaDependencia?: number;
+    qtdSemiIntensivos?: number;
+    qtdIntensivos?: number;
+    qtdTotal?: number;
+  }[];
+  snapshotHoje: {
+    taxaOcupacao: number;
+    taxaMaxima: number;
+    niveis: { name: string; value: number; percentual: number }[];
+  } | null;
+}
+
+export async function getTermometroSerieHistorica(
+  hospitalId: string,
+  params: { dataInicial: string; dataFinal: string; setorId?: string; granularidade?: "dia" | "mes" }
+): Promise<TermometroSerieHistoricaResponse> {
+  const res = await api.get(`/termometro/${hospitalId}/serie-historica`, { params });
+  return res.data;
+}
+
 export default api;
+

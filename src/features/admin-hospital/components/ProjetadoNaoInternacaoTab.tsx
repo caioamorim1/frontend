@@ -33,6 +33,7 @@ import { GrupoDeCargos } from "@/components/shared/AnaliseFinanceira";
 import { EvaluationsTab } from "@/features/qualitativo/components/EvaluationsTab";
 import React from "react";
 import { useAlert } from "@/contexts/AlertContext";
+import { useAuth } from "@/contexts/AuthContext";
 import brainIcon from "@/assets/brain_ia.jpg";
 import CargoSitioManager from "./CargoSitioManager";
 import { Input } from "@/components/ui/input";
@@ -160,6 +161,8 @@ export default function ProjetadoNaoInternacaoTab({
   unidade,
 }: ProjetadoNaoInternacaoTabProps) {
   const { showAlert } = useAlert();
+  const { user } = useAuth();
+  const canEdit = !["GESTOR_ESTRATEGICO_HOSPITAL", "GESTOR_ESTRATEGICO_REDE"].includes(user?.tipo ?? "");
   const params = useParams<{
     hospitalId?: string;
     hospital_id?: string;
@@ -557,6 +560,7 @@ export default function ProjetadoNaoInternacaoTab({
                           </TableCell>
                           <TableCell className="text-center"></TableCell>
                           <TableCell className="text-center">
+                            {canEdit && (
                             <button
                               onClick={() => handleOpenSitioManager(sitio)}
                               className="inline-flex items-center gap-1 text-green-600 hover:text-green-800 text-sm"
@@ -565,6 +569,7 @@ export default function ProjetadoNaoInternacaoTab({
                               <Users size={18} />
                               <span>Gerar Cálculo</span>
                             </button>
+                            )}
                           </TableCell>
                           <TableCell colSpan={4}></TableCell>
                         </TableRow>
@@ -612,6 +617,7 @@ export default function ProjetadoNaoInternacaoTab({
                                     handleAjusteChange(idAjusteKey, novoValor)
                                   }
                                   disabled={
+                                    !canEdit ||
                                     metadata[idAjusteKey]?.status ===
                                       "concluido_parcial" ||
                                     metadata[idAjusteKey]?.status ===
@@ -643,6 +649,7 @@ export default function ProjetadoNaoInternacaoTab({
                                   onValueChange={(value) =>
                                     handleStatusChange(idAjusteKey, value)
                                   }
+                                  disabled={!canEdit}
                                 >
                                   <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Selecione o status" />
@@ -695,9 +702,11 @@ export default function ProjetadoNaoInternacaoTab({
               <Button onClick={handleOpenAvaliar} disabled={saving}>
                 {"Avaliação"}
               </Button>
+              {canEdit && (
               <Button onClick={handleSave} disabled={saving}>
                 {saving ? "Salvando..." : "Salvar Ajustes"}
               </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -711,6 +720,7 @@ export default function ProjetadoNaoInternacaoTab({
         onSave={handleSaveObservacao}
         initialValue={metadata[modalObservacao.cargoId]?.observacao || ""}
         cargoNome={modalObservacao.cargoNome}
+        readOnly={!canEdit}
       />
     </>
   );

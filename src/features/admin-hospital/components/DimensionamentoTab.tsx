@@ -11,17 +11,22 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import AnaliseFinanceira from "@/components/shared/AnaliseFinanceira";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
+import ExportRelatorioDropdown from "./ExportRelatorioDropdown";
 
 interface DimensionamentoTabProps {
   unidade: UnidadeInternacao;
   sessoes: SessaoAtiva[];
   dateRange?: { inicio?: string; fim?: string };
+  hospitalId?: string;
+  unidadeId?: string;
 }
 
 export default function DimensionamentoTab({
   unidade,
   sessoes,
   dateRange,
+  hospitalId,
+  unidadeId,
 }: DimensionamentoTabProps) {
   const [analiseData, setAnaliseData] =
     useState<AnaliseInternacaoResponse | null>(null);
@@ -139,21 +144,31 @@ export default function DimensionamentoTab({
     <div className="space-y-6 animate-fade-in-down">
       <Card>
         <CardHeader>
-          <CardTitle>Dados Atuais</CardTitle>
-          <div className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm text-gray-500 mt-2">
+          <div className="flex items-start justify-between">
             <div>
-              <p>
-                <strong>Período de Análise:</strong> {formatDate(periodoInicio)}{" "}
-                a {formatDate(periodoFim)}
-              </p>
-              <p>
-                <strong>Total de Pacientes Atuais:</strong> {sessoes.length}
-              </p>
-              <p>
-                <strong>Taxa de Ocupação Atual:</strong>{" "}
-                {taxaOcupacaoAtual.toFixed(2)}%
-              </p>
+              <CardTitle>Dados Atuais</CardTitle>
+              <div className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm text-gray-500 mt-2">
+                <div>
+                  <p>
+                    <strong>Período de Análise:</strong> {formatDate(periodoInicio)}{" "}
+                    a {formatDate(periodoFim)}
+                  </p>
+                  <p>
+                    <strong>Total de Pacientes Atuais:</strong> {sessoes.length}
+                  </p>
+                  <p>
+                    <strong>Taxa de Ocupação Atual:</strong>{" "}
+                    {taxaOcupacaoAtual.toFixed(2)}%
+                  </p>
+                </div>
+              </div>
             </div>
+            {hospitalId && unidadeId && (
+              <ExportRelatorioDropdown
+                hospitalId={hospitalId}
+                unidadeId={unidadeId}
+              />
+            )}
           </div>
         </CardHeader>
       </Card>

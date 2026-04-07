@@ -22,10 +22,13 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAlert } from "@/contexts/AlertContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function BaselinePage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const { showAlert } = useAlert();
+  const { user } = useAuth();
+  const canEdit = user?.tipo === "ADMIN";
   const [hospital, setHospital] = useState<Hospital | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -352,8 +355,8 @@ export default function BaselinePage() {
         </h1>
       </div>
 
-      {/* Card para criar novo baseline */}
-      <Card>
+      {/* Card para criar novo baseline — apenas ADMIN */}
+      {canEdit && <Card>
         <CardHeader>
           <CardTitle>Criar Novo Baseline</CardTitle>
         </CardHeader>
@@ -378,7 +381,7 @@ export default function BaselinePage() {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* Card para listar snapshots (baselines) disponíveis */}
       <Card>
@@ -461,19 +464,23 @@ export default function BaselinePage() {
                         </div>
                       )}
                     </div>
-                    <Button
-                      variant={
-                        selectedSnapshotId === snapshot.id
-                          ? "default"
-                          : "outline"
-                      }
-                      size="sm"
-                      onClick={() => handleSelecionarBaseline(snapshot.id)}
-                    >
-                      {selectedSnapshotId === snapshot.id
-                        ? "Selecionado"
-                        : "Selecionar Baseline"}
-                    </Button>
+                    {canEdit ? (
+                      <Button
+                        variant={
+                          selectedSnapshotId === snapshot.id
+                            ? "default"
+                            : "outline"
+                        }
+                        size="sm"
+                        onClick={() => handleSelecionarBaseline(snapshot.id)}
+                      >
+                        {selectedSnapshotId === snapshot.id
+                          ? "Selecionado"
+                          : "Selecionar Baseline"}
+                      </Button>
+                    ) : selectedSnapshotId === snapshot.id ? (
+                      <span className="text-xs font-semibold text-primary border border-primary rounded px-2 py-1">Selecionado</span>
+                    ) : null}
                   </div>
                 );
               })}

@@ -10,9 +10,14 @@ import {
   UpdateLeitoDTO,
 } from "@/lib/api";
 import { Trash2, Edit, BedDouble } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useModal } from "@/contexts/ModalContext";
 
 export default function LeitosAdminPage() {
-  const { setorId } = useParams<{ setorId: string }>(); // Renomeado para corresponder à rota
+  const { setorId } = useParams<{ setorId: string }>();
+  const { user } = useAuth();
+  const { showModal } = useModal();
+  const canEdit = ["ADMIN", "GESTOR_TATICO_ADM", "GESTOR_TATICO_TEC_ADM", "GESTOR_TATICO_TECNICO"].includes(user?.tipo ?? "");
   const [leitos, setLeitos] = useState<Leito[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,15 +81,22 @@ export default function LeitosAdminPage() {
     }
   };
 
-  const handleDelete = async (leitoId: string) => {
-    if (window.confirm("Tem certeza que deseja excluir este leito?")) {
-      try {
-        await deleteLeito(leitoId);
-        fetchLeitos();
-      } catch (err) {
-        setError("Falha ao excluir o leito.");
-      }
-    }
+  const handleDelete = (leitoId: string) => {
+    showModal({
+      type: "confirm",
+      title: "Excluir leito",
+      message: "Tem certeza que deseja excluir este leito? Esta ação não pode ser desfeita.",
+      confirmText: "Excluir",
+      cancelText: "Cancelar",
+      onConfirm: async () => {
+        try {
+          await deleteLeito(leitoId);
+          fetchLeitos();
+        } catch (err) {
+          setError("Falha ao excluir o leito.");
+        }
+      },
+    });
   };
 
   return (
@@ -93,12 +105,14 @@ export default function LeitosAdminPage() {
         <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
           <BedDouble /> Gestão de Leitos
         </h2>
+        {canEdit && (
         <button
           onClick={isFormVisible ? handleCancel : handleAddNew}
           className="px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
         >
           {isFormVisible ? "Cancelar" : "+ Novo Leito"}
         </button>
+        )}
       </div>
 
       {isFormVisible && (
@@ -150,9 +164,11 @@ export default function LeitosAdminPage() {
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                   Status
                 </th>
+                {canEdit && (
                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                   Ações
                 </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -164,6 +180,7 @@ export default function LeitosAdminPage() {
                   <td className="px-4 py-2 whitespace-nowrap text-sm">
                     {leito.status}
                   </td>
+                  {canEdit && (
                   <td className="px-4 py-2 whitespace-nowrap text-right text-sm space-x-2">
                     <button
                       onClick={() => handleEdit(leito)}
@@ -178,6 +195,7 @@ export default function LeitosAdminPage() {
                       <Trash2 size={18} />
                     </button>
                   </td>
+                  )}
                 </tr>
               ))}
             </tbody>

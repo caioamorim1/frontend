@@ -12,6 +12,7 @@ import {
 import { Trash2, Edit } from "lucide-react";
 import { useModal } from "@/contexts/ModalContext";
 import { useAlert } from "@/contexts/AlertContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { CpfInput, EmailInput } from "@/components/shared/MaskedInputs";
 
 // O DTO para criação inclui a senha inicial
@@ -19,32 +20,36 @@ const initialFormState: Omit<CreateUsuarioDTO, "hospitalId" | "senha"> = {
   nome: "",
   email: "",
   cpf: "",
-  tipo: "COMUM",
+  tipo: "AVALIADOR",
 };
 
 // Tipo de usuário adicional para o frontend (todos enviados como GESTOR ao backend)
 type TipoUsuario =
-  | "COMUM"
-  | "CONSULTOR"
   | "AVALIADOR"
-  | "GESTOR_TATICO"
-  | "GESTOR_ESTRATEGICO";
+  | "GESTOR_TATICO_TEC_ADM"
+  | "GESTOR_TATICO_TECNICO"
+  | "GESTOR_TATICO_ADM"
+  | "GESTOR_ESTRATEGICO_HOSPITAL"
+  | "GESTOR_ESTRATEGICO_REDE";
 
 const formatTipoUsuario = (tipo: string) => {
   switch (tipo) {
     case "ADMIN":
-      return "Admin";
-    case "GESTOR_ESTRATEGICO":
-      return "Gestor Estratégico";
-    case "GESTOR_TATICO":
-      return "Gestor Tático";
+      return "Administrador";
     case "AVALIADOR":
       return "Avaliador";
-    case "CONSULTOR":
-      return "Consultor";
-    case "COMUM":
+    case "GESTOR_TATICO_TEC_ADM":
+      return "Gestor Tático (Tec/Adm)";
+    case "GESTOR_TATICO_TECNICO":
+      return "Gestor Tático Técnico";
+    case "GESTOR_TATICO_ADM":
+      return "Gestor Tático Administrativo";
+    case "GESTOR_ESTRATEGICO_HOSPITAL":
+      return "Gestor Estratégico – Hospital";
+    case "GESTOR_ESTRATEGICO_REDE":
+      return "Gestor Estratégico – Rede";
     default:
-      return "Comum";
+      return tipo;
   }
 };
 
@@ -52,13 +57,19 @@ export default function UsuariosPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const { showModal } = useModal();
   const { showAlert } = useAlert();
+  const { user } = useAuth();
+
+  const canSeeAll = user?.tipo === "ADMIN" ||
+    user?.tipo === "GESTOR_ESTRATEGICO_HOSPITAL" ||
+    user?.tipo === "GESTOR_ESTRATEGICO_REDE";
+  const canEdit = user?.tipo === "ADMIN";
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [formData, setFormData] = useState<Partial<Usuario>>(initialFormState);
-  const [tipoUsuario, setTipoUsuario] = useState<TipoUsuario>("COMUM");
+  const [tipoUsuario, setTipoUsuario] = useState<TipoUsuario>("AVALIADOR");
   const [coren, setCoren] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -86,12 +97,14 @@ export default function UsuariosPage() {
     setFormData(usuario);
     // Agora o backend retorna a permissão granular no campo 'permissao'
     setTipoUsuario(
-      (usuario.permissao as TipoUsuario) === "GESTOR_ESTRATEGICO" ||
-        (usuario.permissao as TipoUsuario) === "GESTOR_TATICO" ||
-        (usuario.permissao as TipoUsuario) === "AVALIADOR" ||
-        (usuario.permissao as TipoUsuario) === "CONSULTOR"
+      (usuario.permissao as TipoUsuario) === "AVALIADOR" ||
+        (usuario.permissao as TipoUsuario) === "GESTOR_TATICO_TEC_ADM" ||
+        (usuario.permissao as TipoUsuario) === "GESTOR_TATICO_TECNICO" ||
+        (usuario.permissao as TipoUsuario) === "GESTOR_TATICO_ADM" ||
+        (usuario.permissao as TipoUsuario) === "GESTOR_ESTRATEGICO_HOSPITAL" ||
+        (usuario.permissao as TipoUsuario) === "GESTOR_ESTRATEGICO_REDE"
         ? (usuario.permissao as TipoUsuario)
-        : "COMUM"
+        : "AVALIADOR"
     );
     setCoren(usuario.coren || "");
     setIsFormVisible(true);
@@ -99,7 +112,7 @@ export default function UsuariosPage() {
 
   const handleAddNew = () => {
     setFormData(initialFormState);
-    setTipoUsuario("COMUM");
+    setTipoUsuario("AVALIADOR");
     setCoren("");
     setIsFormVisible(true);
   };
@@ -107,7 +120,7 @@ export default function UsuariosPage() {
   const handleCancel = () => {
     setIsFormVisible(false);
     setFormData(initialFormState);
-    setTipoUsuario("COMUM");
+    setTipoUsuario("AVALIADOR");
     setCoren("");
   };
 
@@ -141,7 +154,7 @@ export default function UsuariosPage() {
           email: formData.email,
           cpf: cpfDigits || undefined,
           tipo: tipoUsuario,
-          coren: tipoUsuario === "AVALIADOR" ? coren || undefined : undefined,
+          coren: (tipoUsuario === "AVALIADOR" || tipoUsuario === "GESTOR_TATICO_TECNICO") ? coren || undefined : undefined,
         };
         await updateUsuario(formData.id, updateData);
       } else {
@@ -154,7 +167,7 @@ export default function UsuariosPage() {
           cpf: cpfDigits || undefined,
           tipo: tipoUsuario,
           senha: senhaInicial,
-          coren: tipoUsuario === "AVALIADOR" ? coren || undefined : undefined,
+          coren: (tipoUsuario === "AVALIADOR" || tipoUsuario === "GESTOR_TATICO_TECNICO") ? coren || undefined : undefined,
         };
         await createUsuario(createData);
       }
@@ -206,8 +219,11 @@ export default function UsuariosPage() {
     });
   };
 
-  // Filtrar usuários baseado na busca
+  // Filtrar usuários baseado na busca e LGPD
   const filteredUsuarios = usuarios.filter((usuario) => {
+    // LGPD: utilizadores sem acesso estratégico veem apenas o próprio perfil
+    if (!canSeeAll && usuario.id !== user?.id) return false;
+
     const search = searchTerm.toLowerCase();
     return (
       usuario.nome.toLowerCase().includes(search) ||
@@ -222,12 +238,14 @@ export default function UsuariosPage() {
         <h1 className="text-3xl font-bold text-primary">
           Gerenciamento de Usuários
         </h1>
-        <button
-          onClick={isFormVisible ? handleCancel : handleAddNew}
-          className="px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
-        >
-          {isFormVisible ? "Cancelar" : "+ Novo Usuário"}
-        </button>
+        {canEdit && (
+          <button
+            onClick={isFormVisible ? handleCancel : handleAddNew}
+            className="px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
+          >
+            {isFormVisible ? "Cancelar" : "+ Novo Usuário"}
+          </button>
+        )}
       </div>
 
       {/* Barra de Busca */}
@@ -281,13 +299,14 @@ export default function UsuariosPage() {
                 onChange={(e) => setTipoUsuario(e.target.value as TipoUsuario)}
                 className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
               >
-                <option value="COMUM">Comum</option>
-                <option value="CONSULTOR">Consultor</option>
                 <option value="AVALIADOR">Avaliador</option>
-                <option value="GESTOR_TATICO">Gestor Tático</option>
-                <option value="GESTOR_ESTRATEGICO">Gestor Estratégico</option>
+                <option value="GESTOR_TATICO_TEC_ADM">Gestor Tático (Tec/Adm)</option>
+                <option value="GESTOR_TATICO_TECNICO">Gestor Tático Técnico</option>
+                <option value="GESTOR_TATICO_ADM">Gestor Tático Administrativo</option>
+                <option value="GESTOR_ESTRATEGICO_HOSPITAL">Gestor Estratégico – Hospital</option>
+                <option value="GESTOR_ESTRATEGICO_REDE">Gestor Estratégico – Rede</option>
               </select>
-              {tipoUsuario === "AVALIADOR" && (
+              {(tipoUsuario === "AVALIADOR" || tipoUsuario === "GESTOR_TATICO_TECNICO") && (
                 <input
                   name="coren"
                   value={coren}
@@ -326,9 +345,11 @@ export default function UsuariosPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Permissão
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Ações
-                  </th>
+                  {canEdit && (
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      Ações
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -344,26 +365,28 @@ export default function UsuariosPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 capitalize">
                         {formatTipoUsuario(usuario.permissao)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                        <button
-                          onClick={() => handleEdit(usuario)}
-                          className="text-secondary hover:opacity-70"
-                        >
-                          <Edit size={20} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(usuario.id)}
-                          className="text-red-600 hover:opacity-70"
-                        >
-                          <Trash2 size={20} />
-                        </button>
-                      </td>
+                      {canEdit && (
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
+                          <button
+                            onClick={() => handleEdit(usuario)}
+                            className="text-secondary hover:opacity-70"
+                          >
+                            <Edit size={20} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(usuario.id)}
+                            className="text-red-600 hover:opacity-70"
+                          >
+                            <Trash2 size={20} />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={canEdit ? 4 : 3}
                       className="px-6 py-4 text-center text-sm text-gray-500"
                     >
                       {searchTerm

@@ -228,6 +228,9 @@ export default function RegioesPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Grupo Pertencente
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Rede
+                  </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                     Ações
                   </th>
@@ -242,6 +245,9 @@ export default function RegioesPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                         {regiao.grupo?.nome || "N/A"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {regiao.grupo?.rede?.nome || "N/A"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
                         <button
@@ -262,7 +268,7 @@ export default function RegioesPage() {
                 ) : (
                   <tr>
                     <td
-                      colSpan={3}
+                      colSpan={4}
                       className="px-6 py-4 text-center text-sm text-gray-500"
                     >
                       Nenhuma região cadastrada.

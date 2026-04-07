@@ -18,11 +18,12 @@ interface UserPayload {
   // O token pode ter 'tipo' (novo/granular) e/ou 'role' (compat)
   tipo?:
     | "ADMIN"
-    | "GESTOR_ESTRATEGICO"
-    | "GESTOR_TATICO"
     | "AVALIADOR"
-    | "CONSULTOR"
-    | "COMUM";
+    | "GESTOR_TATICO_TEC_ADM"
+    | "GESTOR_TATICO_TECNICO"
+    | "GESTOR_TATICO_ADM"
+    | "GESTOR_ESTRATEGICO_HOSPITAL"
+    | "GESTOR_ESTRATEGICO_REDE";
   role?: "ADMIN" | "GESTOR" | "COMUM";
   // Propriedade unificada para facilitar o uso no frontend
   appRole?: "ADMIN" | "GESTOR" | "COMUM";
@@ -30,6 +31,11 @@ interface UserPayload {
     id: string;
     nome: string;
   };
+  rede?: {
+    id: string;
+    nome: string;
+  };
+  redeId?: string;
   // Tempo de expiração do token (timestamp Unix em segundos)
   exp?: number;
   // Tempo de emissão do token
@@ -145,8 +151,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (decoded.tipo === "ADMIN") {
           finalRole = "ADMIN";
         } else if (
-          decoded.tipo === "GESTOR_ESTRATEGICO" ||
-          decoded.tipo === "GESTOR_TATICO"
+          decoded.tipo === "AVALIADOR" ||
+          decoded.tipo === "GESTOR_TATICO_TEC_ADM" ||
+          decoded.tipo === "GESTOR_TATICO_TECNICO" ||
+          decoded.tipo === "GESTOR_TATICO_ADM" ||
+          decoded.tipo === "GESTOR_ESTRATEGICO_HOSPITAL" ||
+          decoded.tipo === "GESTOR_ESTRATEGICO_REDE"
         ) {
           finalRole = "GESTOR";
         } else if (decoded.role === "ADMIN") {
@@ -184,23 +194,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (decoded.mustChangePassword) {
           navigate("/change-password", { replace: true });
         } else if (decoded.tipo === "ADMIN" || decoded.role === "ADMIN") {
-          // Admin global vai para a gestão de hospitais
           navigate("/admin/hospitais", { replace: true });
+        } else if (decoded.tipo === "GESTOR_ESTRATEGICO_REDE") {
+          const redeId = decoded.redeId || decoded.rede?.id;
+          if (redeId) {
+            navigate(`/admin/redes/${redeId}/dashboard`, { replace: true });
+          } else {
+            navigate("/login", { replace: true });
+          }
         } else if (
-          decoded.tipo === "GESTOR_ESTRATEGICO" ||
-          decoded.tipo === "GESTOR_TATICO" ||
+          decoded.tipo === "GESTOR_TATICO_TEC_ADM" ||
+          decoded.tipo === "GESTOR_TATICO_TECNICO" ||
+          decoded.tipo === "GESTOR_TATICO_ADM" ||
+          decoded.tipo === "GESTOR_ESTRATEGICO_HOSPITAL" ||
+          decoded.tipo === "AVALIADOR" ||
           decoded.role === "GESTOR"
         ) {
-          // Gestor deve ir para o dashboard do seu hospital
           const hospId = decoded.hospital?.id;
           if (hospId) {
-            navigate(`/hospital/${hospId}/dashboard`, { replace: true });
+            navigate(`/hospital/${hospId}/home`, { replace: true });
           } else {
-            // Fallback se não houver hospital no token
             navigate("/meu-hospital", { replace: true });
           }
         } else {
-          // Usuário comum
           navigate("/meu-hospital", { replace: true });
         }
       }

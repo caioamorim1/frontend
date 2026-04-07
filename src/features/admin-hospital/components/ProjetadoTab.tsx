@@ -41,6 +41,7 @@ import {
 import { LinhaAnalise } from "@/components/shared/AnaliseFinanceira";
 import { EvaluationsTab } from "@/features/qualitativo/components/EvaluationsTab";
 import { useAlert } from "@/contexts/AlertContext";
+import { useAuth } from "@/contexts/AuthContext";
 import brainIcon from "@/assets/brain_ia.jpg";
 import {
   Select,
@@ -171,6 +172,8 @@ export default function ProjetadoTab({
   onDateRangeChange,
 }: ProjetadoTabProps) {
   const { showAlert } = useAlert();
+  const { user } = useAuth();
+  const readOnly = ["GESTOR_ESTRATEGICO_HOSPITAL", "GESTOR_ESTRATEGICO_REDE"].includes(user?.tipo ?? "");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [analiseBase, setAnaliseBase] = useState<LinhaAnaliseFinanceira[]>([]);
@@ -635,7 +638,7 @@ export default function ProjetadoTab({
                       value={dataInicial}
                       max={dataFinal || today}
                       onChange={(e) => setDataInicial(e.target.value)}
-                      disabled={temStatusConclusao}
+                      disabled={temStatusConclusao || readOnly}
                       className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
@@ -649,7 +652,7 @@ export default function ProjetadoTab({
                       min={dataInicial}
                       max={today}
                       onChange={(e) => setDataFinal(e.target.value)}
-                      disabled={temStatusConclusao}
+                      disabled={temStatusConclusao || readOnly}
                       className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
@@ -666,12 +669,12 @@ export default function ProjetadoTab({
                       placeholder="Ex.: 85"
                       value={taxaOcupacaoCustom}
                       onChange={(e) => setTaxaOcupacaoCustom(e.target.value)}
-                      disabled={temStatusConclusao || savingTaxaOcupacao}
+                      disabled={temStatusConclusao || savingTaxaOcupacao || readOnly}
                       className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
-                {!temStatusConclusao && (
+                {!temStatusConclusao && !readOnly && (
                   <div className="flex justify-end">
                     <button
                       onClick={handleCalcular}
@@ -865,6 +868,7 @@ export default function ProjetadoTab({
                                 handleAjusteChange(linha.cargoId, novoValor)
                               }
                               disabled={
+                                readOnly ||
                                 metadata[linha.cargoId]?.status ===
                                   "concluido_parcial" ||
                                 metadata[linha.cargoId]?.status ===
@@ -889,6 +893,11 @@ export default function ProjetadoTab({
                             />
                           </TableCell>
                           <TableCell>
+                            {readOnly ? (
+                              <span className="text-xs text-gray-600">
+                                {STATUS_OPTIONS.find((o) => o.value === (metadata[linha.cargoId]?.status || "nao_iniciado"))?.label}
+                              </span>
+                            ) : (
                             <Select
                               value={
                                 metadata[linha.cargoId]?.status ||
@@ -913,6 +922,7 @@ export default function ProjetadoTab({
                                 ))}
                               </SelectContent>
                             </Select>
+                            )}
                           </TableCell>
                         </TableRow>
                       );
@@ -941,6 +951,7 @@ export default function ProjetadoTab({
                                 handleAjusteChange(linha.cargoId, novoValor)
                               }
                               disabled={
+                                readOnly ||
                                 metadata[linha.cargoId]?.status ===
                                   "concluido_parcial" ||
                                 metadata[linha.cargoId]?.status ===
@@ -965,6 +976,11 @@ export default function ProjetadoTab({
                             />
                           </TableCell>
                           <TableCell>
+                            {readOnly ? (
+                              <span className="text-xs text-gray-600">
+                                {STATUS_OPTIONS.find((o) => o.value === (metadata[linha.cargoId]?.status || "nao_iniciado"))?.label}
+                              </span>
+                            ) : (
                             <Select
                               value={
                                 metadata[linha.cargoId]?.status ||
@@ -989,6 +1005,7 @@ export default function ProjetadoTab({
                                 ))}
                               </SelectContent>
                             </Select>
+                            )}
                           </TableCell>
                         </TableRow>
                       );
@@ -1011,9 +1028,11 @@ export default function ProjetadoTab({
                 <Button onClick={handleOpenAvaliar} disabled={saving}>
                   {"Avaliação"}
                 </Button>
+                {!readOnly && (
                 <Button onClick={handleSave} disabled={saving}>
                   {saving ? "Salvando..." : "Salvar Ajustes"}
                 </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -1028,6 +1047,7 @@ export default function ProjetadoTab({
         onSave={handleSaveObservacao}
         initialValue={metadata[modalObservacao.cargoId]?.observacao || ""}
         cargoNome={modalObservacao.cargoNome}
+        readOnly={readOnly}
       />
     </>
   );

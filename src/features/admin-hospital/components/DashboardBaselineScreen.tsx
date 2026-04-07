@@ -654,44 +654,113 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
     const redeNode = redeDashboardData.rede;
     const grupos = Array.isArray(redeNode?.grupos) ? redeNode.grupos : [];
 
-    const gruposDisponiveis = grupos.map((g: any) => ({
-      id: String(g.grupoId ?? g.id),
-      name: String(g.grupoNome ?? g.nome ?? g.name ?? "Grupo"),
+    // ── Dropdowns: use filtros.grupos (clean id/nome, all hospitals included) ──
+    const filtrosGrupos = Array.isArray(redeDashboardData.filtros?.grupos)
+      ? redeDashboardData.filtros.grupos
+      : [];
+
+    const gruposDisponiveis = filtrosGrupos.map((g: any) => ({
+      id: String(g.id),
+      name: String(g.nome ?? "Grupo"),
     }));
 
-    const grupoSelecionado =
+    const filtroGrupoSel =
       selectedGroupId !== "all"
-        ? grupos.find((g: any) => String(g.grupoId ?? g.id) === selectedGroupId)
+        ? filtrosGrupos.find((g: any) => g.id === selectedGroupId)
         : null;
 
-    const regioes = Array.isArray(grupoSelecionado?.regioes)
-      ? grupoSelecionado.regioes
-      : grupos.flatMap((g: any) => (Array.isArray(g.regioes) ? g.regioes : []));
+    const filtroRegioes: any[] = filtroGrupoSel
+      ? (Array.isArray(filtroGrupoSel.regioes) ? filtroGrupoSel.regioes : [])
+      : filtrosGrupos.flatMap((g: any) => (Array.isArray(g.regioes) ? g.regioes : []));
 
-    // Deduplicate by regiaoId/id
     const seenRegiaoIds = new Set<string>();
-    const regioesDisponiveis = (regioes as any[]).reduce(
+    const regioesDisponiveis = filtroRegioes.reduce(
       (acc: { id: string; name: string }[], r: any) => {
-        const id = String(r.regiaoId ?? r.id);
-        if (!seenRegiaoIds.has(id)) {
-          seenRegiaoIds.add(id);
-          acc.push({
-            id,
-            name: String(r.regiaoNome ?? r.nome ?? r.name ?? "Região"),
-          });
+        if (!seenRegiaoIds.has(r.id)) {
+          seenRegiaoIds.add(r.id);
+          acc.push({ id: String(r.id), name: String(r.nome ?? "Região") });
         }
         return acc;
       },
       []
     );
-    const regiaoSelecionada =
-      selectedRegionId !== "all"
-        ? regioes.find(
-            (r: any) => String(r.regiaoId ?? r.id) === selectedRegionId
-          )
+
+    /** Helper: collect hospitals for a given regionId UUID across all groups */
+    const getHospitaisByRegiaoId = (regiaoId: string, scopeGrupos: any[]): any[] => {
+      const seen = new Set<string>();
+      const result: any[] = [];
+      for (const g of scopeGrupos) {
+        for (const r of (Array.isArray(g.regioes) ? g.regioes : [])) {
+          if (r.id === regiaoId) {
+            for (const h of (Array.isArray(r.hospitais) ? r.hospitais : [])) {
+              if (!seen.has(h.id)) { seen.add(h.id); result.push(h); }
+            }
+          }
+        }
+      }
+      return result;
+    };
+
+    const filtroHospitais: any[] = (() => {
+      if (selectedRegionId !== "all") {
+        // Search by UUID across all relevant groups — a region UUID can appear in
+        // multiple groups (same geographic region shared), so we must collect from all.
+        const scopeGrupos = filtroGrupoSel ? [filtroGrupoSel] : filtrosGrupos;
+        return getHospitaisByRegiaoId(selectedRegionId, scopeGrupos);
+      }
+      if (filtroGrupoSel) {
+        const seen = new Set<string>();
+        return [
+          ...(Array.isArray(filtroGrupoSel.hospitaisDiretos) ? filtroGrupoSel.hospitaisDiretos : []),
+          ...(Array.isArray(filtroGrupoSel.regioes)
+            ? (filtroGrupoSel.regioes as any[]).flatMap((r: any) =>
+                Array.isArray(r.hospitais) ? r.hospitais : []
+              )
+            : []),
+        ].filter((h: any) => { if (seen.has(h.id)) return false; seen.add(h.id); return true; });
+      }
+      const seen = new Set<string>();
+      return filtrosGrupos.flatMap((g: any) => [
+        ...(Array.isArray(g.hospitaisDiretos) ? g.hospitaisDiretos : []),
+        ...(Array.isArray(g.regioes)
+          ? (g.regioes as any[]).flatMap((r: any) => (Array.isArray(r.hospitais) ? r.hospitais : []))
+          : []),
+      ]).filter((h: any) => { if (seen.has(h.id)) return false; seen.add(h.id); return true; });
+    })();
+
+    const seenHospitalIds = new Set<string>();
+    const hospitaisDisponiveis = filtroHospitais.reduce(
+      (acc: { id: string; name: string }[], h: any) => {
+        if (!seenHospitalIds.has(h.id)) {
+          seenHospitalIds.add(h.id);
+          acc.push({ id: String(h.id), name: String(h.nome ?? "Hospital") });
+        }
+        return acc;
+      },
+      []
+    );
+
+    // ── Data nodes: use rede.grupos for actual financial data ──────────────
+    const grupoSelecionado =
+      selectedGroupId !== "all"
+        ? grupos.find((g: any) => String(g.grupoId ?? g.id) === selectedGroupId)
         : null;
 
-    // Helper: collect all hospitals from a group node (directly + via regioes)
+    const regioes = grupoSelecionado
+      ? (Array.isArray(grupoSelecionado.regioes) ? grupoSelecionado.regioes : [])
+      : grupos.flatMap((g: any) => (Array.isArray(g.regioes) ? g.regioes : []));
+
+    // A region UUID can appear in multiple groups. When no group is scoped,
+    // find the data node from the correct group by matching BOTH region UUID
+    // and (if possible) limiting to the selected group scope.
+    const regiaoSelecionada =
+      selectedRegionId !== "all"
+        ? (grupoSelecionado
+            ? (Array.isArray(grupoSelecionado.regioes) ? grupoSelecionado.regioes : [])
+                .find((r: any) => String(r.regiaoId ?? r.id) === selectedRegionId)
+            : regioes.find((r: any) => String(r.regiaoId ?? r.id) === selectedRegionId))
+        : null;
+
     const getHospitaisFromGroup = (g: any): any[] => [
       ...(Array.isArray(g.hospitais) ? g.hospitais : []),
       ...(Array.isArray(g.regioes)
@@ -703,63 +772,16 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
 
     const hospitais = (() => {
       if (regiaoSelecionada) {
-        // Hospitals inside the selected region + hospitals directly on the group
-        // that are NOT assigned to any region (to avoid losing direct-group hospitals
-        // when a region is chosen for filtering).
-        return Array.isArray(regiaoSelecionada.hospitais)
-          ? regiaoSelecionada.hospitais
-          : [];
+        return Array.isArray(regiaoSelecionada.hospitais) ? regiaoSelecionada.hospitais : [];
       }
       if (grupoSelecionado) {
         return getHospitaisFromGroup(grupoSelecionado);
       }
-      // No group selected — collect from rede root + all groups
       return [
         ...(Array.isArray(redeNode?.hospitais) ? redeNode.hospitais : []),
         ...grupos.flatMap(getHospitaisFromGroup),
       ];
     })();
-
-    // Deduplicate by hospitalId/id to avoid duplicate entries in the dropdown
-    const seenHospitalIds = new Set<string>();
-    const hospitaisDisponiveis = (hospitais as any[]).reduce(
-      (acc: { id: string; name: string }[], h: any) => {
-        const id = String(h.hospitalId ?? h.id);
-        if (!seenHospitalIds.has(id)) {
-          seenHospitalIds.add(id);
-          acc.push({
-            id,
-            name: String(h.hospitalNome ?? h.nome ?? h.name ?? "Hospital"),
-          });
-        }
-        return acc;
-      },
-      []
-    );
-    console.log(
-      "%c[Rede Filters] DEBUG — copie e cole isso",
-      "background:#1e3a5f;color:#fff;font-weight:bold;padding:2px 6px",
-      JSON.stringify(
-        {
-          RAW_grupos: grupos.map((g: any) => ({
-            grupoId: g.grupoId,
-            id: g.id,
-            grupoNome: g.grupoNome,
-            nome: g.nome,
-            keys: Object.keys(g),
-            hospitaisDirectCount: Array.isArray(g.hospitais) ? g.hospitais.length : "não é array",
-            hospitaisDiretos: Array.isArray(g.hospitais)
-              ? (g.hospitais as any[]).map((h: any) => ({ hospitalId: h.hospitalId, id: h.id, nome: h.hospitalNome ?? h.nome }))
-              : g.hospitais,
-            regioesCount: Array.isArray(g.regioes) ? g.regioes.length : "não é array",
-          })),
-          DERIVED_gruposDisponiveis: gruposDisponiveis,
-          DERIVED_hospitaisDisponiveis: hospitaisDisponiveis,
-        },
-        null,
-        2
-      )
-    );
 
     const hospitalSelecionado =
       selectedHospitalId !== "all"
@@ -1577,7 +1599,11 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
                     </label>
                     <Select
                       value={selectedGroupId}
-                      onValueChange={setSelectedGroupId}
+                      onValueChange={(val) => {
+                        setSelectedGroupId(val);
+                        setSelectedRegionId("all");
+                        setSelectedHospitalId("all");
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Visão Geral" />
@@ -1599,7 +1625,10 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
                     </label>
                     <Select
                       value={selectedRegionId}
-                      onValueChange={setSelectedRegionId}
+                      onValueChange={(val) => {
+                        setSelectedRegionId(val);
+                        setSelectedHospitalId("all");
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Visão Geral" />

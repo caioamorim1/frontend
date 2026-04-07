@@ -40,11 +40,11 @@ export default function UnifiedLayout() {
     const pageMap: Record<string, { title: string; icon: string }> = {
       dashboard: { title: "Dashboard", icon: "ChartBar" },
       setores: { title: "Setores", icon: "Building2" },
-      "unidades-leitos": { title: "Unidades e Leitos", icon: "Bed" },
+      "unidades-leitos": { title: "Classificação de Leitos", icon: "Bed" },
       baseline: { title: "Baseline", icon: "FileText" },
       usuarios: { title: "Usuários", icon: "Users" },
       pareto: { title: "Pareto", icon: "ClipboardList" },
-      "gerir-setores": { title: "Gerir Setores", icon: "Settings" },
+      "gerir-setores": { title: "Dimensionar", icon: "Settings" },
       cargos: { title: "Cargos", icon: "Users" },
     };
 

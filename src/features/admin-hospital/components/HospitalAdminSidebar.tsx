@@ -18,6 +18,16 @@ import {
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getHospitalById, Hospital } from "@/lib/api";
+import {
+  can,
+  PERM_SEE_DASHBOARD,
+  PERM_PARETO,
+  PERM_SETORES,
+  PERM_BASELINE,
+  PERM_USUARIOS,
+  PERM_CARGOS,
+  PERM_SETORES_CADASTRO,
+} from "@/lib/permissions";
 import { /*...,*/ ListCollapse } from "lucide-react";
 
 const NavItem = ({
@@ -47,13 +57,13 @@ const NavItem = ({
       );
     }
 
-    // Para "Gerir Setores" (/hospital/:id/gerir-setores)
+    // Para "Dimensionar" (/hospital/:id/gerir-setores)
     // Marca como ativo se estamos em /gerir-setores ou /gerir-setores/:id
     if (to.endsWith("/gerir-setores")) {
       return currentPath.includes("/gerir-setores");
     }
 
-    // Para "Unidades e Leitos" e rotas de unidade
+    // Para "Classificação de Leitos" e rotas de unidade
     if (to.includes("/unidades-leitos")) {
       return (
         currentPath.includes("/unidades-leitos") ||
@@ -118,60 +128,77 @@ export default function HospitalAdminSidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
+  const tipo = user?.tipo;
+
   const navItems = [
     {
       to: `/hospital/${hospitalId}/home`,
       icon: <Home size={16} />,
       label: "Home",
+      show: true,
     },
     {
       to: `/hospital/${hospitalId}/dashboard`,
       icon: <LayoutDashboard size={18} />,
       label: "Dashboard",
+      show: can(tipo, ...PERM_SEE_DASHBOARD),
     },
     {
       to: `/hospital/${hospitalId}/pareto`,
       icon: <ClipboardList size={18} />,
       label: "Pareto",
+      show: can(tipo, ...PERM_PARETO),
     },
     {
       to: `/hospital/${hospitalId}/setores`,
       icon: <Building size={18} />,
-      label: "Gerir Setores",
+      label: "Dimensionar",
+      show: can(tipo, ...PERM_SETORES),
     },
     {
       to: `/hospital/${hospitalId}/unidades-leitos`,
       icon: <Bed size={18} />,
-      label: "Unidades e Leitos",
+      label: "Classificação de Leitos",
+      show: true,
     },
     {
       to: `/hospital/${hospitalId}/baseline`,
       icon: <BarChart3 size={18} />,
       label: "Baseline",
+      show: can(tipo, ...PERM_BASELINE),
     },
-  ];
+  ].filter((item) => item.show);
 
   const cadastrosItems = [
     {
       to: `/hospital/${hospitalId}/usuarios`,
       icon: <Users size={18} />,
       label: "Usuários",
+      show: can(tipo, ...PERM_USUARIOS),
     },
     {
       to: `/hospital/${hospitalId}/cargos`,
       icon: <Briefcase size={18} />,
       label: "Cargos",
+      show: can(tipo, ...PERM_CARGOS),
     },
     {
       to: `/hospital/${hospitalId}/gerir-setores`,
       icon: <Building size={18} />,
       label: "Setores",
+      show: can(tipo, ...PERM_SETORES_CADASTRO),
     },
-  ];
+  ].filter((item) => item.show);
 
   useEffect(() => {
     if (hospitalId) {
-      getHospitalById(hospitalId).then(setHospital).catch(console.error);
+      getHospitalById(hospitalId)
+        .then(setHospital)
+        .catch((error: any) => {
+          if (error?.response?.status === 403 && user?.hospital) {
+            setHospital(user.hospital as any);
+          }
+        });
     }
   }, [hospitalId]);
 

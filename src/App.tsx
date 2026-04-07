@@ -1,4 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { ReactNode } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
@@ -35,6 +37,24 @@ import HospitalHomePage from "./features/admin-hospital/pages/HospitalHomePage";
 import ColetasPage from "./features/colab/pages/ColetasPage";
 import QualitativoPage from "./features/qualitativo/qualitativoPage";
 
+function AdminGuard({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  if (user?.tipo !== "ADMIN" && user?.tipo !== "GESTOR_ESTRATEGICO_REDE") {
+    const to = user?.hospital?.id ? `/hospital/${user.hospital.id}/home` : "/login";
+    return <Navigate to={to} replace />;
+  }
+  return <>{children}</>;
+}
+
+function RootRedirect() {
+  const { user } = useAuth();
+  if (user?.tipo === "ADMIN") return <Navigate to="/admin/hospitais" replace />;
+  if (user?.tipo === "GESTOR_ESTRATEGICO_REDE" && user?.rede?.id)
+    return <Navigate to={`/admin/redes/${user.rede.id}/dashboard`} replace />;
+  if (user?.hospital?.id) return <Navigate to={`/hospital/${user.hospital.id}/home`} replace />;
+  return <Navigate to="/login" replace />;
+}
+
 function App() {
   return (
     <Routes>
@@ -47,7 +67,7 @@ function App() {
         <Route path="/change-password" element={<ChangePasswordPage />} />
 
         {/* Rotas do Admin Global */}
-        <Route path="/admin" element={<UnifiedLayout />}>
+        <Route path="/admin" element={<AdminGuard><UnifiedLayout /></AdminGuard>}>
           <Route
             path="redes/:redeId/dashboard"
             element={<GlobalDashboardPage />}
@@ -123,8 +143,8 @@ function App() {
           <Route path="/coletas" element={<ColetasPage />} />
         </Route>
 
-        {/* Redirecionamento principal: se logado, vai para o painel de admin */}
-        <Route path="/" element={<Navigate to="/admin/hospitais" />} />
+        {/* Redirecionamento principal */}
+        <Route path="/" element={<RootRedirect />} />
       </Route>
     </Routes>
   );

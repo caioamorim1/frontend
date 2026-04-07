@@ -7,7 +7,7 @@ import { DashboardAtualScreen } from "@/features/admin-hospital/components/Dashb
 import { DashboardProjetadoScreen } from "@/features/admin-hospital/components/DashboardProjetadoScreen";
 import { DashboardBaselineScreen } from "@/features/admin-hospital/components/DashboardBaselineScreen";
 import { DashboardComparativoHospitalScreen } from "@/features/admin-hospital/components/DashboardComparativoHospitalScreen";
-import { clearSectorsCache } from "@/mocks/functionSectores";
+import { clearSectorsCache } from "@/lib/functionSectores";
 
 // Importando as APIs
 import {
