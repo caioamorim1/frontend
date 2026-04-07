@@ -69,7 +69,6 @@ export default function ParametrosPage() {
   const handleExportPdf = async () => {
     if (!setorId) return;
     try {
-      console.log("[ExportPdf] periodo:", periodo);
       setIsExportingPdf(true);
       await exportDimensionamentoPdf(setorId, periodo ?? undefined);
     } catch {
@@ -286,13 +285,6 @@ export default function ParametrosPage() {
         diasSemana: parametros.diasSemana ?? "7",
       } as CreateParametrosDTO;
 
-      console.log("📤 [PARAMETROS INTERNAÇÃO] Payload sendo enviado:", payload);
-      console.log(
-        "📤 [PARAMETROS INTERNAÇÃO] diasSemana:",
-        payload.diasSemana,
-        "tipo:",
-        typeof payload.diasSemana
-      );
 
       await saveParametros(setorId, payload);
       showAlert("success", "Sucesso", "Parâmetros salvos com sucesso!");

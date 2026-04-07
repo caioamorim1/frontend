@@ -182,7 +182,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, pass: string) => {
     try {
-      console.log("URL", API_BASE_URL);
       const response = await api.post("/login", { email: email, senha: pass });
 
       const { token: newToken } = response.data;

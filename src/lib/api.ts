@@ -18,8 +18,8 @@ export type {
   QuestionOption,
 };
 
-export const API_BASE_URL = "http://localhost:3110";
-//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
+//export const API_BASE_URL = "http://localhost:3110";
+export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
 const getApiOrigin = (): string => {
   const base = String(API_BASE_URL || "");
 
@@ -1474,7 +1474,6 @@ export const getUnidadesInternacao = async (
   hospitalId: string
 ): Promise<UnidadeInternacao[]> => {
   const response = await api.get(`/unidades`, { params: { hospitalId } });
-  console.log("[getUnidadesInternacao] raw response:", response.data);
   return response.data.map((u: any) => ({
     ...u,
     tipo: "internacao",
@@ -1487,7 +1486,6 @@ export const getUnidadesNaoInternacao = async (
   const response = await api.get(
     `/unidades-nao-internacao/hospital/${hospitalId}`
   );
-  console.log("[getUnidadesNaoInternacao] raw response:", response.data.data);
   return response.data.data.map((u: any) => ({
     ...u,
     tipo: "nao-internacao",
@@ -1783,15 +1781,10 @@ export const getAnaliseInternacao = async (
     params && (params.inicio || params.fim)
       ? "?" + new URLSearchParams(params as Record<string, string>).toString()
       : "";
-  console.log(
-    "[getAnaliseInternacao] URL:",
-    `${API_BASE_URL}/dimensionamento/internacao/${unidadeId}${queryString}`
-  );
   const response = await api.get(
     `/dimensionamento/internacao/${unidadeId}`,
     params && (params.inicio || params.fim) ? { params } : undefined
   );
-  console.log("[getAnaliseInternacao] Resposta:", response.data);
   return response.data;
 };
 

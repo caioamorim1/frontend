@@ -192,14 +192,6 @@ export const DashboardComparativoHospitalScreen: React.FC<{
 
           if (!mounted) return;
 
-          console.log("🔍 [DEBUG - Fetched Data]", {
-            comparative: respComparative,
-            projected: respProjected,
-            projectedKeys: Object.keys(respProjected || {}),
-            projectedInternation: respProjected?.internation?.length,
-            projectedAssistance: respProjected?.assistance?.length,
-            projectedItems: respProjected?.items?.length,
-          });
 
           // Normalizar dados projetados (pode vir como items[] ou diretamente internation/assistance)
           let normalizedProjected: any = {
@@ -251,13 +243,6 @@ export const DashboardComparativoHospitalScreen: React.FC<{
 
           if (!mounted) return;
 
-          console.log("🔍 [DEBUG - Fetched Projected (Global Mode)]", {
-            projected: respProjected,
-            projectedKeys: Object.keys(respProjected || {}),
-            projectedInternation: respProjected?.internation?.length,
-            projectedAssistance: respProjected?.assistance?.length,
-            projectedItems: respProjected?.items?.length,
-          });
 
           // Normalizar dados projetados (pode vir como items[] ou diretamente internation/assistance)
           let normalizedProjected: any = {
@@ -527,20 +512,6 @@ export const DashboardComparativoHospitalScreen: React.FC<{
             );
 
       // Debug: verificar dados filtrados
-      if (import.meta.env.DEV) {
-        console.log("🔍 [DEBUG - Projected Data Processing]", {
-          activeTab,
-          selectedSector,
-          totalSectorsFromProjected: sectorsFromProjected.length,
-          filteredCount: filteredFromProjected.length,
-          sampleSector: filteredFromProjected[0],
-          projectedDataStructure: {
-            internation: projectedData.internation?.length || 0,
-            assistance: projectedData.assistance?.length || 0,
-            neutral: projectedData.neutral?.length || 0,
-          },
-        });
-      }
 
       // Somar quantidade de staff projetado
       pessoalProjetadoSnapshot = filteredFromProjected.reduce((sum, sector) => {
@@ -556,13 +527,6 @@ export const DashboardComparativoHospitalScreen: React.FC<{
         const cost = getProjectedCost(sector);
         return sum + cost;
       }, 0);
-
-      if (import.meta.env.DEV) {
-        console.log("🔍 [DEBUG - Calculated Projected Values]", {
-          pessoalProjetadoSnapshot,
-          custoProjetadoSnapshot,
-        });
-      }
     } else {
       // Fallback: usar cálculo antigo do comparative (quadroProjetadoSnapshot)
       pessoalProjetadoSnapshot = filteredSectors.reduce(
@@ -624,36 +588,6 @@ export const DashboardComparativoHospitalScreen: React.FC<{
     ];
 
     if (import.meta.env.DEV && activeTab === "global") {
-      console.log("🔍 [DEBUG - Comparativo Tab]", {
-        activeTab,
-        selectedSector,
-        filteredSectorsCount: filteredSectors.length,
-        hasProjectedData: !!projectedData,
-        pessoalAtualReal,
-        pessoalAtualSnapshot,
-        pessoalProjetadoSnapshot,
-        variacaoPessoal,
-        custoAtualReal,
-        custoAtualSnapshot,
-        custoProjetadoSnapshot,
-        variacaoCusto,
-        filteredSectors: filteredSectors.map((s) => ({
-          id: s.id,
-          name: s.name,
-          tipo: (s as any).tipo,
-          quadroAtualReal: s.quadroAtualReal,
-          quadroAtualSnapshot: s.quadroAtualSnapshot,
-          quadroProjetadoSnapshot: s.quadroProjetadoSnapshot,
-          custosAtualSnapshot: s.custosAtualSnapshot,
-        })),
-        projectedDataSummary: projectedData
-          ? {
-              internationCount: projectedData.internation?.length || 0,
-              assistanceCount: projectedData.assistance?.length || 0,
-              neutralCount: projectedData.neutral?.length || 0,
-            }
-          : null,
-      });
     }
 
     // Processar dados por função (cargo) para os gráficos GroupedBarByRole
