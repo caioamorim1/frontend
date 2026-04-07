@@ -14,6 +14,7 @@ import {
 import { Settings, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAlert } from "@/contexts/AlertContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Table,
   TableBody,
@@ -51,6 +52,8 @@ const getHorasTabeladas = (classificacao: string): number | undefined => {
 export default function ParametrosPage() {
   const { setorId } = useParams<{ setorId: string }>();
   const { showAlert } = useAlert();
+  const { user } = useAuth();
+  const readOnly = ["GESTOR_ESTRATEGICO_HOSPITAL", "GESTOR_ESTRATEGICO_REDE"].includes(user?.tipo ?? "");
   const [parametros, setParametros] = useState<Partial<CreateParametrosDTO>>(
     {}
   );
@@ -327,6 +330,7 @@ export default function ParametrosPage() {
               name="nome_enfermeiro"
               value={parametros.nome_enfermeiro || ""}
               onChange={handleChange}
+              disabled={readOnly}
               className="w-full p-2 border rounded-md"
             />
           </div>
@@ -338,6 +342,7 @@ export default function ParametrosPage() {
               name="numero_coren"
               value={parametros.numero_coren || ""}
               onChange={handleChange}
+              disabled={readOnly}
               className="w-full p-2 border rounded-md"
             />
           </div>
@@ -352,6 +357,7 @@ export default function ParametrosPage() {
               name="metodoCalculo"
               value={(parametros as any).metodoCalculo || ""}
               onChange={handleChange}
+              disabled={readOnly}
               className="w-full p-2 border rounded-md"
             />
           </div>
@@ -369,6 +375,7 @@ export default function ParametrosPage() {
               step="any"
               value={(parametros.cargaHorariaEnfermeiro as any) || ""}
               onChange={handleChange}
+              disabled={readOnly}
               className="w-full p-2 border rounded-md"
             />
           </div>
@@ -383,6 +390,7 @@ export default function ParametrosPage() {
               step="any"
               value={(parametros.cargaHorariaTecnico as any) || ""}
               onChange={handleChange}
+              disabled={readOnly}
               className="w-full p-2 border rounded-md"
             />
           </div>
@@ -399,6 +407,7 @@ export default function ParametrosPage() {
               inputMode="numeric"
               value={parametros.ist || ""}
               onChange={handleChange}
+              disabled={readOnly}
               className="w-full p-2 border rounded-md"
             />
           </div>
@@ -414,6 +423,7 @@ export default function ParametrosPage() {
               max={7}
               value={(parametros as any).diasSemana ?? ""}
               onChange={handleChange}
+              disabled={readOnly}
               className="w-full p-2 border rounded-md"
             />
           </div>
@@ -424,6 +434,7 @@ export default function ParametrosPage() {
               type="checkbox"
               checked={parametros.aplicarIST || false}
               onChange={handleChange}
+              disabled={readOnly}
               className="h-4 w-4 rounded mt-1"
             />
             <label htmlFor="aplicarIST" className="text-sm font-medium">
@@ -442,12 +453,14 @@ export default function ParametrosPage() {
             <FileDown className="h-4 w-4 mr-2" />
             {isExportingPdf ? "Gerando PDF..." : "Exportar Relatório"}
           </Button>
+          {!readOnly && (
           <button
             type="submit"
             className="px-4 py-2 text-white bg-green-600 rounded-md"
           >
             Salvar Parâmetros
           </button>
+          )}
         </div>
       </form>
 

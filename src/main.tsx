@@ -6,6 +6,12 @@ import { HashRouter } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AlertProvider } from "./contexts/AlertContext";
 import { ModalProvider } from "./contexts/ModalContext";
+import { startApiLogger } from "./lib/apiLogger";
+
+// Activo apenas em desenvolvimento
+if (import.meta.env.DEV) {
+  startApiLogger();
+}
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   // <React.StrictMode>

@@ -1,6 +1,6 @@
-import { SectorInternation } from "./internationDatabase";
-import { SectorAssistance } from "./noInternationDatabase";
-import { SectorNeutral } from "./neutralDatabase";
+import { SectorInternation } from "@/mocks/internationDatabase";
+import { SectorAssistance } from "@/mocks/noInternationDatabase";
+import { SectorNeutral } from "@/mocks/neutralDatabase";
 import { getHospitalSectors, type HospitalSectorsData } from "@/lib/api";
 
 export type HospitalSector = {

@@ -21,8 +21,18 @@ import {
   FileDown,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getHospitais, getRedes, Hospital, Rede } from "@/lib/api";
+import { getHospitais, getRedes, getRedeById, getHospitaisByRede, Hospital, Rede } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  can,
+  PERM_SEE_DASHBOARD,
+  PERM_PARETO,
+  PERM_SETORES,
+  PERM_BASELINE,
+  PERM_USUARIOS,
+  PERM_CARGOS,
+  PERM_SETORES_CADASTRO,
+} from "@/lib/permissions";
 
 const NavItem = ({
   to,
@@ -83,15 +93,110 @@ const ExpandableSubItem = ({
   );
 };
 
+const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
+  const { hospitalId: activeHospitalId } = useParams();
+  const [isExpanded, setIsExpanded] = useState(
+    activeHospitalId === hospital.id
+  );
+
+  useEffect(() => {
+    if (activeHospitalId === hospital.id) {
+      setIsExpanded(true);
+    }
+  }, [activeHospitalId, hospital.id]);
+
+  const subItems = [
+    {
+      to: `/hospital/${hospital.id}/home`,
+      icon: <Home size={16} />,
+      label: "Home",
+    },
+    {
+      to: `/hospital/${hospital.id}/dashboard`,
+      icon: <LayoutDashboard size={16} />,
+      label: "Dashboard",
+    },
+    {
+      to: `/hospital/${hospital.id}/pareto`,
+      icon: <ClipboardList size={16} />,
+      label: "Pareto",
+    },
+    {
+      to: `/hospital/${hospital.id}/setores`,
+      icon: <Building size={16} />,
+      label: "Setores",
+    },
+    {
+      to: `/hospital/${hospital.id}/unidades-leitos`,
+      icon: <Bed size={16} />,
+      label: "Classificação de Leitos",
+    },
+    {
+      to: `/hospital/${hospital.id}/baseline`,
+      icon: <BarChart3 size={16} />,
+      label: "Baseline",
+    },
+  ];
+
+  const cadastrosItems = [
+    {
+      to: `/hospital/${hospital.id}/usuarios`,
+      icon: <Users size={16} />,
+      label: "Usuários",
+    },
+    {
+      to: `/hospital/${hospital.id}/cargos`,
+      icon: <Briefcase size={16} />,
+      label: "Cargos",
+    },
+    {
+      to: `/hospital/${hospital.id}/gerir-setores`,
+      icon: <Building size={16} />,
+      label: "Dimensionar",
+    },
+  ];
+
+  return (
+    <li>
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between px-3 py-2 my-1 rounded-md text-sm text-gray-200 hover:bg-white/10 text-left"
+      >
+        <div className="flex items-center truncate">
+          <HospitalIcon size={18} className="flex-shrink-0" />
+          <span className="ml-3 font-medium truncate">{hospital.nome}</span>
+        </div>
+        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+      </button>
+      {isExpanded && (
+        <ul className="pl-5 border-l-2 border-white/20 ml-3">
+          {subItems.map((item) => (
+            <NavItem key={item.to} {...item} />
+          ))}
+          <ExpandableSubItem label="Cadastros" icon={<FileText size={16} />}>
+            {cadastrosItems.map((item) => (
+              <NavItem key={item.to} {...item} />
+            ))}
+          </ExpandableSubItem>
+        </ul>
+      )}
+    </li>
+  );
+};
+
 const RedeSubMenu = ({
   rede,
   hospitais,
+  defaultExpanded = false,
+  expandHospitals = false,
 }: {
   rede: Rede;
   hospitais: Hospital[];
+  defaultExpanded?: boolean;
+  expandHospitals?: boolean;
 }) => {
   const { hospitalId: activeHospitalId } = useParams();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   // Verifica se algum hospital desta rede está ativo
   useEffect(() => {
@@ -133,114 +238,27 @@ const RedeSubMenu = ({
           </li>
 
           {/* Hospitais da Rede */}
-          {hospitais.map((hospital) => (
-            <li key={hospital.id}>
-              <NavLink
-                to={`/hospital/${hospital.id}/home`}
-                className={({ isActive }) =>
-                  `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${
-                    isActive
-                      ? "bg-secondary/10 text-secondary font-semibold"
-                      : "text-gray-200 hover:bg-white/10"
-                  }`
-                }
-              >
-                <HospitalIcon size={16} className="flex-shrink-0" />
-                <span className="ml-3 truncate">{hospital.nome}</span>
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      )}
-    </li>
-  );
-};
-
-const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
-  const { hospitalId: activeHospitalId } = useParams();
-  const [isExpanded, setIsExpanded] = useState(
-    activeHospitalId === hospital.id
-  );
-
-  useEffect(() => {
-    if (activeHospitalId === hospital.id) {
-      setIsExpanded(true);
-    }
-  }, [activeHospitalId, hospital.id]);
-
-  const subItems = [
-    {
-      to: `/hospital/${hospital.id}/home`,
-      icon: <Home size={16} />,
-      label: "Home",
-    },
-    {
-      to: `/hospital/${hospital.id}/dashboard`,
-      icon: <LayoutDashboard size={16} />,
-      label: "Dashboard",
-    },
-    {
-      to: `/hospital/${hospital.id}/pareto`,
-      icon: <ClipboardList size={16} />,
-      label: "Pareto",
-    },
-    {
-      to: `/hospital/${hospital.id}/setores`,
-      icon: <Building size={16} />,
-      label: "Setores",
-    },
-    {
-      to: `/hospital/${hospital.id}/unidades-leitos`,
-      icon: <Bed size={16} />,
-      label: "Unidades e Leitos",
-    },
-    {
-      to: `/hospital/${hospital.id}/baseline`,
-      icon: <BarChart3 size={16} />,
-      label: "Baseline",
-    },
-  ];
-
-  const cadastrosItems = [
-    {
-      to: `/hospital/${hospital.id}/usuarios`,
-      icon: <Users size={16} />,
-      label: "Usuários",
-    },
-    {
-      to: `/hospital/${hospital.id}/cargos`,
-      icon: <Briefcase size={16} />,
-      label: "Cargos",
-    },
-    {
-      to: `/hospital/${hospital.id}/gerir-setores`,
-      icon: <Building size={16} />,
-      label: "Gerir Setores",
-    },
-  ];
-
-  return (
-    <li>
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-3 py-2 my-1 rounded-md text-sm text-gray-200 hover:bg-white/10 text-left"
-      >
-        <div className="flex items-center truncate">
-          <HospitalIcon size={18} className="flex-shrink-0" />
-          <span className="ml-3 font-medium truncate">{hospital.nome}</span>
-        </div>
-        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-      </button>
-      {isExpanded && (
-        <ul className="pl-5 border-l-2 border-white/20 ml-3">
-          {subItems.map((item) => (
-            <NavItem key={item.to} {...item} />
-          ))}
-          <ExpandableSubItem label="Cadastros" icon={<FileText size={16} />}>
-            {cadastrosItems.map((item) => (
-              <NavItem key={item.to} {...item} />
-            ))}
-          </ExpandableSubItem>
+          {expandHospitals
+            ? hospitais.map((hospital) => (
+                <HospitalSubMenu key={hospital.id} hospital={hospital} />
+              ))
+            : hospitais.map((hospital) => (
+                <li key={hospital.id}>
+                  <NavLink
+                    to={`/hospital/${hospital.id}/home`}
+                    className={({ isActive }) =>
+                      `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${
+                        isActive
+                          ? "bg-secondary/10 text-secondary font-semibold"
+                          : "text-gray-200 hover:bg-white/10"
+                      }`
+                    }
+                  >
+                    <HospitalIcon size={16} className="flex-shrink-0" />
+                    <span className="ml-3 truncate">{hospital.nome}</span>
+                  </NavLink>
+                </li>
+              ))}
         </ul>
       )}
     </li>
@@ -251,6 +269,7 @@ export default function Sidebar() {
   const { user } = useAuth();
   const [hospitais, setHospitais] = useState<Hospital[]>([]);
   const [redes, setRedes] = useState<Rede[]>([]);
+  const [redeGestor, setRedeGestor] = useState<Rede | null>(null);
   const [loading, setLoading] = useState(true);
 
   const adminGlobalItems = [
@@ -314,6 +333,18 @@ export default function Sidebar() {
         })
         .catch((err) =>
           console.error("Falha ao carregar dados para o menu:", err)
+        )
+        .finally(() => setLoading(false));
+    } else if (user?.tipo === "GESTOR_ESTRATEGICO_REDE" && user?.redeId) {
+      setLoading(true);
+      const redeId = user.redeId;
+      Promise.all([getRedeById(redeId), getHospitaisByRede(redeId)])
+        .then(([redeData, hospitaisData]) => {
+          setRedeGestor(redeData);
+          setHospitais(hospitaisData as Hospital[]);
+        })
+        .catch((err) =>
+          console.error("Falha ao carregar dados da rede:", err)
         )
         .finally(() => setLoading(false));
     } else {
@@ -404,7 +435,46 @@ export default function Sidebar() {
           </>
         )}
 
-        {(user?.appRole === "GESTOR" || user?.appRole === "COMUM") && (
+        {user?.tipo === "GESTOR_ESTRATEGICO_REDE" && (
+          <>
+            <h2 className="px-3 text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">
+              Minha Rede
+            </h2>
+            <ul>
+              {loading ? (
+                <li className="px-3 text-sm text-gray-400">A carregar...</li>
+              ) : redeGestor ? (
+                <RedeSubMenu
+                  rede={redeGestor}
+                  hospitais={hospitais}
+                  defaultExpanded
+                  expandHospitals
+                />
+              ) : (
+                /* No rede info yet – just list hospitals directly */
+                hospitais.map((hospital) => (
+                  <li key={hospital.id}>
+                    <NavLink
+                      to={`/hospital/${hospital.id}/home`}
+                      className={({ isActive }) =>
+                        `flex items-center px-3 py-2 my-1 rounded-md text-sm transition-colors ${
+                          isActive
+                            ? "bg-secondary/10 text-secondary font-semibold"
+                            : "text-gray-200 hover:bg-white/10"
+                        }`
+                      }
+                    >
+                      <HospitalIcon size={16} className="flex-shrink-0" />
+                      <span className="ml-3 truncate">{hospital.nome}</span>
+                    </NavLink>
+                  </li>
+                ))
+              )}
+            </ul>
+          </>
+        )}
+
+        {(user?.appRole === "GESTOR" || user?.appRole === "COMUM") && user?.tipo !== "GESTOR_ESTRATEGICO_REDE" && (
           <>
             <h2 className="px-3 text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">
               Gerir Hospital
@@ -421,50 +491,64 @@ export default function Sidebar() {
                     icon={<Home size={16} />}
                     label="Home"
                   />
-                  <NavItem
-                    to="/meu-hospital/dashboard"
-                    icon={<LayoutDashboard size={16} />}
-                    label="Dashboard"
-                  />
-                  <NavItem
-                    to="/meu-hospital/pareto"
-                    icon={<ClipboardList size={16} />}
-                    label="Pareto"
-                  />
-                  <NavItem
-                    to="/meu-hospital/setores"
-                    icon={<Building size={16} />}
-                    label="Gerir Setores"
-                  />
+                  {can(user?.tipo, ...PERM_SEE_DASHBOARD) && (
+                    <NavItem
+                      to="/meu-hospital/dashboard"
+                      icon={<LayoutDashboard size={16} />}
+                      label="Dashboard"
+                    />
+                  )}
+                  {can(user?.tipo, ...PERM_PARETO) && (
+                    <NavItem
+                      to="/meu-hospital/pareto"
+                      icon={<ClipboardList size={16} />}
+                      label="Pareto"
+                    />
+                  )}
+                  {can(user?.tipo, ...PERM_SETORES) && (
+                    <NavItem
+                      to="/meu-hospital/setores"
+                      icon={<Building size={16} />}
+                      label="Gerir Setores"
+                    />
+                  )}
                   <NavItem
                     to="/meu-hospital/unidades-leitos"
                     icon={<Bed size={16} />}
-                    label="Unidades e Leitos"
+                    label="Classificação de Leitos"
                   />
-                  <NavItem
-                    to="/meu-hospital/baseline"
-                    icon={<BarChart3 size={16} />}
-                    label="Baseline"
-                  />
+                  {can(user?.tipo, ...PERM_BASELINE) && (
+                    <NavItem
+                      to="/meu-hospital/baseline"
+                      icon={<BarChart3 size={16} />}
+                      label="Baseline"
+                    />
+                  )}
                   <ExpandableSubItem
                     label="Cadastros"
                     icon={<FileText size={16} />}
                   >
-                    <NavItem
-                      to="/meu-hospital/usuarios"
-                      icon={<Users size={16} />}
-                      label="Usuários"
-                    />
-                    <NavItem
-                      to="/meu-hospital/cargos"
-                      icon={<Briefcase size={16} />}
-                      label="Cargos"
-                    />
-                    <NavItem
-                      to="/meu-hospital/gerir-setores"
-                      icon={<Building size={16} />}
-                      label="Gerir Setores"
-                    />
+                    {can(user?.tipo, ...PERM_USUARIOS) && (
+                      <NavItem
+                        to="/meu-hospital/usuarios"
+                        icon={<Users size={16} />}
+                        label="Usuários"
+                      />
+                    )}
+                    {can(user?.tipo, ...PERM_CARGOS) && (
+                      <NavItem
+                        to="/meu-hospital/cargos"
+                        icon={<Briefcase size={16} />}
+                        label="Cargos"
+                      />
+                    )}
+                    {can(user?.tipo, ...PERM_SETORES_CADASTRO) && (
+                      <NavItem
+                        to="/meu-hospital/gerir-setores"
+                        icon={<Building size={16} />}
+                        label="Dimensionar"
+                      />
+                    )}
                   </ExpandableSubItem>
                 </ul>
               </li>

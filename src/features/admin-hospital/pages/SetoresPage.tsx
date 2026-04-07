@@ -42,11 +42,14 @@ import {
 } from "@/components/ui/table";
 import { useModal } from "@/contexts/ModalContext";
 import { useAlert } from "@/contexts/AlertContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function SetoresPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const { showModal } = useModal();
   const { showAlert } = useAlert();
+  const { user } = useAuth();
+  const canEdit = user?.tipo === "ADMIN";
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [scpMetodos, setScpMetodos] = useState<ScpMetodo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,6 +70,9 @@ export default function SetoresPage() {
   const [descricao, setDescricao] = useState("");
   const [custoTotal, setCustoTotal] = useState("");
   const [status, setStatus] = useState("inativo");
+  const [pontuacaoMax, setPontuacaoMax] = useState<string>("");
+  const [pontuacaoMin, setPontuacaoMin] = useState<string>("");
+  const [gatilho, setGatilho] = useState<string>("");
 
   const handleGenerateBaselineConfirm = async () => {
     if (!hospitalId) return;
@@ -151,6 +157,9 @@ export default function SetoresPage() {
     setDescricao("");
     setCustoTotal("");
     setStatus("inativo");
+    setPontuacaoMax("");
+    setPontuacaoMin("");
+    setGatilho("");
     setTipoUnidade(null);
     setIsFormVisible(false);
     setEditingUnidade(null);
@@ -174,8 +183,14 @@ export default function SetoresPage() {
       // Map scpMetodoKey (stored on unidade) to the actual scp metodo id so the Select shows correctly
       const resolved = resolveScpMetodoId(unidade, scpMetodos);
       setScpMetodoId(resolved);
+      setPontuacaoMax(unidade.pontuacao_max != null ? String(unidade.pontuacao_max) : "");
+      setPontuacaoMin(unidade.pontuacao_min != null ? String(unidade.pontuacao_min) : "");
+      setGatilho(unidade.gatilho != null ? String(unidade.gatilho) : "");
     } else if (unidade.tipo === "nao-internacao") {
       setDescricao(unidade.descricao || "");
+      setPontuacaoMax(unidade.pontuacao_max != null ? String(unidade.pontuacao_max) : "");
+      setPontuacaoMin(unidade.pontuacao_min != null ? String(unidade.pontuacao_min) : "");
+      setGatilho(unidade.gatilho != null ? String(unidade.gatilho) : "");
     } else if (unidade.tipo === "neutro") {
       setDescricao(unidade.descricao || "");
       setCustoTotal(unidade.custoTotal?.toString() || "0");
@@ -202,6 +217,11 @@ export default function SetoresPage() {
     e.preventDefault();
     if (!hospitalId || !tipoUnidade) return;
 
+    if (pontuacaoMin !== "" && pontuacaoMax !== "" && Number(pontuacaoMin) > Number(pontuacaoMax)) {
+      showAlert("destructive", "Erro", "A pontuação mínima não pode ser maior que a máxima.");
+      return;
+    }
+
     try {
       if (editingUnidade) {
         // Special case: converting a NEUTRO sector into a different type.
@@ -224,6 +244,9 @@ export default function SetoresPage() {
               horas_extra_reais: "0.00",
               horas_extra_projetadas: "0",
               cargos_unidade: [],
+              pontuacao_max: pontuacaoMax !== "" ? Number(pontuacaoMax) : null,
+              pontuacao_min: pontuacaoMin !== "" ? Number(pontuacaoMin) : null,
+              gatilho: gatilho !== "" ? Number(gatilho) : null,
             });
           } else if (tipoUnidade === "nao-internacao") {
             await createUnidadeNaoInternacao({
@@ -233,6 +256,9 @@ export default function SetoresPage() {
               horas_extra_reais: "0.00",
               horas_extra_projetadas: "0",
               cargos_unidade: [],
+              pontuacao_max: pontuacaoMax !== "" ? Number(pontuacaoMax) : null,
+              pontuacao_min: pontuacaoMin !== "" ? Number(pontuacaoMin) : null,
+              gatilho: gatilho !== "" ? Number(gatilho) : null,
             });
           } else {
             // Shouldn't happen because convertingNeutral implies non-neutro.
@@ -256,6 +282,9 @@ export default function SetoresPage() {
             scpMetodoId,
             horas_extra_reais: "0.00",
             horas_extra_projetadas: "0",
+            pontuacao_max: pontuacaoMax !== "" ? Number(pontuacaoMax) : null,
+            pontuacao_min: pontuacaoMin !== "" ? Number(pontuacaoMin) : null,
+            gatilho: gatilho !== "" ? Number(gatilho) : null,
           });
         } else if (tipoUnidade === "nao-internacao") {
           await updateUnidadeNaoInternacao(editingUnidade.id, {
@@ -263,6 +292,9 @@ export default function SetoresPage() {
             descricao,
             horas_extra_reais: "0.00",
             horas_extra_projetadas: "0",
+            pontuacao_max: pontuacaoMax !== "" ? Number(pontuacaoMax) : null,
+            pontuacao_min: pontuacaoMin !== "" ? Number(pontuacaoMin) : null,
+            gatilho: gatilho !== "" ? Number(gatilho) : null,
           });
         } else if (tipoUnidade === "neutro") {
           await updateUnidadeNeutra(editingUnidade.id, {
@@ -290,6 +322,9 @@ export default function SetoresPage() {
             horas_extra_reais: "0.00",
             horas_extra_projetadas: "0",
             cargos_unidade: [], // Inicia sem cargos
+            pontuacao_max: pontuacaoMax !== "" ? Number(pontuacaoMax) : null,
+            pontuacao_min: pontuacaoMin !== "" ? Number(pontuacaoMin) : null,
+            gatilho: gatilho !== "" ? Number(gatilho) : null,
           });
         } else if (tipoUnidade === "nao-internacao") {
           await createUnidadeNaoInternacao({
@@ -299,6 +334,9 @@ export default function SetoresPage() {
             horas_extra_reais: "0.00",
             horas_extra_projetadas: "0",
             cargos_unidade: [], // Inicia sem cargos..
+            pontuacao_max: pontuacaoMax !== "" ? Number(pontuacaoMax) : null,
+            pontuacao_min: pontuacaoMin !== "" ? Number(pontuacaoMin) : null,
+            gatilho: gatilho !== "" ? Number(gatilho) : null,
           });
         } else if (tipoUnidade === "neutro") {
           await createUnidadeNeutra({
@@ -373,12 +411,14 @@ export default function SetoresPage() {
         <h1 className="text-3xl font-bold text-primary">
           Gerenciamento de Setores
         </h1>
-        <button
-          onClick={isFormVisible ? resetForm : handleAddNew}
-          className="px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
-        >
-          {isFormVisible ? "Cancelar" : "+ Novo Setor"}
-        </button>
+        {canEdit && (
+          <button
+            onClick={isFormVisible ? resetForm : handleAddNew}
+            className="px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
+          >
+            {isFormVisible ? "Cancelar" : "+ Novo Setor"}
+          </button>
+        )}
       </div>
 
       {/* Barra de Busca */}
@@ -483,45 +523,82 @@ export default function SetoresPage() {
                 )}
 
                 {tipoUnidade === "internacao" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="numeroLeitos">Número de Leitos</Label>
-                      <Input
-                        id="numeroLeitos"
-                        name="numeroLeitos"
-                        type="number"
-                        value={numeroLeitos}
-                        onChange={(e) =>
-                          setNumeroLeitos(Number(e.target.value))
-                        }
-                        placeholder="0"
-                        required
-                        disabled={!!editingUnidade && !isConvertingNeutral}
-                        className="mt-1"
-                      />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="numeroLeitos">Número de Leitos</Label>
+                        <Input
+                          id="numeroLeitos"
+                          name="numeroLeitos"
+                          type="number"
+                          value={numeroLeitos}
+                          onChange={(e) =>
+                            setNumeroLeitos(Number(e.target.value))
+                          }
+                          placeholder="0"
+                          required
+                          disabled={!!editingUnidade && !isConvertingNeutral}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="scpMetodoId">
+                          Método SCP (Obrigatório)
+                        </Label>
+                        <Select
+                          onValueChange={(val) => {
+                            setScpMetodoId(val);
+                            setError(null);
+                          }}
+                          value={scpMetodoId}
+                        >
+                          <SelectTrigger id="scpMetodoId" className="mt-1">
+                            <SelectValue placeholder="Selecione um método" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {scpMetodos.map((metodo) => (
+                              <SelectItem key={metodo.id} value={metodo.id}>
+                                {metodo.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div>
-                      <Label htmlFor="scpMetodoId">
-                        Método SCP (Obrigatório)
-                      </Label>
-                      <Select
-                        onValueChange={(val) => {
-                          setScpMetodoId(val);
-                          setError(null);
-                        }}
-                        value={scpMetodoId}
-                      >
-                        <SelectTrigger id="scpMetodoId" className="mt-1">
-                          <SelectValue placeholder="Selecione um método" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {scpMetodos.map((metodo) => (
-                            <SelectItem key={metodo.id} value={metodo.id}>
-                              {metodo.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="pontuacaoMax">Pontuação Máxima (Opcional)</Label>
+                        <Input
+                          id="pontuacaoMax"
+                          type="number"
+                          value={pontuacaoMax}
+                          onChange={(e) => setPontuacaoMax(e.target.value)}
+                          placeholder="ex: 44"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="pontuacaoMin">Pontuação Mínima (Opcional)</Label>
+                        <Input
+                          id="pontuacaoMin"
+                          type="number"
+                          value={pontuacaoMin}
+                          onChange={(e) => setPontuacaoMin(e.target.value)}
+                          placeholder="ex: 12"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="gatilho">Gatilho % (Opcional)</Label>
+                        <Input
+                          id="gatilho"
+                          type="number"
+                          value={gatilho}
+                          onChange={(e) => setGatilho(e.target.value)}
+                          placeholder="ex: 80"
+                          className="mt-1"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -534,17 +611,54 @@ export default function SetoresPage() {
                   )}
 
                 {tipoUnidade === "nao-internacao" && (
-                  <div>
-                    <Label htmlFor="descricao">Descrição (Opcional)</Label>
-                    <Textarea
-                      id="descricao"
-                      name="descricao"
-                      value={descricao}
-                      onChange={(e) => setDescricao(e.target.value)}
-                      placeholder="Descreva brevemente o setor..."
-                      rows={3}
-                      className="mt-1"
-                    />
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="descricao">Descrição (Opcional)</Label>
+                      <Textarea
+                        id="descricao"
+                        name="descricao"
+                        value={descricao}
+                        onChange={(e) => setDescricao(e.target.value)}
+                        placeholder="Descreva brevemente o setor..."
+                        rows={3}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="pontuacaoMax">Pontuação Máxima (Opcional)</Label>
+                        <Input
+                          id="pontuacaoMax"
+                          type="number"
+                          value={pontuacaoMax}
+                          onChange={(e) => setPontuacaoMax(e.target.value)}
+                          placeholder="ex: 44"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="pontuacaoMin">Pontuação Mínima (Opcional)</Label>
+                        <Input
+                          id="pontuacaoMin"
+                          type="number"
+                          value={pontuacaoMin}
+                          onChange={(e) => setPontuacaoMin(e.target.value)}
+                          placeholder="ex: 12"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="gatilho">Gatilho % (Opcional)</Label>
+                        <Input
+                          id="gatilho"
+                          type="number"
+                          value={gatilho}
+                          onChange={(e) => setGatilho(e.target.value)}
+                          placeholder="ex: 80"
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -603,7 +717,7 @@ export default function SetoresPage() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Tipo</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  {canEdit && <TableHead className="text-right">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -630,29 +744,31 @@ export default function SetoresPage() {
                             : "A dimensionar"}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(unidade)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(unidade)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                      {canEdit && (
+                        <TableCell className="text-right space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(unidade)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(unidade)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={3}
+                      colSpan={canEdit ? 3 : 2}
                       className="text-center text-sm text-gray-500"
                     >
                       {searchTerm

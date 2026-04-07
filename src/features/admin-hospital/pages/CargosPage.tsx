@@ -13,6 +13,7 @@ import { Trash2, Edit } from "lucide-react";
 import CurrencyInput from "@/components/shared/CurrencyInput";
 import { useModal } from "@/contexts/ModalContext";
 import { useAlert } from "@/contexts/AlertContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const initialFormState: Omit<Cargo, "id"> = {
   nome: "",
@@ -26,6 +27,8 @@ export default function CargosPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const { showModal } = useModal();
   const { showAlert } = useAlert();
+  const { user } = useAuth();
+  const canEdit = user?.tipo === "ADMIN";
   const [cargos, setCargos] = useState<Cargo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -177,12 +180,14 @@ export default function CargosPage() {
         <h1 className="text-3xl font-bold text-primary">
           Gerenciamento de Cargos
         </h1>
-        <button
-          onClick={isFormVisible ? handleCancel : handleAddNew}
-          className="px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
-        >
-          {isFormVisible ? "Cancelar" : "+ Novo Cargo"}
-        </button>
+        {canEdit && (
+          <button
+            onClick={isFormVisible ? handleCancel : handleAddNew}
+            className="px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
+          >
+            {isFormVisible ? "Cancelar" : "+ Novo Cargo"}
+          </button>
+        )}
       </div>
 
       {/* Barra de Busca */}
@@ -328,9 +333,11 @@ export default function CargosPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Salário
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Ações
-                  </th>
+                  {canEdit && (
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      Ações
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -346,26 +353,28 @@ export default function CargosPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                         {cargo.salario ? `R$ ${cargo.salario}` : "-"}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                        <button
-                          onClick={() => handleEdit(cargo)}
-                          className="text-secondary hover:opacity-70"
-                        >
-                          <Edit size={20} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(cargo.id)}
-                          className="text-red-600 hover:opacity-70"
-                        >
-                          <Trash2 size={20} />
-                        </button>
-                      </td>
+                      {canEdit && (
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
+                          <button
+                            onClick={() => handleEdit(cargo)}
+                            className="text-secondary hover:opacity-70"
+                          >
+                            <Edit size={20} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(cargo.id)}
+                            className="text-red-600 hover:opacity-70"
+                          >
+                            <Trash2 size={20} />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={canEdit ? 4 : 3}
                       className="px-6 py-4 text-center text-sm text-gray-500"
                     >
                       {searchTerm

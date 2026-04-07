@@ -1,5 +1,7 @@
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import HospitalAdminSidebar from "./HospitalAdminSidebar";
+import Sidebar from "@/components/shared/Sidebar";
+import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 
 interface RecentPage {
@@ -12,6 +14,7 @@ interface RecentPage {
 export default function HospitalAdminLayout() {
   const location = useLocation();
   const { hospitalId } = useParams<{ hospitalId: string }>();
+  const { user } = useAuth();
 
   // Rastreia páginas visitadas
   useEffect(() => {
@@ -29,11 +32,11 @@ export default function HospitalAdminLayout() {
     const pageMap: Record<string, { title: string; icon: string }> = {
       dashboard: { title: "Dashboard", icon: "ChartBar" },
       setores: { title: "Setores", icon: "Building2" },
-      "unidades-leitos": { title: "Unidades e Leitos", icon: "Bed" },
+      "unidades-leitos": { title: "Classificação de Leitos", icon: "Bed" },
       baseline: { title: "Baseline", icon: "FileText" },
       usuarios: { title: "Usuários", icon: "Users" },
       pareto: { title: "Pareto", icon: "ClipboardList" },
-      "gerir-setores": { title: "Gerir Setores", icon: "Settings" },
+      "gerir-setores": { title: "Dimensionar", icon: "Settings" },
       cargos: { title: "Cargos", icon: "Users" },
     };
 
@@ -75,7 +78,7 @@ export default function HospitalAdminLayout() {
 
   return (
     <div className="flex h-screen bg-slate-50">
-      <HospitalAdminSidebar />
+      {user?.tipo === "GESTOR_ESTRATEGICO_REDE" ? <Sidebar /> : <HospitalAdminSidebar />}
       <main className="flex-1 p-8 overflow-y-auto">
         <Outlet />
       </main>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from "react"
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 
@@ -32,6 +32,14 @@ export function AlertProvider({ children }: { children: ReactNode }) {
     }
 
     const hideAlert = () => setAlert((a) => ({ ...a, open: false }))
+
+    useEffect(() => {
+        const handler = () => {
+            showAlert("destructive", "Sem permissão", "Você não tem permissão para realizar esta ação.")
+        }
+        window.addEventListener("api:forbidden", handler)
+        return () => window.removeEventListener("api:forbidden", handler)
+    }, [])
 
     return (
         <AlertContext.Provider value={{ showAlert, hideAlert }}>

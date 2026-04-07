@@ -17,6 +17,7 @@ import {
 import { Trash2, Edit, PlusCircle, TrendingUp, BarChart3 } from "lucide-react";
 import { useModal } from "@/contexts/ModalContext";
 import { useAlert } from "@/contexts/AlertContext";
+import { useAuth } from "@/contexts/AuthContext";
 import CurrencyInput from "@/components/shared/CurrencyInput";
 import BaselinePareto from "../components/BaselinePareto";
 
@@ -31,6 +32,8 @@ export default function ParetoPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
   const { showModal } = useModal();
   const { showAlert } = useAlert();
+  const { user } = useAuth();
+  const canEdit = ["ADMIN", "GESTOR_TATICO_TEC_ADM", "GESTOR_TATICO_ADM"].includes(user?.tipo ?? "");
   const [baseline, setBaseline] = useState<Baseline | null>(null);
   const [hospital, setHospital] = useState<Hospital | null>(null);
   const [loading, setLoading] = useState(true);
@@ -247,7 +250,7 @@ export default function ParetoPage() {
         <h1 className="text-3xl font-bold text-primary">
           Gerenciamento de Pareto
         </h1>
-        {baseline && !isFormVisible && (
+        {baseline && !isFormVisible && canEdit && (
           <div className="flex gap-2">
             <button
               onClick={handleDelete}
@@ -271,6 +274,7 @@ export default function ParetoPage() {
           hospital={hospital}
           collapsed={paretoCollapsed}
           onToggle={() => setParetoCollapsed(!paretoCollapsed)}
+          readOnly={!canEdit}
         />
       )}
 
@@ -379,16 +383,24 @@ export default function ParetoPage() {
           <h3 className="text-md font-semibold text-slate-700">
             Nenhum pareto cadastrado para este hospital.
           </h3>
-          <p className="text-sm text-slate-500">
-            Clique em "Novo Pareto" para começar.
-          </p>
-          <button
-            onClick={() => setIsFormVisible(true)}
-            className="mt-4 px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
-          >
-            <PlusCircle className="inline-block mr-2 h-4 w-4" /> Criar Novo
-            Pareto
-          </button>
+          {canEdit ? (
+            <>
+              <p className="text-sm text-slate-500">
+                Clique em "Novo Pareto" para começar.
+              </p>
+              <button
+                onClick={() => setIsFormVisible(true)}
+                className="mt-4 px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
+              >
+                <PlusCircle className="inline-block mr-2 h-4 w-4" /> Criar Novo
+                Pareto
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-slate-500">
+              Sem dados de pareto disponíveis.
+            </p>
+          )}
         </div>
       ) : null}
     </div>

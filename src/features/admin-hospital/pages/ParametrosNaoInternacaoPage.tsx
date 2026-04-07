@@ -7,10 +7,13 @@ import {
 } from "@/lib/api";
 import { Settings } from "lucide-react";
 import { useAlert } from "@/contexts/AlertContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ParametrosNaoInternacaoPage() {
   const { setorId } = useParams<{ setorId: string }>();
   const { showAlert } = useAlert();
+  const { user } = useAuth();
+  const canEdit = !["GESTOR_ESTRATEGICO_HOSPITAL", "GESTOR_ESTRATEGICO_REDE"].includes(user?.tipo ?? "");
   const [parametros, setParametros] = useState<
     Partial<CreateParametrosNaoInternacaoDTO>
   >({
@@ -163,7 +166,8 @@ export default function ParametrosNaoInternacaoPage() {
                 type="text"
                 value={parametros.nome_enfermeiro || ""}
                 onChange={handleChange}
-                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                disabled={!canEdit}
+                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="Ex: Dr. Carlos Silva"
               />
             </div>
@@ -176,7 +180,8 @@ export default function ParametrosNaoInternacaoPage() {
                 type="text"
                 value={parametros.numero_coren || ""}
                 onChange={handleChange}
-                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                disabled={!canEdit}
+                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="Ex: 123456"
               />
             </div>
@@ -199,7 +204,8 @@ export default function ParametrosNaoInternacaoPage() {
                 value={parametros.jornadaSemanalEnfermeiro ?? 36}
                 onChange={handleChange}
                 min="0"
-                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                disabled={!canEdit}
+                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
             </div>
             <div>
@@ -212,7 +218,8 @@ export default function ParametrosNaoInternacaoPage() {
                 value={parametros.jornadaSemanalTecnico ?? 36}
                 onChange={handleChange}
                 min="0"
-                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                disabled={!canEdit}
+                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -237,7 +244,8 @@ export default function ParametrosNaoInternacaoPage() {
                 onChange={handleChange}
                 min="0"
                 max="100"
-                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                disabled={!canEdit}
+                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
               <p className="text-xs text-gray-500 mt-1">
                 Informe em porcentagem. Ex: 15 = 15%
@@ -252,7 +260,8 @@ export default function ParametrosNaoInternacaoPage() {
                   type="checkbox"
                   checked={parametros.equipeComRestricao || false}
                   onChange={handleChange}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  disabled={!canEdit}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed"
                 />
               </div>
               <div className="ml-3">
@@ -288,7 +297,8 @@ export default function ParametrosNaoInternacaoPage() {
                 onChange={handleChange}
                 min="1"
                 max="31"
-                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                disabled={!canEdit}
+                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
               <p className="text-xs text-gray-500 mt-1">
                 Quantos dias por mês a unidade funciona (1-31)
@@ -305,7 +315,8 @@ export default function ParametrosNaoInternacaoPage() {
                 onChange={handleChange}
                 min="1"
                 max="7"
-                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                disabled={!canEdit}
+                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
               <p className="text-xs text-gray-500 mt-1">
                 Dias da semana considerados (1-7)
@@ -315,12 +326,14 @@ export default function ParametrosNaoInternacaoPage() {
         </div>
 
         <div className="flex justify-end pt-4 border-t">
+          {canEdit && (
           <button
             type="submit"
             className="px-6 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors font-medium"
           >
             Salvar Parâmetros
           </button>
+          )}
         </div>
       </form>
     </div>

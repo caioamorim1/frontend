@@ -1,6 +1,37 @@
 import { useMemo, useEffect, useState } from "react";
-import { Briefcase, Users } from "lucide-react";
-import { getHospitalSnapshots, type Snapshot } from "@/lib/api";
+import { Briefcase, Users, Calendar, BedDouble, CheckSquare, Activity } from "lucide-react";
+import {
+  getHospitalSnapshots,
+  type Snapshot,
+  getControlePeriodoByUnidadeId,
+  getAnaliseInternacao,
+  getProjetadoFinalInternacao,
+  type AnaliseInternacaoResponse,
+  type SaveProjetadoFinalInternacaoDTO,
+} from "@/lib/api";
+
+const NIVEL_LABELS: Record<string, string> = {
+  MINIMOS: "Mínimos",
+  CUIDADOS_MINIMOS: "Mínimos",
+  INTERMEDIARIOS: "Intermediários",
+  CUIDADOS_INTERMEDIARIOS: "Intermediários",
+  ALTA_DEPENDENCIA: "Alta Dependência",
+  SEMI_INTENSIVO: "Semi-Intensivo",
+  SEMI_INTENSIVOS: "Semi-Intensivo",
+  INTENSIVO: "Intensivo",
+  INTENSIVOS: "Intensivo",
+};
+const NIVEL_COLORS: Record<string, string> = {
+  MINIMOS: "bg-sky-400",
+  CUIDADOS_MINIMOS: "bg-sky-400",
+  INTERMEDIARIOS: "bg-yellow-400",
+  CUIDADOS_INTERMEDIARIOS: "bg-yellow-400",
+  ALTA_DEPENDENCIA: "bg-orange-400",
+  SEMI_INTENSIVO: "bg-orange-400",
+  SEMI_INTENSIVOS: "bg-orange-400",
+  INTENSIVO: "bg-red-500",
+  INTENSIVOS: "bg-red-500",
+};
 
 interface QuadroFuncionariosProps {
   hospitalId: string;
@@ -16,6 +47,15 @@ export default function QuadroFuncionariosResumo({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [periodo, setPeriodo] = useState<{ inicio: string; fim: string } | null>(null);
+  const [analise, setAnalise] = useState<AnaliseInternacaoResponse | null>(null);
+  const [observacoesMap, setObservacoesMap] = useState<Record<string, string>>({});
+
+  const safeDate = (iso: string) =>
+    new Date(new Date(iso).getTime() + 12 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
+
   useEffect(() => {
     const fetchSnapshot = async () => {
       if (!hospitalId) return;
@@ -24,10 +64,12 @@ export default function QuadroFuncionariosResumo({
       setError(null);
 
       try {
-        // Buscar snapshots do hospital
-        const snapshotsData = await getHospitalSnapshots(hospitalId, 10);
+        // Fetch snapshot + projetado final in parallel
+        const [snapshotsData, projetadoData] = await Promise.all([
+          getHospitalSnapshots(hospitalId, 10),
+          getProjetadoFinalInternacao(setorId).catch(() => null as SaveProjetadoFinalInternacaoDTO | null),
+        ]);
 
-        // Encontrar o snapshot selecionado
         const snapshotSelecionado = snapshotsData.snapshots?.find(
           (s) => s.selecionado === true
         );
@@ -40,6 +82,26 @@ export default function QuadroFuncionariosResumo({
         } else {
           setSnapshotSelecionado(snapshotSelecionado);
         }
+
+        // Build observações map {cargoId → observacao}
+        if (projetadoData?.cargos) {
+          const map: Record<string, string> = {};
+          projetadoData.cargos.forEach((c) => {
+            if (c.observacao) map[c.cargoId] = c.observacao;
+          });
+          setObservacoesMap(map);
+        }
+
+        // Fetch control period + analise for internação stats
+        const controlePeriodo = await getControlePeriodoByUnidadeId(setorId).catch(() => null);
+        const params = controlePeriodo?.dataInicial && controlePeriodo?.dataFinal
+          ? { inicio: safeDate(controlePeriodo.dataInicial), fim: safeDate(controlePeriodo.dataFinal) }
+          : undefined;
+        if (params) setPeriodo(params);
+
+        const analiseData = await getAnaliseInternacao(setorId, params).catch(() => null);
+        if (analiseData) setAnalise(analiseData);
+
       } catch (err: any) {
         console.error("❌ Erro ao buscar snapshot:", err);
         if (err.response?.status === 404) {
@@ -264,9 +326,9 @@ export default function QuadroFuncionariosResumo({
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg border animate-fade-in-down">
+    <div className="bg-white p-6 rounded-lg border animate-fade-in-down space-y-6">
       {/* Cabeçalho com totais */}
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex justify-between items-start">
         <div>
           <h2 className="text-xl font-semibold text-primary">
             Resumo de Funcionários (Baseline)
@@ -297,12 +359,112 @@ export default function QuadroFuncionariosResumo({
         </div>
       </div>
 
+      {/* Painel de informações do período / análise */}
+      {(periodo || analise) && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {periodo && (
+            <>
+              <div className="bg-slate-50 border rounded-lg p-3 flex flex-col gap-1">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                  <Calendar className="h-3.5 w-3.5" /> Data Inicial
+                </div>
+                <p className="font-bold text-sm text-primary">
+                  {new Date(periodo.inicio + "T12:00:00").toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+              <div className="bg-slate-50 border rounded-lg p-3 flex flex-col gap-1">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                  <Calendar className="h-3.5 w-3.5" /> Data Final
+                </div>
+                <p className="font-bold text-sm text-primary">
+                  {new Date(periodo.fim + "T12:00:00").toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+            </>
+          )}
+
+          {analise && (
+            <>
+              {(analise.agregados.taxaOcupacaoCustomizada?.taxa != null ||
+                analise.agregados.taxaOcupacaoPeriodoPercent != null) && (
+                <div className="bg-slate-50 border rounded-lg p-3 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                    <BedDouble className="h-3.5 w-3.5" /> Taxa de Ocupação
+                  </div>
+                  <p className="font-bold text-sm text-primary">
+                    {analise.agregados.taxaOcupacaoCustomizada?.taxa != null
+                      ? `${analise.agregados.taxaOcupacaoCustomizada.taxa.toFixed(1)}%`
+                      : `${analise.agregados.taxaOcupacaoPeriodoPercent!.toFixed(1)}%`}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">para fins de cálculo</p>
+                </div>
+              )}
+
+              {analise.agregados.taxaOcupacaoPeriodoPercent != null && (
+                <div className="bg-slate-50 border rounded-lg p-3 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                    <Activity className="h-3.5 w-3.5" /> Taxa Média
+                  </div>
+                  <p className="font-bold text-sm text-primary">
+                    {analise.agregados.taxaOcupacaoPeriodoPercent.toFixed(1)}%
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">média do período</p>
+                </div>
+              )}
+
+              {(analise.agregados.percentualLeitosAvaliadosPercent != null ||
+                analise.agregados.percentualLeitosAvaliados != null) && (
+                <div className="bg-slate-50 border rounded-lg p-3 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                    <CheckSquare className="h-3.5 w-3.5" /> Leitos Avaliados
+                  </div>
+                  <p className="font-bold text-sm text-primary">
+                    {(
+                      analise.agregados.percentualLeitosAvaliadosPercent ??
+                      analise.agregados.percentualLeitosAvaliados ??
+                      0
+                    ).toFixed(1)}%
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Níveis de Cuidado */}
+      {analise?.agregados.distribuicaoTotalClassificacao &&
+        Object.keys(analise.agregados.distribuicaoTotalClassificacao).length > 0 && (
+          <div>
+            <p className="text-xs text-gray-500 uppercase font-semibold mb-2">
+              Níveis de Cuidado
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(analise.agregados.distribuicaoTotalClassificacao).map(
+                ([nivel, qty]) => (
+                  <div
+                    key={nivel}
+                    className="flex items-center gap-1.5 bg-slate-50 border rounded-full px-3 py-1 text-xs font-medium"
+                  >
+                    <span
+                      className={`inline-block w-2.5 h-2.5 rounded-full ${
+                        NIVEL_COLORS[nivel] ?? "bg-gray-400"
+                      }`}
+                    />
+                    {NIVEL_LABELS[nivel] ?? nivel}: {qty}
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        )}
+
       {/* Tabela com Atual e Projetado */}
       <div className="border rounded-lg overflow-hidden">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs text-gray-500 uppercase tracking-wider">
             <tr>
-              <th scope="col" className="px-6 py-3 w-2/4">
+              <th scope="col" className="px-6 py-3 w-2/5">
                 Cargo
               </th>
               <th scope="col" className="px-6 py-3 text-right">
@@ -310,6 +472,9 @@ export default function QuadroFuncionariosResumo({
               </th>
               <th scope="col" className="px-6 py-3 text-right">
                 Projetado Baseline
+              </th>
+              <th scope="col" className="px-6 py-3">
+                Observações
               </th>
             </tr>
           </thead>
@@ -327,6 +492,9 @@ export default function QuadroFuncionariosResumo({
                   item.quantidade_projetada !== undefined
                     ? item.quantidade_projetada
                     : "-"}
+                </td>
+                <td className="px-6 py-4 text-sm text-muted-foreground italic">
+                  {observacoesMap[item.cargo.id] ?? "—"}
                 </td>
               </tr>
             ))}

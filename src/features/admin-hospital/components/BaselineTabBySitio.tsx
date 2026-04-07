@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { getSnapshotHospitalSectors } from "@/lib/api";
+import {
+  getSnapshotHospitalSectors,
+  getControlePeriodoByUnidadeId,
+  getProjetadoFinalNaoInternacao,
+  type SaveProjetadoFinalNaoInternacaoDTO,
+} from "@/lib/api";
 import {
   Table,
   TableBody,
@@ -16,6 +21,7 @@ import {
   AlertCircle,
   MinusCircle,
   PlusCircle,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -46,6 +52,14 @@ export default function BaselineTabBySitio({
   const [snapshotData, setSnapshotData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [periodo, setPeriodo] = useState<{ inicio: string; fim: string } | null>(null);
+  // Map: sitioId → { cargoId → observacao }
+  const [obsMap, setObsMap] = useState<Record<string, Record<string, string>>>({});
+
+  const safeDate = (iso: string) =>
+    new Date(new Date(iso).getTime() + 12 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
 
   useEffect(() => {
     const fetchSnapshot = async () => {
@@ -55,11 +69,34 @@ export default function BaselineTabBySitio({
       setError(null);
 
       try {
-        const data = await getSnapshotHospitalSectors(hospitalId);
+        const [snapshotResult, controlePeriodo, projetadoData] = await Promise.all([
+          getSnapshotHospitalSectors(hospitalId),
+          getControlePeriodoByUnidadeId(unidadeId).catch(() => null),
+          getProjetadoFinalNaoInternacao(unidadeId).catch(() => null as SaveProjetadoFinalNaoInternacaoDTO | null),
+        ]);
 
-        const dados = (data as any).snapshot.dados;
-
+        const dados = (snapshotResult as any).snapshot.dados;
         setSnapshotData(dados);
+
+        if (controlePeriodo?.dataInicial && controlePeriodo?.dataFinal) {
+          setPeriodo({
+            inicio: safeDate(controlePeriodo.dataInicial),
+            fim: safeDate(controlePeriodo.dataFinal),
+          });
+        }
+
+        if (projetadoData?.sitios) {
+          const map: Record<string, Record<string, string>> = {};
+          projetadoData.sitios.forEach((sitio) => {
+            const cargoObs: Record<string, string> = {};
+            sitio.cargos.forEach((c) => {
+              if (c.observacao) cargoObs[c.cargoId] = c.observacao;
+            });
+            if (Object.keys(cargoObs).length > 0) map[sitio.sitioId] = cargoObs;
+          });
+          setObsMap(map);
+        }
+
       } catch (err: any) {
         console.error("[BASELINE BY SITIO] Erro ao buscar snapshot:", err);
         if (err.response?.status === 404) {
@@ -231,17 +268,39 @@ export default function BaselineTabBySitio({
         <CardTitle className="mb-3">
           Gerenciar Quadro de Funcionários por Sítio Funcional
         </CardTitle>
+        {/* Período */}
+        {periodo && (
+          <div className="flex gap-3 mt-1">
+            <div className="bg-slate-50 border rounded-lg p-3 flex flex-col gap-1">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                <Calendar className="h-3.5 w-3.5" /> Data Inicial
+              </div>
+              <p className="font-bold text-sm text-primary">
+                {new Date(periodo.inicio + "T12:00:00").toLocaleDateString("pt-BR")}
+              </p>
+            </div>
+            <div className="bg-slate-50 border rounded-lg p-3 flex flex-col gap-1">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                <Calendar className="h-3.5 w-3.5" /> Data Final
+              </div>
+              <p className="font-bold text-sm text-primary">
+                {new Date(periodo.fim + "T12:00:00").toLocaleDateString("pt-BR")}
+              </p>
+            </div>
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <div className="border rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[50%]">Cargo</TableHead>
+                <TableHead className="w-[40%]">Cargo</TableHead>
                 <TableHead className="text-center">Atual Baseline</TableHead>
                 <TableHead className="text-center">
                   Projetado Baseline
                 </TableHead>
+                <TableHead>Observações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -249,7 +308,7 @@ export default function BaselineTabBySitio({
                 <React.Fragment key={`sitio-fragment-${sitio.id}`}>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableCell
-                      colSpan={3}
+                      colSpan={4}
                       className="font-semibold text-primary"
                     >
                       {sitio.nome}
@@ -260,29 +319,36 @@ export default function BaselineTabBySitio({
                     </TableCell>
                   </TableRow>
 
-                  {(sitio.cargosSitio || []).map((cargoSitio) => (
-                    <TableRow
-                      key={`cargo-${cargoSitio.cargoUnidade.cargo.id}-${sitio.id}`}
-                    >
-                      <TableCell className="font-medium pl-8">
-                        {cargoSitio.cargoUnidade.cargo.nome}
-                      </TableCell>
-                      <TableCell className="text-center font-bold text-lg text-gray-700">
-                        {cargoSitio.quantidade_funcionarios}
-                      </TableCell>
-                      <TableCell className="text-center font-bold text-lg text-primary">
-                        {cargoSitio.quantidade_projetada !== null &&
-                        cargoSitio.quantidade_projetada !== undefined
-                          ? cargoSitio.quantidade_projetada
-                          : "-"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {(sitio.cargosSitio || []).map((cargoSitio) => {
+                    const cargoId = cargoSitio.cargoUnidade.cargo.id;
+                    const obs = obsMap[sitio.id]?.[cargoId];
+                    return (
+                      <TableRow
+                        key={`cargo-${cargoId}-${sitio.id}`}
+                      >
+                        <TableCell className="font-medium pl-8">
+                          {cargoSitio.cargoUnidade.cargo.nome}
+                        </TableCell>
+                        <TableCell className="text-center font-bold text-lg text-gray-700">
+                          {cargoSitio.quantidade_funcionarios}
+                        </TableCell>
+                        <TableCell className="text-center font-bold text-lg text-primary">
+                          {cargoSitio.quantidade_projetada !== null &&
+                          cargoSitio.quantidade_projetada !== undefined
+                            ? cargoSitio.quantidade_projetada
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground italic">
+                          {obs ?? "—"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
 
                   {(sitio.cargosSitio || []).length === 0 && (
                     <TableRow>
                       <TableCell
-                        colSpan={3}
+                        colSpan={4}
                         className="text-center text-muted-foreground h-12 pl-8 italic"
                       >
                         Nenhum cargo associado a este sítio.

@@ -733,70 +733,59 @@ export default function HospitaisPage() {
       <div className="bg-white p-6 rounded-lg border">
         {loading && <p>A carregar hospitais...</p>}
         {!loading && (
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Nome
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    CNPJ
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Telefone
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {hospitais.length > 0 ? (
-                  hospitais.map((hospital) => (
-                    <tr key={hospital.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
-                        <Link
-                          to={`/hospital/${hospital.id}/home`}
-                          className="text-primary font-semibold hover:underline"
-                        >
-                          {hospital.nome}
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {hospital.cnpj}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {hospital.telefone}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                        <button
-                          onClick={() => handleEdit(hospital)}
-                          className="text-secondary hover:opacity-70"
-                        >
-                          <Edit size={20} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(hospital.id)}
-                          className="text-red-600 hover:opacity-70"
-                        >
-                          <Trash2 size={20} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="px-6 py-4 text-center text-sm text-gray-500"
-                    >
-                      Nenhum hospital registado.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <div className="overflow-x-auto space-y-6">
+            {hospitais.length > 0 ? (() => {
+              // Agrupa hospitais por rede
+              const grupos = hospitais.reduce<Record<string, Hospital[]>>((acc, h) => {
+                const redeNome = h.rede?.nome ?? h.regiao?.grupo?.rede?.nome ?? "Sem Rede";
+                if (!acc[redeNome]) acc[redeNome] = [];
+                acc[redeNome].push(h);
+                return acc;
+              }, {});
+              return Object.entries(grupos).sort(([a], [b]) => a.localeCompare(b)).map(([redeNome, lista]) => (
+                <div key={redeNome}>
+                  <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 border-b pb-1">
+                    {redeNome}
+                  </h2>
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CNPJ</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {lista.map((hospital) => (
+                        <tr key={hospital.id} className="hover:bg-slate-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                            <Link
+                              to={`/hospital/${hospital.id}/home`}
+                              className="text-primary font-semibold hover:underline"
+                            >
+                              {hospital.nome}
+                            </Link>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{hospital.cnpj}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{hospital.telefone}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
+                            <button onClick={() => handleEdit(hospital)} className="text-secondary hover:opacity-70">
+                              <Edit size={20} />
+                            </button>
+                            <button onClick={() => handleDelete(hospital.id)} className="text-red-600 hover:opacity-70">
+                              <Trash2 size={20} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ));
+            })() : (
+              <p className="text-center text-sm text-gray-500 py-4">Nenhum hospital registado.</p>
+            )}
           </div>
         )}
       </div>

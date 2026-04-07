@@ -34,6 +34,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import _ from "lodash"; // Import lodash for deep comparison
 import { useAlert } from "@/contexts/AlertContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Select,
   SelectContent,
@@ -117,9 +118,11 @@ const TurnoInput = ({
 const AjusteInput = ({
   value,
   onChange,
+  disabled = false,
 }: {
   value: number;
   onChange: (newValue: number) => void;
+  disabled?: boolean;
 }) => {
   const [isEditing, setIsEditing] = React.useState(false);
   const [tempValue, setTempValue] = React.useState(value.toString());
@@ -154,9 +157,9 @@ const AjusteInput = ({
         size="icon"
         className="h-7 w-7"
         onClick={() => onChange(value - 1)}
-        disabled={value <= 0}
+        disabled={disabled || value <= 0}
       >
-        <MinusCircle className="h-5 w-5 text-red-500" />
+        <MinusCircle className={`h-5 w-5 ${disabled ? "text-gray-300" : "text-red-500"}`} />
       </Button>
       {isEditing ? (
         <input
@@ -167,16 +170,23 @@ const AjusteInput = ({
           onChange={(e) => setTempValue(e.target.value)}
           onBlur={handleSave}
           onKeyDown={handleKeyDown}
-          className="font-bold text-lg w-16 text-center border rounded px-1 focus:outline-none focus:ring-2 focus:ring-primary"
+          disabled={disabled}
+          className="font-bold text-lg w-16 text-center border rounded px-1 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
         />
       ) : (
         <span
-          className="font-bold text-lg w-10 text-center cursor-pointer hover:bg-gray-100 rounded px-2 py-1"
+          className={`font-bold text-lg w-10 text-center ${
+            disabled
+              ? "text-gray-400"
+              : "cursor-pointer hover:bg-gray-100 rounded px-2 py-1"
+          }`}
           onClick={() => {
-            setTempValue(value.toString());
-            setIsEditing(true);
+            if (!disabled) {
+              setTempValue(value.toString());
+              setIsEditing(true);
+            }
           }}
-          title="Clique para editar"
+          title={disabled ? "" : "Clique para editar"}
         >
           {value}
         </span>
@@ -186,8 +196,9 @@ const AjusteInput = ({
         size="icon"
         className="h-7 w-7"
         onClick={() => onChange(value + 1)}
+        disabled={disabled}
       >
-        <PlusCircle className="h-5 w-5 text-green-500" />
+        <PlusCircle className={`h-5 w-5 ${disabled ? "text-gray-300" : "text-green-500"}`} />
       </Button>
     </div>
   );
@@ -199,6 +210,9 @@ export default function AtualTab({
   onUpdate,
 }: AtualTabProps) {
   const { showAlert } = useAlert();
+  const { user } = useAuth();
+  const canEdit = ["ADMIN", "GESTOR_TATICO_TEC_ADM", "GESTOR_TATICO_TECNICO", "GESTOR_TATICO_ADM"].includes(user?.tipo ?? "");
+  const canCreateCargo = user?.tipo === "ADMIN";
 
   // Função auxiliar para calcular total dos turnos
   const calcularTotalTurnos = (cargo: CargoSitioState): number => {
@@ -853,9 +867,11 @@ export default function AtualTab({
               Gerenciar Quadro de Funcionários por Sítio Funcional
             </CardTitle>
             <div className="mb-3">
-              <Button variant="secondary" onClick={openAddCargoModal}>
-                + Criar Cargo
-              </Button>
+              {canCreateCargo && (
+                <Button variant="secondary" onClick={openAddCargoModal}>
+                  + Criar Cargo
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -887,12 +903,14 @@ export default function AtualTab({
                     >
                       Última Atualização
                     </TableHead>
+                    {canEdit && (
                     <TableHead
                       rowSpan={2}
                       className="text-center w-[80px] align-middle"
                     >
                       Ações
                     </TableHead>
+                    )}
                   </TableRow>
                   <TableRow>
                     {/* Segunda a Sexta */}
@@ -1016,7 +1034,7 @@ export default function AtualTab({
                                       val
                                     )
                                   }
-                                  disabled={!temTurnos && quantidade > 0}
+                                  disabled={(!temTurnos && quantidade > 0) || !canEdit}
                                 />
                               </TableCell>
 
@@ -1032,7 +1050,7 @@ export default function AtualTab({
                                       val
                                     )
                                   }
-                                  disabled={!temTurnos && quantidade > 0}
+                                  disabled={(!temTurnos && quantidade > 0) || !canEdit}
                                 />
                               </TableCell>
 
@@ -1048,7 +1066,7 @@ export default function AtualTab({
                                       val
                                     )
                                   }
-                                  disabled={!temTurnos && quantidade > 0}
+                                  disabled={(!temTurnos && quantidade > 0) || !canEdit}
                                 />
                               </TableCell>
 
@@ -1064,7 +1082,7 @@ export default function AtualTab({
                                       val
                                     )
                                   }
-                                  disabled={!temTurnos && quantidade > 0}
+                                  disabled={(!temTurnos && quantidade > 0) || !canEdit}
                                 />
                               </TableCell>
 
@@ -1080,7 +1098,7 @@ export default function AtualTab({
                                       val
                                     )
                                   }
-                                  disabled={!temTurnos && quantidade > 0}
+                                  disabled={(!temTurnos && quantidade > 0) || !canEdit}
                                 />
                               </TableCell>
 
@@ -1096,7 +1114,7 @@ export default function AtualTab({
                                       val
                                     )
                                   }
-                                  disabled={!temTurnos && quantidade > 0}
+                                  disabled={(!temTurnos && quantidade > 0) || !canEdit}
                                 />
                               </TableCell>
 
@@ -1112,7 +1130,7 @@ export default function AtualTab({
                                       val
                                     )
                                   }
-                                  disabled={!temTurnos && quantidade > 0}
+                                  disabled={(!temTurnos && quantidade > 0) || !canEdit}
                                 />
                               </TableCell>
 
@@ -1128,7 +1146,7 @@ export default function AtualTab({
                                       val
                                     )
                                   }
-                                  disabled={!temTurnos && quantidade > 0}
+                                  disabled={(!temTurnos && quantidade > 0) || !canEdit}
                                 />
                               </TableCell>
 
@@ -1139,7 +1157,7 @@ export default function AtualTab({
                                   onChange={(val) =>
                                     handleTotalChange(sitio.id, cargoId, val)
                                   }
-                                  disabled={temTurnos}
+                                  disabled={temTurnos || !canEdit}
                                 />
                               </TableCell>
 
@@ -1149,6 +1167,7 @@ export default function AtualTab({
                               </TableCell>
 
                               {/* Ações */}
+                              {canEdit && (
                               <TableCell className="text-center">
                                 <Button
                                   variant="ghost"
@@ -1165,6 +1184,7 @@ export default function AtualTab({
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </TableCell>
+                              )}
                             </TableRow>
                           );
                         })}
@@ -1182,6 +1202,7 @@ export default function AtualTab({
                         )}
 
                         {/* Adicionar novo cargo ao sítio */}
+                        {canEdit && (
                         <TableRow>
                           <TableCell className="pl-8 border-r">
                             <Select
@@ -1235,6 +1256,7 @@ export default function AtualTab({
                             {/* Célula vazia para ações */}
                           </TableCell>
                         </TableRow>
+                        )}
                       </React.Fragment>
                     );
                   })}
@@ -1386,9 +1408,11 @@ export default function AtualTab({
             Gerenciar Quadro de Funcionários
           </CardTitle>
           <div className="mb-3">
-            <Button variant="secondary" onClick={openAddCargoModal}>
-              + Criar Cargo
-            </Button>
+            {canCreateCargo && (
+              <Button variant="secondary" onClick={openAddCargoModal}>
+                + Criar Cargo
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -1401,7 +1425,7 @@ export default function AtualTab({
                   <TableHead className="text-center whitespace-nowrap">
                     Última atualização
                   </TableHead>
-                  <TableHead className="text-center w-[100px]">Ações</TableHead>
+                  {canEdit && <TableHead className="text-center w-[100px]">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1430,27 +1454,31 @@ export default function AtualTab({
                           onChange={(novaQtd) =>
                             handleQuantidadeChange(cargo.id, novaQtd)
                           }
+                          disabled={!canEdit}
                         />
                       </TableCell>
                       <TableCell className="text-center text-sm text-muted-foreground whitespace-nowrap">
                         {lastAddedLabel}
                       </TableCell>
-                      <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleRemoveCargoFromUnidade(cargo.id)}
-                          title="Remover cargo da unidade"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                      {canEdit && (
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleRemoveCargoFromUnidade(cargo.id)}
+                            title="Remover cargo da unidade"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
 
                 {/* Linha para adicionar novo cargo */}
+                {canEdit && (
                 <TableRow>
                   <TableCell>
                     <Select
@@ -1491,6 +1519,7 @@ export default function AtualTab({
                     {/* Célula vazia para coluna de ações */}
                   </TableCell>
                 </TableRow>
+                )}
 
                 {cargosNaUnidade.length === 0 && (
                   <TableRow>

@@ -17,6 +17,7 @@ interface ObservacaoModalProps {
   onSave: (observacao: string) => void;
   initialValue?: string;
   cargoNome: string;
+  readOnly?: boolean;
 }
 
 export function ObservacaoModal({
@@ -25,6 +26,7 @@ export function ObservacaoModal({
   onSave,
   initialValue = "",
   cargoNome,
+  readOnly = false,
 }: ObservacaoModalProps) {
   const [observacao, setObservacao] = useState(initialValue);
 
@@ -56,13 +58,14 @@ export function ObservacaoModal({
             placeholder="Digite suas observações aqui..."
             className="min-h-[150px] resize-none"
             autoFocus
+            disabled={readOnly}
           />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Cancelar
+            {readOnly ? "Fechar" : "Cancelar"}
           </Button>
-          <Button onClick={handleSave}>Salvar</Button>
+          {!readOnly && <Button onClick={handleSave}>Salvar</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -52,6 +52,7 @@ interface AvaliacaoScpModalProps {
   onSuccess: () => void;
   sessaoId?: string;
   respostasIniciais?: Record<string, number>;
+  justificativa?: string;
 }
 
 export default function AvaliacaoScpModal({
@@ -64,6 +65,7 @@ export default function AvaliacaoScpModal({
   onSuccess,
   sessaoId,
   respostasIniciais,
+  justificativa,
 }: AvaliacaoScpModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -165,6 +167,7 @@ export default function AvaliacaoScpModal({
         // Modo edição
         await updateSessao(sessaoId, {
           itens: respostas,
+          ...(justificativa ? { justificativa } : {}),
         });
         toast({
           title: "Sucesso!",

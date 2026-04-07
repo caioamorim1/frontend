@@ -33,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useModal } from "@/contexts/ModalContext";
 import { useAlert } from "@/contexts/AlertContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Interface para controlar o formulário de alocação de cargos
 interface CargoParaAlocar {
@@ -47,6 +48,8 @@ export default function SitiosFuncionaisAdminPage() {
   }>();
   const { showModal } = useModal();
   const { showAlert } = useAlert();
+  const { user } = useAuth();
+  const canEdit = !["GESTOR_ESTRATEGICO_HOSPITAL", "GESTOR_ESTRATEGICO_REDE"].includes(user?.tipo ?? "");
   const [unidade, setUnidade] = useState<UnidadeNaoInternacao | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -278,12 +281,14 @@ export default function SitiosFuncionaisAdminPage() {
         <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
           <Building2 /> Gestão de Sítios Funcionais
         </h2>
+        {canEdit && (
         <button
           onClick={() => handleOpenForm(null)}
           className="px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
         >
           + Novo Sítio
         </button>
+        )}
       </div>
 
       {isFormVisible && (
@@ -359,9 +364,11 @@ export default function SitiosFuncionaisAdminPage() {
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                   Descrição
                 </th>
+                {canEdit && (
                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                   Ações
                 </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -373,6 +380,7 @@ export default function SitiosFuncionaisAdminPage() {
                   <td className="px-4 py-2 whitespace-nowrap text-sm">
                     {sitio.descricao || "-"}
                   </td>
+                  {canEdit && (
                   <td className="px-4 py-2 whitespace-nowrap text-right text-sm space-x-2">
                     <button
                       onClick={() => handleOpenForm(sitio)}
@@ -389,6 +397,7 @@ export default function SitiosFuncionaisAdminPage() {
                       <Trash2 size={18} />
                     </button>
                   </td>
+                  )}
                 </tr>
               ))}
             </tbody>

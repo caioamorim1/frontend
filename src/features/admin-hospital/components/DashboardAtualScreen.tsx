@@ -49,7 +49,7 @@ import { parseCost as parseCostUtil, sumStaff } from "@/lib/dataUtils";
 import {
   getAllHospitalSectors,
   HospitalSector,
-} from "@/mocks/functionSectores";
+} from "@/lib/functionSectores";
 import { SectorInternation } from "@/mocks/internationDatabase";
 import { SectorAssistance } from "@/mocks/noInternationDatabase";
 import { OccupationRateChart } from "./OccupationRateChart";
