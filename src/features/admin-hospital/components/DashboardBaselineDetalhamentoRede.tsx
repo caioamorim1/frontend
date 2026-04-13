@@ -1198,22 +1198,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                 <ResponsiveContainer width="100%" height={350}>
                   <BarChart
                     data={(() => {
-                      console.log("=== WATERFALL CUSTO POR CARGO - DEBUG ===");
-                      console.log("custoAtualReal (props):", custoAtualReal);
-                      console.log("custoBaseline (props):", custoBaseline);
-                      console.log("custoProjetado (props):", custoProjetado);
-                      console.log(
-                        "profissionaisAtuaisReal:",
-                        profissionaisAtuaisReal
-                      );
-                      console.log(
-                        "profissionaisBaseline:",
-                        profissionaisBaseline
-                      );
-                      console.log(
-                        "profissionaisProjetados:",
-                        profissionaisProjetados
-                      );
 
                       // Construir dados de waterfall calculando custos reais em R$, não quantidade
                       const waterfallData: any[] = [];
@@ -1248,10 +1232,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                         }
                       );
 
-                      console.log(
-                        "Custos unitários por cargo:",
-                        Array.from(custoUnitarioPorCargo.entries()).slice(0, 5)
-                      );
 
                       // Calcular variações em R$ por cargo
                       const cargoVariacoes = new Map<
@@ -1413,33 +1393,11 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                           Math.abs(b.custoVariacao) - Math.abs(a.custoVariacao)
                       );
 
-                      console.log(
-                        "Total de cargos com variação:",
-                        cargoVariacoes.size
-                      );
-                      console.log(
-                        "Primeiros 5 cargos ordenados:",
-                        cargosOrdenados.slice(0, 5)
-                      );
 
                       // Somar todas as variações de cargo
                       const somaVariacoesCargos = cargosOrdenados.reduce(
                         (acc, c) => acc + c.custoVariacao,
                         0
-                      );
-                      console.log(
-                        "Soma de todas variações de cargos:",
-                        somaVariacoesCargos
-                      );
-                      console.log(
-                        "Diferença esperada (Projetado - Baseline):",
-                        custoProjetado - custoBaseline
-                      );
-                      console.log(
-                        "Diferença das somas:",
-                        Math.abs(
-                          somaVariacoesCargos - (custoProjetado - custoBaseline)
-                        )
                       );
 
                       // Formatar data do baseline
@@ -1473,10 +1431,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
 
                       // 3. Variações por cargo (barras flutuantes)
                       let acumuladoCusto = custoBaseline;
-                      console.log(
-                        "Iniciando acumulado em (Baseline):",
-                        acumuladoCusto
-                      );
 
                       cargosOrdenados.forEach((cargo, index) => {
                         const nomeFormatado =
@@ -1487,14 +1441,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                         acumuladoCusto += cargo.custoVariacao;
 
                         if (index < 5) {
-                          console.log(`Cargo ${index}: ${cargo.nome}`);
-                          console.log(
-                            `  Variação custo: ${cargo.custoVariacao}`
-                          );
-                          console.log(`  Variação qtd: ${cargo.qtdVariacao}`);
-                          console.log(
-                            `  Range: [${inicio}, ${acumuladoCusto}]`
-                          );
                         }
 
                         waterfallData.push({
@@ -1507,15 +1453,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                         });
                       });
 
-                      console.log(
-                        "Acumulado final após todos os cargos:",
-                        acumuladoCusto
-                      );
-                      console.log("Custo Projetado esperado:", custoProjetado);
-                      console.log(
-                        "Diferença entre acumulado e projetado:",
-                        acumuladoCusto - custoProjetado
-                      );
 
                       // 4. Projetado (barra completa)
                       waterfallData.push({
@@ -1526,21 +1463,6 @@ export const DashboardBaselineDetalhamentoRede: React.FC<
                         qtdPessoas: profissionaisProjetados,
                       });
 
-                      console.log("Estrutura final do waterfall:");
-                      console.log("  Total de barras:", waterfallData.length);
-                      console.log(
-                        "  Primeira barra (Atual):",
-                        waterfallData[0]
-                      );
-                      console.log(
-                        "  Segunda barra (Baseline):",
-                        waterfallData[1]
-                      );
-                      console.log(
-                        "  Última barra (Projetado):",
-                        waterfallData[waterfallData.length - 1]
-                      );
-                      console.log("=== FIM DEBUG ===\n");
 
                       return waterfallData;
                     })()}

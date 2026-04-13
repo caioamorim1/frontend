@@ -1048,6 +1048,13 @@ export interface AnaliseInternacaoResponse {
     // Taxa de ocupação customizada
     taxaOcupacaoCustomizada?: {
       taxa: number;
+      percentualLeitosAvaliados?: number | null;
+      distribuicaoClassificacao?: Record<string, number> | null;
+      utilizarComoBaseCalculo?: boolean | null;
+      leitosOcupados?: number;
+      totalPacientesMedio?: number;
+      distribuicaoTotalClassificacaoReal?: Record<string, number>;
+      mediaDiariaClassificacaoReal?: Record<string, number>;
       dataInicio?: string;
       dataFim?: string;
       createdAt?: string;
@@ -1474,7 +1481,6 @@ export const getUnidadesInternacao = async (
   hospitalId: string
 ): Promise<UnidadeInternacao[]> => {
   const response = await api.get(`/unidades`, { params: { hospitalId } });
-  console.log("[getUnidadesInternacao] raw response:", response.data);
   return response.data.map((u: any) => ({
     ...u,
     tipo: "internacao",
@@ -1487,7 +1493,6 @@ export const getUnidadesNaoInternacao = async (
   const response = await api.get(
     `/unidades-nao-internacao/hospital/${hospitalId}`
   );
-  console.log("[getUnidadesNaoInternacao] raw response:", response.data.data);
   return response.data.data.map((u: any) => ({
     ...u,
     tipo: "nao-internacao",
@@ -1779,19 +1784,10 @@ export const getAnaliseInternacao = async (
   unidadeId: string,
   params?: { inicio?: string; fim?: string }
 ): Promise<AnaliseInternacaoResponse> => {
-  const queryString =
-    params && (params.inicio || params.fim)
-      ? "?" + new URLSearchParams(params as Record<string, string>).toString()
-      : "";
-  console.log(
-    "[getAnaliseInternacao] URL:",
-    `${API_BASE_URL}/dimensionamento/internacao/${unidadeId}${queryString}`
-  );
   const response = await api.get(
     `/dimensionamento/internacao/${unidadeId}`,
     params && (params.inicio || params.fim) ? { params } : undefined
   );
-  console.log("[getAnaliseInternacao] Resposta:", response.data);
   return response.data;
 };
 
@@ -2512,6 +2508,9 @@ export interface TaxaOcupacaoCustomizada {
   id: string;
   unidadeId: string;
   taxa: number;
+  percentualLeitosAvaliados?: number | null;
+  distribuicaoClassificacao?: Record<string, number> | null;
+  utilizarComoBaseCalculo?: boolean | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -2537,6 +2536,9 @@ export async function getTaxaOcupacaoCustomizadaByUnidadeId(
 export async function saveTaxaOcupacaoCustomizada(payload: {
   unidadeId: string;
   taxa: number;
+  percentualLeitosAvaliados?: number | null;
+  distribuicaoClassificacao?: Record<string, number> | null;
+  utilizarComoBaseCalculo?: boolean | null;
 }): Promise<TaxaOcupacaoCustomizada> {
   const res = await api.post("/taxa-ocupacao", payload);
   return (

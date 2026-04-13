@@ -11,6 +11,8 @@ import {
   saveControlePeriodo,
   getTaxaOcupacaoCustomizadaByUnidadeId,
   saveTaxaOcupacaoCustomizada,
+  getScpMetodos,
+  type ScpMetodo,
 } from "@/lib/api";
 import { PieChartComp } from "./graphicsComponents/PieChartComp";
 import {
@@ -201,6 +203,12 @@ export default function ProjetadoTab({
     null
   );
 
+  // Simulação por % de leitos avaliados e distribuição por nível SCP
+  const [simLeitosAvaliados, setSimLeitosAvaliados] = useState<string>("");
+  const [simDistribuicao, setSimDistribuicao] = useState<Record<string, string>>({});
+  const [simUtilizarComoBase, setSimUtilizarComoBase] = useState<boolean>(false);
+  const [scpMetodo, setScpMetodo] = useState<ScpMetodo | null>(null);
+
   // Verificar se algum cargo tem status de conclusão
   const temStatusConclusao = Object.values(metadata).some(
     (meta) =>
@@ -226,6 +234,19 @@ export default function ProjetadoTab({
         ) {
           setTaxaOcupacaoCustom(String(saved.taxa));
         }
+        if (saved?.percentualLeitosAvaliados != null) {
+          setSimLeitosAvaliados(String(saved.percentualLeitosAvaliados));
+        }
+        if (saved?.distribuicaoClassificacao) {
+          const strDist: Record<string, string> = {};
+          Object.entries(saved.distribuicaoClassificacao).forEach(
+            ([k, v]) => { strDist[k] = String(v); }
+          );
+          setSimDistribuicao(strDist);
+        }
+        if (saved?.utilizarComoBaseCalculo != null) {
+          setSimUtilizarComoBase(Boolean(saved.utilizarComoBaseCalculo));
+        }
       } catch {
         // silencioso
       }
@@ -236,6 +257,17 @@ export default function ProjetadoTab({
       cancelled = true;
     };
   }, [unidade.id]);
+
+  // Carregar método SCP da unidade para obter níveis de classificação
+  useEffect(() => {
+    if (!unidade.scpMetodoKey) return;
+    getScpMetodos()
+      .then((metodos) => {
+        const match = metodos.find((m) => m.key === unidade.scpMetodoKey);
+        if (match) setScpMetodo(match);
+      })
+      .catch(() => {});
+  }, [unidade.scpMetodoKey]);
 
   const parseTaxaOcupacao = () => {
     const raw = taxaOcupacaoCustom.trim();
@@ -265,9 +297,21 @@ export default function ProjetadoTab({
 
     try {
       setSavingTaxaOcupacao(true);
+      const simPct = parseFloat(simLeitosAvaliados);
+      const simPctValue = !isNaN(simPct) && simPct > 0 ? simPct : null;
+      const dist: Record<string, number> = {};
+      if (simPctValue !== null) {
+        Object.entries(simDistribuicao).forEach(([k, v]) => {
+          const n = parseFloat(v);
+          if (!isNaN(n)) dist[k] = n;
+        });
+      }
       const saved = await saveTaxaOcupacaoCustomizada({
         unidadeId: unidade.id,
         taxa: value,
+        percentualLeitosAvaliados: simPctValue,
+        distribuicaoClassificacao: simPctValue && Object.keys(dist).length > 0 ? dist : null,
+        utilizarComoBaseCalculo: simUtilizarComoBase,
       });
       setTaxaOcupacaoCustom(String(saved?.taxa ?? value));
       if (!opts?.silent) {
@@ -628,7 +672,7 @@ export default function ProjetadoTab({
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
                   <div className="flex flex-col">
                     <label className="text-sm text-gray-600 mb-1">
                       Data inicial
@@ -673,6 +717,43 @@ export default function ProjetadoTab({
                       className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
+                  <div className="flex flex-col">
+                    <label className="text-sm text-gray-600 mb-1">
+                      % Leitos avaliados 
+                    </label>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      placeholder="Ex.: 70"
+                      value={simLeitosAvaliados}
+                      onChange={(e) => {
+                        setSimLeitosAvaliados(e.target.value);
+                        if (!e.target.value) setSimDistribuicao({});
+                      }}
+                      disabled={temStatusConclusao || readOnly}
+                      className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+                {/* Checkbox utilizar como base de cálculo */}
+                <div className="flex items-center gap-2 mt-2 lg:mt-0 lg:mb-1">
+                  <input
+                    id="sim-utilizar-base"
+                    type="checkbox"
+                    checked={simUtilizarComoBase}
+                    onChange={(e) => setSimUtilizarComoBase(e.target.checked)}
+                    disabled={temStatusConclusao || readOnly}
+                    className="h-4 w-4 accent-primary disabled:cursor-not-allowed"
+                  />
+                  <label
+                    htmlFor="sim-utilizar-base"
+                    className="text-sm text-gray-700 select-none cursor-pointer"
+                  >
+                    Utilizar como base de cálculo
+                  </label>
                 </div>
                 {!temStatusConclusao && !readOnly && (
                   <div className="flex justify-end">
@@ -686,6 +767,68 @@ export default function ProjetadoTab({
                   </div>
                 )}
               </div>
+
+              {/* Seção de distribuição por nível SCP — aparece quando % leitos avaliados for preenchido */}
+              {(() => {
+                const simPct = parseFloat(simLeitosAvaliados);
+                if (isNaN(simPct) || simPct <= 0) return null;
+
+                // Obter níveis de classificação: prioridade à análise real, depois ao método SCP
+                const classKeys: string[] = (() => {
+                  const fromAnalise = analise?.agregados?.distribuicaoTotalClassificacao
+                    ? Object.keys(analise.agregados.distribuicaoTotalClassificacao)
+                    : [];
+                  if (fromAnalise.length > 0) return fromAnalise;
+                  if (scpMetodo?.faixas && scpMetodo.faixas.length > 0)
+                    return scpMetodo.faixas.map((f: any) => String(f.classe));
+                  return [];
+                })();
+
+                if (classKeys.length === 0) return null;
+
+                const normalize = (k: string) =>
+                  k.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+                const total = classKeys.reduce((sum, k) => {
+                  const v = parseFloat(simDistribuicao[k] || "0");
+                  return sum + (isNaN(v) ? 0 : v);
+                }, 0);
+                const totalOk = Math.abs(total - 100) < 0.01;
+
+                return (
+                  <div className="mt-4 border rounded-lg p-4 bg-blue-50/40 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-primary">
+                        Distribuição por nível de classificação SCP 
+                      </p>
+                      <span className={`text-sm font-medium ${totalOk ? "text-green-600" : "text-red-600"}`}>
+                        Total: {total.toFixed(1)}% - 100%
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {classKeys.map((key) => (
+                        <div key={key} className="flex flex-col">
+                          <label className="text-xs text-gray-600 mb-1">{normalize(key)} (%)</label>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            max={100}
+                            step={0.1}
+                            placeholder="0"
+                            value={simDistribuicao[key] ?? ""}
+                            onChange={(e) =>
+                              setSimDistribuicao((prev) => ({ ...prev, [key]: e.target.value }))
+                            }
+                            disabled={temStatusConclusao || readOnly}
+                            className="w-full p-2 border rounded-md text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {analise && (
                 <div

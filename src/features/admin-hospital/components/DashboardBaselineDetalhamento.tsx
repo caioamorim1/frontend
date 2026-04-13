@@ -389,16 +389,6 @@ export const DashboardBaselineDetalhamento: React.FC<
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshotData, selectedCargo]);
 
-  console.log(
-    "%c[Ranking por Cargo] allSectorsDataForCargo",
-    "color: #0070B9; font-weight: bold",
-    allSectorsDataForCargo
-  );
-  console.log(
-    "%c[Ranking por Cargo] cargoVariacaoPorSetor (selectedCargo=" + selectedCargo + ")",
-    "color: #16a34a; font-weight: bold",
-    cargoVariacaoPorSetor
-  );
 
   const cargoBaselineTotalQtd = cargoVariacaoPorSetor.reduce(
     (sum, s) => sum + s.baselineQtd,
