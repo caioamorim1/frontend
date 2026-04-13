@@ -589,7 +589,7 @@ export default function ParametrosPage() {
               Base de Cálculo
             </h3>
             {(() => {
-              const custom = (analise.agregados as any)?.taxaOcupacaoCustomizada;
+              const custom = analise.agregados.taxaOcupacaoCustomizada;
               const taxa = custom?.taxa
                 ? `${custom.taxa}%`
                 : analise.agregados.taxaOcupacaoPeriodoPercent
@@ -597,28 +597,76 @@ export default function ParametrosPage() {
                   : "-";
               const leitosOcupados = custom?.leitosOcupados ?? analise.agregados.leitosOcupados ?? 0;
               const pacientesMedio = custom?.totalPacientesMedio ?? analise.agregados.totalPacientesMedio;
+              const pctLeitos = custom?.percentualLeitosAvaliados;
+              const distSim = custom?.distribuicaoClassificacao;
+              const hasDistSim = distSim && Object.keys(distSim).length > 0;
+              const colCount = pctLeitos != null ? 4 : 3;
+              const ORDEM_SIM = ["MINIMOS", "INTERMEDIARIOS", "ALTA_DEPENDENCIA", "SEMI_INTENSIVOS", "INTENSIVOS"];
+              const distSimEntries = hasDistSim
+                ? [
+                    ...ORDEM_SIM.filter((k) => distSim![k] != null),
+                    ...Object.keys(distSim!).filter((k) => !ORDEM_SIM.includes(k)),
+                  ]
+                : [];
               return (
-                <div className="grid grid-cols-3 divide-x border rounded-md overflow-hidden">
-                  <div className="px-4 py-3">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">
-                      Taxa de Ocupação (para fins de cálculo)
-                    </p>
-                    <p className="text-lg font-bold text-primary">{taxa}</p>
+                <div className="space-y-4">
+                  <div
+                    className="grid divide-x border rounded-md overflow-hidden"
+                    style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}
+                  >
+                    <div className="px-4 py-3">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">
+                        Taxa de Ocupação 
+                      </p>
+                      <p className="text-lg font-bold text-primary">{taxa}</p>
+                    </div>
+                    <div className="px-4 py-3 text-center">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">
+                        Leitos Ocupados
+                      </p>
+                      <p className="text-lg font-bold text-primary">{leitosOcupados}</p>
+                    </div>
+                    <div className="px-4 py-3 text-center">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">
+                        Pacientes Médio/dia
+                      </p>
+                      <p className="text-2xl font-bold text-primary">
+                        {pacientesMedio ? Number(pacientesMedio).toFixed(2) : "-"}
+                      </p>
+                    </div>
+                    {pctLeitos != null && (
+                      <div className="px-4 py-3 text-center">
+                        <p className="text-xs font-semibold text-muted-foreground mb-1">
+                          % Leitos Avaliados 
+                        </p>
+                        <p className="text-lg font-bold text-primary">
+                          {Number(pctLeitos).toFixed(1)}%
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  <div className="px-4 py-3 text-center">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">
-                      Leitos Ocupados
-                    </p>
-                    <p className="text-lg font-bold text-primary">{leitosOcupados}</p>
-                  </div>
-                  <div className="px-4 py-3 text-center">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">
-                      Pacientes Médio/dia
-                    </p>
-                    <p className="text-2xl font-bold text-primary">
-                      {pacientesMedio ? Number(pacientesMedio).toFixed(2) : "-"}
-                    </p>
-                  </div>
+                  {hasDistSim && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-2">
+                        Distribuição por nível SCP 
+                      </p>
+                      <div
+                        className="grid divide-x border rounded-md overflow-hidden"
+                        style={{ gridTemplateColumns: `repeat(${distSimEntries.length}, 1fr)` }}
+                      >
+                        {distSimEntries.map((key) => (
+                          <div key={key} className="px-3 py-3 text-center">
+                            <p className="text-xs font-semibold text-muted-foreground mb-1">
+                              {key.replace(/_/g, " ")}
+                            </p>
+                            <p className="text-lg font-bold text-primary">
+                              {Number(distSim![key]).toFixed(1)}%
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}

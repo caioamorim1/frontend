@@ -18,8 +18,8 @@ export type {
   QuestionOption,
 };
 
-//export const API_BASE_URL = "http://localhost:3110";
-export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
+export const API_BASE_URL = "http://localhost:3110";
+//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
 const getApiOrigin = (): string => {
   const base = String(API_BASE_URL || "");
 
@@ -1048,6 +1048,13 @@ export interface AnaliseInternacaoResponse {
     // Taxa de ocupação customizada
     taxaOcupacaoCustomizada?: {
       taxa: number;
+      percentualLeitosAvaliados?: number | null;
+      distribuicaoClassificacao?: Record<string, number> | null;
+      utilizarComoBaseCalculo?: boolean | null;
+      leitosOcupados?: number;
+      totalPacientesMedio?: number;
+      distribuicaoTotalClassificacaoReal?: Record<string, number>;
+      mediaDiariaClassificacaoReal?: Record<string, number>;
       dataInicio?: string;
       dataFim?: string;
       createdAt?: string;
@@ -1777,10 +1784,6 @@ export const getAnaliseInternacao = async (
   unidadeId: string,
   params?: { inicio?: string; fim?: string }
 ): Promise<AnaliseInternacaoResponse> => {
-  const queryString =
-    params && (params.inicio || params.fim)
-      ? "?" + new URLSearchParams(params as Record<string, string>).toString()
-      : "";
   const response = await api.get(
     `/dimensionamento/internacao/${unidadeId}`,
     params && (params.inicio || params.fim) ? { params } : undefined
@@ -2505,6 +2508,9 @@ export interface TaxaOcupacaoCustomizada {
   id: string;
   unidadeId: string;
   taxa: number;
+  percentualLeitosAvaliados?: number | null;
+  distribuicaoClassificacao?: Record<string, number> | null;
+  utilizarComoBaseCalculo?: boolean | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -2530,6 +2536,9 @@ export async function getTaxaOcupacaoCustomizadaByUnidadeId(
 export async function saveTaxaOcupacaoCustomizada(payload: {
   unidadeId: string;
   taxa: number;
+  percentualLeitosAvaliados?: number | null;
+  distribuicaoClassificacao?: Record<string, number> | null;
+  utilizarComoBaseCalculo?: boolean | null;
 }): Promise<TaxaOcupacaoCustomizada> {
   const res = await api.post("/taxa-ocupacao", payload);
   return (
