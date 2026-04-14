@@ -671,8 +671,10 @@ export default function ProjetadoTab({
               <CardTitle>Cálculo por Data Específica</CardTitle>
             </CardHeader>
             <CardContent>
+              {/* ── Linha principal: datas + indicadores + checkbox + botão ── */}
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+                {/* Datas */}
+                <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col">
                     <label className="text-sm text-gray-600 mb-1">
                       Data inicial
@@ -700,151 +702,17 @@ export default function ProjetadoTab({
                       className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
-                  <div className="flex flex-col">
-                    <label className="text-sm text-gray-600 mb-1">
-                      Taxa de ocupação (%)
-                    </label>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      max={100}
-                      step={0.1}
-                      placeholder="Ex.: 85"
-                      value={taxaOcupacaoCustom}
-                      onChange={(e) => setTaxaOcupacaoCustom(e.target.value)}
-                      disabled={temStatusConclusao || savingTaxaOcupacao || readOnly}
-                      className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    />
-                  </div>
-                  <div className="flex flex-col">
-                    <label className="text-sm text-gray-600 mb-1">
-                      % Leitos avaliados 
-                    </label>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      max={100}
-                      step={0.1}
-                      placeholder="Ex.: 70"
-                      value={simLeitosAvaliados}
-                      onChange={(e) => {
-                        setSimLeitosAvaliados(e.target.value);
-                        if (!e.target.value) setSimDistribuicao({});
-                      }}
-                      disabled={temStatusConclusao || readOnly}
-                      className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    />
-                  </div>
                 </div>
-                {/* Checkbox utilizar como base de cálculo */}
-                <div className="flex items-center gap-2 mt-2 lg:mt-0 lg:mb-1">
-                  <input
-                    id="sim-utilizar-base"
-                    type="checkbox"
-                    checked={simUtilizarComoBase}
-                    onChange={(e) => setSimUtilizarComoBase(e.target.checked)}
-                    disabled={temStatusConclusao || readOnly}
-                    className="h-4 w-4 accent-primary disabled:cursor-not-allowed"
-                  />
-                  <label
-                    htmlFor="sim-utilizar-base"
-                    className="text-sm text-gray-700 select-none cursor-pointer"
-                  >
-                    Utilizar como base de cálculo
-                  </label>
-                </div>
-                {!temStatusConclusao && !readOnly && (
-                  <div className="flex justify-end">
-                    <button
-                      onClick={handleCalcular}
-                      disabled={isCalculating || savingTaxaOcupacao}
-                      className="w-full sm:w-auto px-5 py-2.5 h-11 bg-secondary text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-60"
-                    >
-                      {isCalculating ? "Calculando..." : "Calcular"}
-                    </button>
-                  </div>
-                )}
-              </div>
 
-              {/* Seção de distribuição por nível SCP — aparece quando % leitos avaliados for preenchido */}
-              {(() => {
-                const simPct = parseFloat(simLeitosAvaliados);
-                if (isNaN(simPct) || simPct <= 0) return null;
-
-                // Obter níveis de classificação: prioridade à análise real, depois ao método SCP
-                const classKeys: string[] = (() => {
-                  const fromAnalise = analise?.agregados?.distribuicaoTotalClassificacao
-                    ? Object.keys(analise.agregados.distribuicaoTotalClassificacao)
-                    : [];
-                  if (fromAnalise.length > 0) return fromAnalise;
-                  if (scpMetodo?.faixas && scpMetodo.faixas.length > 0)
-                    return scpMetodo.faixas.map((f: any) => String(f.classe));
-                  return [];
-                })();
-
-                if (classKeys.length === 0) return null;
-
-                const normalize = (k: string) =>
-                  k.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-
-                const total = classKeys.reduce((sum, k) => {
-                  const v = parseFloat(simDistribuicao[k] || "0");
-                  return sum + (isNaN(v) ? 0 : v);
-                }, 0);
-                const totalOk = Math.abs(total - 100) < 0.01;
-
-                return (
-                  <div className="mt-4 border rounded-lg p-4 bg-blue-50/40 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-primary">
-                        Distribuição por nível de classificação SCP 
-                      </p>
-                      <span className={`text-sm font-medium ${totalOk ? "text-green-600" : "text-red-600"}`}>
-                        Total: {total.toFixed(1)}% - 100%
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {classKeys.map((key) => (
-                        <div key={key} className="flex flex-col">
-                          <label className="text-xs text-gray-600 mb-1">{normalize(key)} (%)</label>
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            min={0}
-                            max={100}
-                            step={0.1}
-                            placeholder="0"
-                            value={simDistribuicao[key] ?? ""}
-                            onChange={(e) =>
-                              setSimDistribuicao((prev) => ({ ...prev, [key]: e.target.value }))
-                            }
-                            disabled={temStatusConclusao || readOnly}
-                            className="w-full p-2 border rounded-md text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {analise && (
-                <div
-                  className={`${
-                    !temStatusConclusao ? "mt-6" : ""
-                  } border rounded-lg p-4 bg-white flex flex-col`}
-                >
-                  <div className="flex flex-row border rounded-lg justify-around min-w-[200px]">
+                {/* Indicadores — visíveis quando há análise calculada */}
+                {analise && (
+                  <div className="flex items-center gap-3 flex-1 justify-center">
                     <TooltipProvider>
                       <Tooltip delayDuration={200}>
                         <TooltipTrigger asChild>
-                          <div className="p-3 bg-white flex items-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors">
-                            <p className="text-lg font-bold">
-                              Leitos Avaliados :
-                            </p>
-                            <p className="text-2xl font-bold tracking-tight text-primary">
+                          <div className="flex items-center justify-center gap-2 px-4 py-2.5 border rounded-md bg-white cursor-pointer hover:bg-gray-50 transition-colors h-11 w-full">
+                            <p className="text-sm font-bold text-gray-700 whitespace-nowrap">Leitos Avaliados :</p>
+                            <p className="text-sm font-bold text-primary whitespace-nowrap">
                               {(() => {
                                 const ag = analise?.agregados as any;
                                 const v = ag?.percentualLeitosAvaliados;
@@ -854,29 +722,16 @@ export default function ProjetadoTab({
                             </p>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent
-                          side="bottom"
-                          className="p-0 border-0 shadow-lg"
-                        >
+                        <TooltipContent side="bottom" className="p-0 border-0 shadow-lg">
                           <div className="w-[400px] bg-white rounded-lg shadow-xl">
                             <PieChartComp
                               title="Níveis de Cuidado"
                               data={(() => {
-                                const dist =
-                                  analise?.agregados
-                                    ?.distribuicaoTotalClassificacao || {};
-                                const entries = Object.entries(
-                                  dist as Record<string, number>
-                                );
+                                const dist = analise?.agregados?.distribuicaoTotalClassificacao || {};
+                                const entries = Object.entries(dist as Record<string, number>);
                                 const normalize = (k: string) =>
-                                  k
-                                    .toLowerCase()
-                                    .replace(/_/g, " ")
-                                    .replace(/\b\w/g, (c) => c.toUpperCase());
-                                return entries.map(([name, value]) => ({
-                                  name: normalize(name),
-                                  value: Number(value || 0),
-                                }));
+                                  k.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+                                return entries.map(([name, value]) => ({ name: normalize(name), value: Number(value || 0) }));
                               })()}
                               labelType="percent"
                               height={300}
@@ -884,36 +739,172 @@ export default function ProjetadoTab({
                               outerRadius={70}
                               className="border-0 shadow-none p-0"
                               totalForPercent={(() => {
-                                const dist =
-                                  analise?.agregados
-                                    ?.distribuicaoTotalClassificacao || {};
-                                return Object.values(
-                                  dist as Record<string, number>
-                                ).reduce((sum, val) => sum + (val || 0), 0);
+                                const dist = analise?.agregados?.distribuicaoTotalClassificacao || {};
+                                return Object.values(dist as Record<string, number>).reduce((sum, val) => sum + (val || 0), 0);
                               })()}
                             />
                           </div>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
-                    <div className="p-3 bg-white flex items-center gap-2">
-                      <p className="text-lg font-bold">
-                        Taxa Média de Ocupação :
-                      </p>
-                      <p className="text-2xl font-bold tracking-tight text-primary">
+                    <div className="flex items-center justify-center gap-2 px-4 py-2.5 border rounded-md bg-white h-11 w-full">
+                      <p className="text-sm font-bold text-gray-700 whitespace-nowrap">Taxa Média de Ocupação :</p>
+                      <p className="text-sm font-bold text-primary whitespace-nowrap">
                         {(() => {
                           const ag = analise?.agregados as any;
-                          const v =
-                            ag?.taxaOcupacaoPeriodoPercent ??
-                            ag?.taxaOcupacaoMensalPercent;
+                          const v = ag?.taxaOcupacaoPeriodoPercent ?? ag?.taxaOcupacaoMensalPercent;
                           if (v === undefined || v === null) return "-";
                           return `${Number(v).toFixed(1)}%`;
                         })()}
                       </p>
                     </div>
                   </div>
+                )}
+
+                {/* Checkbox + botão Calcular */}
+                <div className="flex items-center gap-3 lg:mb-0">
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="sim-utilizar-base"
+                      type="checkbox"
+                      checked={simUtilizarComoBase}
+                      onChange={(e) => setSimUtilizarComoBase(e.target.checked)}
+                      disabled={temStatusConclusao || readOnly}
+                      className="h-4 w-4 accent-primary disabled:cursor-not-allowed"
+                    />
+                    <label
+                      htmlFor="sim-utilizar-base"
+                      className="text-sm text-gray-700 select-none cursor-pointer whitespace-nowrap"
+                    >
+                      Simular Cenário
+                    </label>
+                  </div>
+                  {!temStatusConclusao && !readOnly && (
+                    <button
+                      onClick={handleCalcular}
+                      disabled={isCalculating || savingTaxaOcupacao}
+                      className="px-5 py-2.5 h-11 bg-secondary text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-60 whitespace-nowrap"
+                    >
+                      {isCalculating ? "Calculando..." : "Calcular"}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Campos de simulação — visíveis apenas quando "Simular Cenário" está marcado ── */}
+              {simUtilizarComoBase && (
+                <div className="mt-4 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex flex-col">
+                      <label className="text-sm text-gray-600 mb-1">
+                        Taxa de ocupação (%)
+                      </label>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        max={100}
+                        step={0.1}
+                        placeholder="Ex.: 85"
+                        value={taxaOcupacaoCustom}
+                        onChange={(e) => setTaxaOcupacaoCustom(e.target.value)}
+                        disabled={temStatusConclusao || savingTaxaOcupacao || readOnly}
+                        className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <label className="text-sm text-gray-600 mb-1">
+                        % Leitos avaliados
+                      </label>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        max={100}
+                        step={0.1}
+                        placeholder="Ex.: 70"
+                        value={simLeitosAvaliados}
+                        onChange={(e) => {
+                          setSimLeitosAvaliados(e.target.value);
+                          if (!e.target.value) setSimDistribuicao({});
+                        }}
+                        disabled={temStatusConclusao || readOnly}
+                        className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Distribuição por nível SCP — aparece quando % leitos avaliados for preenchido */}
+                  {(() => {
+                    const simPct = parseFloat(simLeitosAvaliados);
+                    if (isNaN(simPct) || simPct <= 0) return null;
+
+                    const classKeys: string[] = (() => {
+                      const fromAnalise = analise?.agregados?.distribuicaoTotalClassificacao
+                        ? Object.keys(analise.agregados.distribuicaoTotalClassificacao)
+                        : [];
+                      if (fromAnalise.length > 0) return fromAnalise;
+                      if (scpMetodo?.faixas && scpMetodo.faixas.length > 0)
+                        return scpMetodo.faixas.map((f: any) => String(f.classe));
+                      return [];
+                    })();
+
+                    if (classKeys.length === 0) return null;
+
+                    const normalize = (k: string) =>
+                      k.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+                    const total = classKeys.reduce((sum, k) => {
+                      const v = parseFloat(simDistribuicao[k] || "0");
+                      return sum + (isNaN(v) ? 0 : v);
+                    }, 0);
+                    const totalOk = Math.abs(total - 100) < 0.01;
+                    const totalOver = total > 100 + 0.001;
+
+                    return (
+                      <div className="border rounded-lg p-4 bg-blue-50/40 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-primary">
+                            Distribuição por nível de classificação SCP
+                          </p>
+                          <span className={`text-sm font-medium ${totalOk ? "text-green-600" : totalOver ? "text-red-600 font-bold" : "text-red-600"}`}>
+                            Total: {total.toFixed(1)}% {totalOver ? "— máximo 100%" : "/ 100%"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {classKeys.map((key) => (
+                            <div key={key} className="flex flex-col">
+                              <label className="text-xs text-gray-600 mb-1">{normalize(key)} (%)</label>
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                min={0}
+                                max={100}
+                                step={0.1}
+                                placeholder="0"
+                                value={simDistribuicao[key] ?? ""}
+                                onChange={(e) => {
+                                  const newVal = parseFloat(e.target.value);
+                                  const currentTotal = classKeys.reduce((sum, k) => {
+                                    if (k === key) return sum;
+                                    const v = parseFloat(simDistribuicao[k] || "0");
+                                    return sum + (isNaN(v) ? 0 : v);
+                                  }, 0);
+                                  if (!isNaN(newVal) && currentTotal + newVal > 100 + 0.001) return;
+                                  setSimDistribuicao((prev) => ({ ...prev, [key]: e.target.value }));
+                                }}
+                                disabled={temStatusConclusao || readOnly}
+                                className="w-full p-2 border rounded-md text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
+
             </CardContent>
           </Card>
 

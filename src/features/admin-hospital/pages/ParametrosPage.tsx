@@ -581,9 +581,40 @@ export default function ParametrosPage() {
                 </div>
               ))}
             </div>
+            {analise.agregados.distribuicaoTotalClassificacao &&
+              Object.keys(analise.agregados.distribuicaoTotalClassificacao).length > 0 &&
+              (() => {
+                const totalAv = Object.values(analise.agregados.distribuicaoTotalClassificacao!).reduce((acc, v) => acc + Number(v), 0);
+                const ORDEM = ["MINIMOS", "INTERMEDIARIOS", "ALTA_DEPENDENCIA", "SEMI_INTENSIVOS", "INTENSIVOS"];
+                const raw = Object.entries(analise.agregados.distribuicaoTotalClassificacao);
+                const clfs = [
+                  ...ORDEM.map((k) => raw.find(([rk]) => rk === k)).filter((e): e is [string, number] => e !== undefined),
+                  ...raw.filter(([k]) => !ORDEM.includes(k)),
+                ];
+                return (
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Distribuição da Classificação</p>
+                    <div
+                      className="grid divide-x border rounded-md overflow-hidden"
+                      style={{ gridTemplateColumns: `repeat(${clfs.length}, 1fr)` }}
+                    >
+                      {clfs.map(([classificacao, total]) => {
+                        const pct = totalAv > 0 ? (Number(total) / totalAv) * 100 : 0;
+                        return (
+                          <div key={classificacao} className="px-3 py-3 text-center">
+                            <p className="text-xs font-semibold text-muted-foreground mb-1">
+                              {classificacao.replace(/_/g, " ")}
+                            </p>
+                            <p className="text-xl font-bold text-primary">{pct.toFixed(2)}%</p>
+                            <p className="text-xs text-muted-foreground mt-1">{Number(total)}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
           </div>
-
-          {/* ── Base de Cálculo ── */}
           <div className="bg-white p-6 rounded-lg border shadow-sm">
             <h3 className="text-lg font-bold text-primary mb-4">
               Base de Cálculo
@@ -599,6 +630,7 @@ export default function ParametrosPage() {
               const pacientesMedio = custom?.totalPacientesMedio ?? analise.agregados.totalPacientesMedio;
               const pctLeitos = custom?.percentualLeitosAvaliados;
               const distSim = custom?.distribuicaoClassificacao;
+              const hasBaseCalculo = custom?.utilizarComoBaseCalculo || false;
               const hasDistSim = distSim && Object.keys(distSim).length > 0;
               const colCount = pctLeitos != null ? 4 : 3;
               const ORDEM_SIM = ["MINIMOS", "INTERMEDIARIOS", "ALTA_DEPENDENCIA", "SEMI_INTENSIVOS", "INTENSIVOS"];
@@ -645,7 +677,7 @@ export default function ParametrosPage() {
                       </div>
                     )}
                   </div>
-                  {hasDistSim && (
+                  {hasDistSim && hasBaseCalculo && (
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground mb-2">
                         Distribuição por nível SCP 
@@ -721,45 +753,6 @@ export default function ParametrosPage() {
 
               return (
                 <>
-                  {/* Distribuição da Classificação */}
-                  <div className="bg-white p-6 rounded-lg border shadow-sm">
-                    <h3 className="text-lg font-bold text-primary mb-4">
-                      Distribuição da Classificação
-                    </h3>
-                    <div
-                      className="grid divide-x border rounded-md overflow-hidden"
-                      style={{
-                        gridTemplateColumns: `repeat(${colCount}, 1fr)`,
-                      }}
-                    >
-                      {classificacoes.map(([classificacao, total], i) => {
-                        const pct =
-                          totalAvaliacoes > 0
-                            ? (Number(total) / totalAvaliacoes) * 100
-                            : 0;
-                        const mediaDiaria =
-                          ag?.mediaDiariaClassificacao?.[classificacao];
-                        return (
-                          <div
-                            key={classificacao}
-                            className="px-3 py-3 text-center"
-                          >
-                            <p className="text-xs font-semibold text-muted-foreground mb-1">
-                              {classificacao.replace(/_/g, " ")}
-                            </p>
-                            <p className="text-xl font-bold text-primary">
-                              {pct.toFixed(2)}%
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {Number(total)}
-                            </p>
-                          </div>
-                        );
-                      })}
-                      
-                    </div>
-                  </div>
-
                   {/* Horas de Enfermagem por Classificação */}
                   <div className="bg-white p-6 rounded-lg border shadow-sm">
                     <h3 className="text-lg font-bold text-primary mb-4">
