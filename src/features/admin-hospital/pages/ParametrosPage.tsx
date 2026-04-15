@@ -581,16 +581,23 @@ export default function ParametrosPage() {
                 </div>
               ))}
             </div>
-            {analise.agregados.distribuicaoTotalClassificacao &&
-              Object.keys(analise.agregados.distribuicaoTotalClassificacao).length > 0 &&
-              (() => {
-                const totalAv = Object.values(analise.agregados.distribuicaoTotalClassificacao!).reduce((acc, v) => acc + Number(v), 0);
+            {(() => {
+                const custom = analise.agregados.taxaOcupacaoCustomizada;
+                const useReal = custom?.utilizarComoBaseCalculo && custom?.distribuicaoTotalClassificacaoReal &&
+                  Object.keys(custom.distribuicaoTotalClassificacaoReal).length > 0;
+                const distSource = useReal
+                  ? custom!.distribuicaoTotalClassificacaoReal!
+                  : analise.agregados.distribuicaoTotalClassificacao || {};
+                const totalAv = Object.values(distSource).reduce((acc, v) => acc + Number(v), 0);
                 const ORDEM = ["MINIMOS", "INTERMEDIARIOS", "ALTA_DEPENDENCIA", "SEMI_INTENSIVOS", "INTENSIVOS"];
-                const raw = Object.entries(analise.agregados.distribuicaoTotalClassificacao);
+                const raw = Object.entries(distSource);
                 const clfs = [
                   ...ORDEM.map((k) => raw.find(([rk]) => rk === k)).filter((e): e is [string, number] => e !== undefined),
                   ...raw.filter(([k]) => !ORDEM.includes(k)),
                 ];
+
+                if (clfs.length === 0) return null;
+
                 return (
                   <div className="mt-4">
                     <p className="text-xs font-semibold text-muted-foreground mb-2">Distribuição da Classificação</p>
@@ -615,6 +622,7 @@ export default function ParametrosPage() {
                 );
               })()}
           </div>
+          {analise.agregados.taxaOcupacaoCustomizada?.utilizarComoBaseCalculo && (
           <div className="bg-white p-6 rounded-lg border shadow-sm">
             <h3 className="text-lg font-bold text-primary mb-4">
               Base de Cálculo
@@ -632,7 +640,7 @@ export default function ParametrosPage() {
               const distSim = custom?.distribuicaoClassificacao;
               const hasBaseCalculo = custom?.utilizarComoBaseCalculo || false;
               const hasDistSim = distSim && Object.keys(distSim).length > 0;
-              const colCount = pctLeitos != null ? 4 : 3;
+              const leitosSimulados = custom?.leitosSimulados;
               const ORDEM_SIM = ["MINIMOS", "INTERMEDIARIOS", "ALTA_DEPENDENCIA", "SEMI_INTENSIVOS", "INTENSIVOS"];
               const distSimEntries = hasDistSim
                 ? [
@@ -642,40 +650,52 @@ export default function ParametrosPage() {
                 : [];
               return (
                 <div className="space-y-4">
-                  <div
-                    className="grid divide-x border rounded-md overflow-hidden"
-                    style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}
-                  >
-                    <div className="px-4 py-3">
-                      <p className="text-xs font-semibold text-muted-foreground mb-1">
-                        Taxa de Ocupação 
-                      </p>
-                      <p className="text-lg font-bold text-primary">{taxa}</p>
-                    </div>
-                    <div className="px-4 py-3 text-center">
-                      <p className="text-xs font-semibold text-muted-foreground mb-1">
-                        Leitos Ocupados
-                      </p>
-                      <p className="text-lg font-bold text-primary">{leitosOcupados}</p>
-                    </div>
-                    <div className="px-4 py-3 text-center">
-                      <p className="text-xs font-semibold text-muted-foreground mb-1">
-                        Pacientes Médio/dia
-                      </p>
-                      <p className="text-2xl font-bold text-primary">
-                        {pacientesMedio ? Number(pacientesMedio).toFixed(2) : "-"}
-                      </p>
-                    </div>
-                    {pctLeitos != null && (
-                      <div className="px-4 py-3 text-center">
-                        <p className="text-xs font-semibold text-muted-foreground mb-1">
-                          % Leitos Avaliados 
+                  <div className="grid grid-cols-4 sm:grid-cols-9 divide-x border rounded-md overflow-hidden">
+                    {[
+                      {
+                        label: "Taxa de Ocupação",
+                        value: taxa,
+                      },
+                      {
+                        label: "% Leitos Avaliados",
+                        value: pctLeitos != null ? `${Number(pctLeitos).toFixed(1)}%` : "-",
+                      },
+                      {
+                        label: "Leitos Dia/Período",
+                        value: analise.agregados.totalLeitosDia ?? "-",
+                      },
+                       {
+                        label: "Total de Avaliações",
+                        value: leitosSimulados?.leitosAvaliados ?? "-",
+                      },
+                      {
+                        label: "Leitos Ocupados",
+                        value: leitosSimulados?.leitosOcupados ?? leitosOcupados ?? 0,
+                      },
+                      {
+                        label: "Leitos Vagos",
+                        value: leitosSimulados?.leitosVagos ?? "-",
+                      },
+                      {
+                        label: "Leitos Inativos",
+                        value: leitosSimulados?.leitosInativos ?? "-",
+                      },
+                      {
+                        label: "Leitos Pendentes",
+                        value: leitosSimulados?.leitosPendentes ?? "-",
+                      },
+                      {
+                        label: "Pacientes Médio/dia",
+                        value: pacientesMedio ? Number(pacientesMedio).toFixed(2) : "-",
+                      },
+                    ].map((item, i) => (
+                      <div key={i} className="px-3 py-3 text-center">
+                        <p className="text-xs font-semibold text-muted-foreground leading-tight mb-1">
+                          {item.label}
                         </p>
-                        <p className="text-lg font-bold text-primary">
-                          {Number(pctLeitos).toFixed(1)}%
-                        </p>
+                        <p className="text-lg font-bold text-primary">{item.value}</p>
                       </div>
-                    )}
+                    ))}
                   </div>
                   {hasDistSim && hasBaseCalculo && (
                     <div>
@@ -686,23 +706,33 @@ export default function ParametrosPage() {
                         className="grid divide-x border rounded-md overflow-hidden"
                         style={{ gridTemplateColumns: `repeat(${distSimEntries.length}, 1fr)` }}
                       >
-                        {distSimEntries.map((key) => (
-                          <div key={key} className="px-3 py-3 text-center">
-                            <p className="text-xs font-semibold text-muted-foreground mb-1">
-                              {key.replace(/_/g, " ")}
-                            </p>
-                            <p className="text-lg font-bold text-primary">
-                              {Number(distSim![key]).toFixed(1)}%
-                            </p>
-                          </div>
-                        ))}
+                        {distSimEntries.map((key) => {
+                            const pctVal = Number(distSim![key]);
+                            const baseLeitos = leitosSimulados?.leitosOcupados ?? custom?.leitosOcupados ?? 0;
+                            const count = baseLeitos > 0 ? Math.round((pctVal / 100) * baseLeitos) : null;
+                            return (
+                              <div key={key} className="px-3 py-3 text-center">
+                                <p className="text-xs font-semibold text-muted-foreground mb-1">
+                                  {key.replace(/_/g, " ")}
+                                </p>
+                                <p className="text-lg font-bold text-primary">
+                                  {pctVal.toFixed(1)}%
+                                </p>
+                                {count !== null && (
+                                  <p className="text-xs text-muted-foreground mt-1">{count}</p>
+                                )}
+                              </div>
+                            );
+                          })}
                       </div>
                     </div>
                   )}
+                  
                 </div>
               );
             })()}
           </div>
+          )}
 
           {/* ── Distribuição + Horas + Classificação + QP ── */}
           {analise.agregados.distribuicaoTotalClassificacao &&
