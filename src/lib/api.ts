@@ -1053,6 +1053,13 @@ export interface AnaliseInternacaoResponse {
       utilizarComoBaseCalculo?: boolean | null;
       leitosOcupados?: number;
       totalPacientesMedio?: number;
+      leitosSimulados?: {
+        leitosOcupados?: number;
+        leitosVagos?: number;
+        leitosInativos?: number;
+        leitosPendentes?: number;
+        leitosAvaliados?: number;
+      };
       distribuicaoTotalClassificacaoReal?: Record<string, number>;
       mediaDiariaClassificacaoReal?: Record<string, number>;
       dataInicio?: string;
