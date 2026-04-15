@@ -664,6 +664,10 @@ export default function ParametrosPage() {
                         label: "Leitos Dia/Período",
                         value: analise.agregados.totalLeitosDia ?? "-",
                       },
+                       {
+                        label: "Total de Avaliações",
+                        value: leitosSimulados?.leitosAvaliados ?? "-",
+                      },
                       {
                         label: "Leitos Ocupados",
                         value: leitosSimulados?.leitosOcupados ?? leitosOcupados ?? 0,
@@ -679,10 +683,6 @@ export default function ParametrosPage() {
                       {
                         label: "Leitos Pendentes",
                         value: leitosSimulados?.leitosPendentes ?? "-",
-                      },
-                      {
-                        label: "Leitos Avaliados",
-                        value: leitosSimulados?.leitosAvaliados ?? "-",
                       },
                       {
                         label: "Pacientes Médio/dia",
