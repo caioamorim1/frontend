@@ -649,7 +649,7 @@ export default function ParametrosPage() {
                 : [];
               return (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-4 sm:grid-cols-8 divide-x border rounded-md overflow-hidden">
+                  <div className="grid grid-cols-4 sm:grid-cols-7 divide-x border rounded-md overflow-hidden">
                     {[
                       {
                         label: "Taxa de Ocupação",
