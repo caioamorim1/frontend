@@ -234,9 +234,6 @@ export default function ProjetadoTab({
         ) {
           setTaxaOcupacaoCustom(String(saved.taxa));
         }
-        if (saved?.percentualLeitosAvaliados != null) {
-          setSimLeitosAvaliados(String(saved.percentualLeitosAvaliados));
-        }
         if (saved?.distribuicaoClassificacao) {
           const strDist: Record<string, string> = {};
           Object.entries(saved.distribuicaoClassificacao).forEach(
@@ -297,20 +294,16 @@ export default function ProjetadoTab({
 
     try {
       setSavingTaxaOcupacao(true);
-      const simPct = parseFloat(simLeitosAvaliados);
-      const simPctValue = !isNaN(simPct) && simPct > 0 ? simPct : null;
       const dist: Record<string, number> = {};
-      if (simPctValue !== null) {
-        Object.entries(simDistribuicao).forEach(([k, v]) => {
-          const n = parseFloat(v);
-          if (!isNaN(n)) dist[k] = n;
-        });
-      }
+      Object.entries(simDistribuicao).forEach(([k, v]) => {
+        const n = parseFloat(v);
+        if (!isNaN(n)) dist[k] = n;
+      });
       const saved = await saveTaxaOcupacaoCustomizada({
         unidadeId: unidade.id,
         taxa: value,
-        percentualLeitosAvaliados: simPctValue,
-        distribuicaoClassificacao: simPctValue && Object.keys(dist).length > 0 ? dist : null,
+        percentualLeitosAvaliados: null,
+        distribuicaoClassificacao: Object.keys(dist).length > 0 ? dist : null,
         utilizarComoBaseCalculo: simUtilizarComoBase,
       });
       setTaxaOcupacaoCustom(String(saved?.taxa ?? value));
@@ -794,51 +787,26 @@ export default function ProjetadoTab({
               {/* ── Campos de simulação — visíveis apenas quando "Simular Cenário" está marcado ── */}
               {simUtilizarComoBase && (
                 <div className="mt-4 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex flex-col">
-                      <label className="text-sm text-gray-600 mb-1">
-                        Taxa de ocupação (%)
-                      </label>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        max={100}
-                        step={0.1}
-                        placeholder="Ex.: 85"
-                        value={taxaOcupacaoCustom}
-                        onChange={(e) => setTaxaOcupacaoCustom(e.target.value)}
-                        disabled={temStatusConclusao || savingTaxaOcupacao || readOnly}
-                        className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      />
-                    </div>
-                    <div className="flex flex-col">
-                      <label className="text-sm text-gray-600 mb-1">
-                        % Leitos avaliados
-                      </label>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        max={100}
-                        step={0.1}
-                        placeholder="Ex.: 70"
-                        value={simLeitosAvaliados}
-                        onChange={(e) => {
-                          setSimLeitosAvaliados(e.target.value);
-                          if (!e.target.value) setSimDistribuicao({});
-                        }}
-                        disabled={temStatusConclusao || readOnly}
-                        className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      />
-                    </div>
+                  <div className="flex flex-col max-w-xs">
+                    <label className="text-sm text-gray-600 mb-1">
+                      Taxa de ocupação (%)
+                    </label>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      placeholder="Ex.: 85"
+                      value={taxaOcupacaoCustom}
+                      onChange={(e) => setTaxaOcupacaoCustom(e.target.value)}
+                      disabled={temStatusConclusao || savingTaxaOcupacao || readOnly}
+                      className="w-full p-2 border rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
                   </div>
 
-                  {/* Distribuição por nível SCP — aparece quando % leitos avaliados for preenchido */}
+                  {/* Distribuição por nível SCP — aparece imediatamente ao marcar "Simular Cenário" */}
                   {(() => {
-                    const simPct = parseFloat(simLeitosAvaliados);
-                    if (isNaN(simPct) || simPct <= 0) return null;
-
                     const classKeys: string[] = (() => {
                       const fromAnalise = analise?.agregados?.distribuicaoTotalClassificacao
                         ? Object.keys(analise.agregados.distribuicaoTotalClassificacao)
