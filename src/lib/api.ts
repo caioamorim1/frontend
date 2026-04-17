@@ -1055,8 +1055,7 @@ export interface AnaliseInternacaoResponse {
       totalPacientesMedio?: number;
       leitosSimulados?: {
         leitosOcupados?: number;
-        leitosVagos?: number;
-        leitosInativos?: number;
+        vagosInativos?: number;
         leitosPendentes?: number;
         leitosAvaliados?: number;
       };

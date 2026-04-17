@@ -636,7 +636,6 @@ export default function ParametrosPage() {
                   : "-";
               const leitosOcupados = custom?.leitosOcupados ?? analise.agregados.leitosOcupados ?? 0;
               const pacientesMedio = custom?.totalPacientesMedio ?? analise.agregados.totalPacientesMedio;
-              const pctLeitos = custom?.percentualLeitosAvaliados;
               const distSim = custom?.distribuicaoClassificacao;
               const hasBaseCalculo = custom?.utilizarComoBaseCalculo || false;
               const hasDistSim = distSim && Object.keys(distSim).length > 0;
@@ -650,21 +649,17 @@ export default function ParametrosPage() {
                 : [];
               return (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-4 sm:grid-cols-9 divide-x border rounded-md overflow-hidden">
+                  <div className="grid grid-cols-4 sm:grid-cols-8 divide-x border rounded-md overflow-hidden">
                     {[
                       {
                         label: "Taxa de Ocupação",
                         value: taxa,
                       },
                       {
-                        label: "% Leitos Avaliados",
-                        value: pctLeitos != null ? `${Number(pctLeitos).toFixed(1)}%` : "-",
-                      },
-                      {
                         label: "Leitos Dia/Período",
                         value: analise.agregados.totalLeitosDia ?? "-",
                       },
-                       {
+                      {
                         label: "Total de Avaliações",
                         value: leitosSimulados?.leitosAvaliados ?? "-",
                       },
@@ -673,12 +668,8 @@ export default function ParametrosPage() {
                         value: leitosSimulados?.leitosOcupados ?? leitosOcupados ?? 0,
                       },
                       {
-                        label: "Leitos Vagos",
-                        value: leitosSimulados?.leitosVagos ?? "-",
-                      },
-                      {
-                        label: "Leitos Inativos",
-                        value: leitosSimulados?.leitosInativos ?? "-",
+                        label: "Vagos + Inativos",
+                        value: leitosSimulados?.vagosInativos ?? "-",
                       },
                       {
                         label: "Leitos Pendentes",
