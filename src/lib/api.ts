@@ -2694,6 +2694,51 @@ export async function exportDimensionamentoPdf(
   window.URL.revokeObjectURL(url);
 }
 
+// --- EXPORTAR PDF DIÁRIO DE AVALIAÇÕES ---
+export async function exportDiarioAvaliacoesPdf(
+  unidadeId: string,
+  data: string
+): Promise<void> {
+  const response = await api.get(
+    `/export/diario-avaliacoes/${unidadeId}/pdf`,
+    { responseType: "blob", params: { data } }
+  );
+  const url = window.URL.createObjectURL(
+    new Blob([response.data], { type: "application/pdf" })
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", `relatorio-diario-${data}.pdf`);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+// --- EXPORTAR PDF GRAU DE COMPLEXIDADE ---
+export async function exportGrauComplexidadePdf(
+  unidadeId: string,
+  inicio: string,
+  fim: string,
+  mesInicio: string,
+  mesFim: string
+): Promise<void> {
+  const response = await api.get(
+    `/export/grau-complexidade/${unidadeId}/pdf`,
+    { responseType: "blob", params: { inicio, fim } }
+  );
+  const url = window.URL.createObjectURL(
+    new Blob([response.data], { type: "application/pdf" })
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", `relatorio-complexidade-${mesInicio}-${mesFim}.pdf`);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 // --- Comentários de Unidade ---
 export interface ComentarioUnidade {
   id: string;

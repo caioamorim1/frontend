@@ -967,19 +967,30 @@ function DetalhamentoTab({ hospitalId }: { hospitalId: string }) {
   const [d, setD] = useState<TermometroDetalhamentoResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [appliedFilters, setAppliedFilters] = useState({
+    setorId: undefined as string | undefined,
+    usarPeriodo: false,
+    dataInicial: hoje,
+    dataFinal: hoje,
+  });
+
   const fetchDetalhamento = useCallback(() => {
     setLoading(true);
     getTermometroDetalhamento(hospitalId, {
-      ...(setorId ? { setorId } : {}),
-      dataInicial: usarPeriodo ? dataInicial : hoje,
-      dataFinal: usarPeriodo ? dataFinal : hoje,
+      ...(appliedFilters.setorId ? { setorId: appliedFilters.setorId } : {}),
+      dataInicial: appliedFilters.usarPeriodo ? appliedFilters.dataInicial : hoje,
+      dataFinal: appliedFilters.usarPeriodo ? appliedFilters.dataFinal : hoje,
     })
       .then(setD)
       .catch((err) => console.error("Erro ao carregar detalhamento:", err))
       .finally(() => setLoading(false));
-  }, [hospitalId, setorId, usarPeriodo, dataInicial, dataFinal, hoje]);
+  }, [hospitalId, appliedFilters, hoje]);
 
   useEffect(() => { fetchDetalhamento(); }, [fetchDetalhamento]);
+
+  const handleFiltrar = () => {
+    setAppliedFilters({ setorId, usarPeriodo, dataInicial, dataFinal });
+  };
 
   if (loading || !d) {
     return (
@@ -1171,6 +1182,14 @@ function DetalhamentoTab({ hospitalId }: { hospitalId: string }) {
             />
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={handleFiltrar}
+          className="ml-auto text-xs font-medium px-4 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          Filtrar
+        </button>
       </div>
 
       {/* ── Sub-tabs Perfil / Série Histórica ── */}
