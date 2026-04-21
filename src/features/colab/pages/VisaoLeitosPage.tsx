@@ -15,6 +15,8 @@ import {
   createComentarioUnidade,
   deleteComentarioUnidade,
   ComentarioUnidade,
+  exportDiarioAvaliacoesPdf,
+  exportGrauComplexidadePdf,
 } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -363,31 +365,16 @@ const RelatorioModal: FC<{
   const handleGerar = async () => {
     setGerando(true);
     try {
-      let url: string;
-      let nomeArquivo: string;
       if (tipoRelatorio === "diario") {
         const dataFinal = modo === "hoje" ? hoje : data;
-        url = `http://localhost:3110/export/diario-avaliacoes/${unidadeId}/pdf?data=${dataFinal}`;
-        nomeArquivo = `relatorio-diario-${dataFinal}.pdf`;
+        await exportDiarioAvaliacoesPdf(unidadeId, dataFinal);
       } else {
         const inicio = `${mesInicio}-01`;
         const [fY, fM] = mesFim.split("-").map(Number);
         const ultimoDia = new Date(fY, fM, 0).getDate();
         const fim = `${mesFim}-${String(ultimoDia).padStart(2, "0")}`;
-        url = `http://localhost:3110/export/grau-complexidade/${unidadeId}/pdf?inicio=${inicio}&fim=${fim}`;
-        nomeArquivo = `relatorio-complexidade-${mesInicio}-${mesFim}.pdf`;
+        await exportGrauComplexidadePdf(unidadeId, inicio, fim, mesInicio, mesFim);
       }
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error("Erro ao gerar relatório");
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = nomeArquivo;
-      a.click();
-      URL.revokeObjectURL(objectUrl);
       onClose();
     } catch {
       alert("Não foi possível gerar o relatório.");
