@@ -895,15 +895,17 @@ function SerieHistoricaSubTab({ hospitalId, setorId, dataInicial, dataFinal, isH
                 maxBarSize={gran === "dia" ? 12 : 48}
                 radius={[3, 3, 0, 0]}
               />
-              <Line
-                type="monotone"
-                dataKey="taxaMedia"
-                name="Taxa Média"
-                stroke="#ef4444"
-                strokeWidth={2}
-                dot={false}
-                strokeDasharray="6 3"
-              />
+              {gran !== "dia" && (
+                <Line
+                  type="monotone"
+                  dataKey="taxaMedia"
+                  name="Taxa Média"
+                  stroke="#ef4444"
+                  strokeWidth={2}
+                  dot={false}
+                  strokeDasharray="6 3"
+                />
+              )}
             </ComposedChart>
           </ResponsiveContainer>
         </CardContent>
