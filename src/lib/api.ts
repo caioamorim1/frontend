@@ -2849,7 +2849,7 @@ export interface TermometroSerieHistoricaResponse {
   }[];
   snapshotHoje: {
     taxaOcupacao: number;
-    taxaMaxima: number;
+    taxaMedia: number;
     niveis: { name: string; value: number; percentual: number }[];
   } | null;
 }
