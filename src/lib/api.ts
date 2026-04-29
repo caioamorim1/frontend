@@ -18,7 +18,7 @@ export type {
   QuestionOption,
 };
 
-export const API_BASE_URL = "http://localhost:3110";
+ export const API_BASE_URL = "http://localhost:3110";
 //export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
 const getApiOrigin = (): string => {
   const base = String(API_BASE_URL || "");
@@ -2831,7 +2831,7 @@ export async function getTermometroDetalhamento(
 
 export interface TermometroSerieHistoricaResponse {
   granularidade: "dia" | "mes";
-  ocupacao: { label: string; data: string; taxa: number; taxaMaxima: number }[];
+  ocupacao: { label: string; data: string; taxa: number; taxaMedia: number }[];
   niveis: {
     label: string;
     data: string;

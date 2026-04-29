@@ -831,7 +831,7 @@ function SerieHistoricaSubTab({ hospitalId, setorId, dataInicial, dataFinal, isH
   const gran = data.granularidade;
   const periodoLabel = formatPeriodoLabel(dataInicial, dataFinal);
 
-  const ocupacao = data.ocupacao.map((p) => ({ label: p.label, taxa: p.taxa, taxaMaxima: p.taxaMaxima }));
+  const ocupacao = data.ocupacao.map((p) => ({ label: p.label, taxa: p.taxa, taxaMedia: p.taxaMedia }));
   const niveis = data.niveis.map((p) => ({
     label: p.label,
     minimos: p.minimos,
@@ -897,8 +897,8 @@ function SerieHistoricaSubTab({ hospitalId, setorId, dataInicial, dataFinal, isH
               />
               <Line
                 type="monotone"
-                dataKey="taxaMaxima"
-                name="Taxa Máxima Atendível"
+                dataKey="taxaMedia"
+                name="Taxa Média"
                 stroke="#ef4444"
                 strokeWidth={2}
                 dot={false}
