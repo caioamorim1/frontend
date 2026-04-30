@@ -18,7 +18,7 @@ export type {
   QuestionOption,
 };
 
- export const API_BASE_URL = "http://localhost:3110";
+export const API_BASE_URL = "http://localhost:3110";
 //export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
 const getApiOrigin = (): string => {
   const base = String(API_BASE_URL || "");
@@ -2849,7 +2849,7 @@ export interface TermometroSerieHistoricaResponse {
   }[];
   snapshotHoje: {
     taxaOcupacao: number;
-    taxaMaxima: number;
+    taxaMedia: number;
     niveis: { name: string; value: number; percentual: number }[];
   } | null;
 }

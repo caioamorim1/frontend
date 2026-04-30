@@ -713,7 +713,7 @@ function SerieHistoricaSubTab({ hospitalId, setorId, dataInicial, dataFinal, isH
   if (isHoje && data.snapshotHoje) {
     const snap = data.snapshotHoje;
     const hoje = new Date().toLocaleDateString("pt-BR");
-    const overMax = snap.taxaMaxima > 0 && snap.taxaOcupacao > snap.taxaMaxima;
+    const overMax = snap.taxaMedia > 0 && snap.taxaOcupacao > snap.taxaMedia;
     const niveisComCor = snap.niveis.map((n, i) => ({
       ...n,
       color: SNAPSHOT_NIVEIS_COLORS[n.name] ?? ["#38BDF8","#FB923C","#22C55E","#3B82F6","#A855F7"][i % 5],
@@ -748,16 +748,6 @@ function SerieHistoricaSubTab({ hospitalId, setorId, dataInicial, dataFinal, isH
                   background: overMax ? "#ef4444" : "#005D97",
                 }}
               />
-              {/* Marcador da taxa máxima */}
-              <div
-                className="absolute top-0 h-full w-0.5 bg-red-400"
-                style={{ left: `${snap.taxaMaxima}%` }}
-              />
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="inline-block w-5 h-0.5 bg-red-400" />
-              Taxa Máxima Atendível:&nbsp;
-              <span className="font-semibold text-red-500">{snap.taxaMaxima}%</span>
             </div>
           </CardContent>
         </Card>
@@ -895,15 +885,17 @@ function SerieHistoricaSubTab({ hospitalId, setorId, dataInicial, dataFinal, isH
                 maxBarSize={gran === "dia" ? 12 : 48}
                 radius={[3, 3, 0, 0]}
               />
-              <Line
-                type="monotone"
-                dataKey="taxaMedia"
-                name="Taxa Média"
-                stroke="#ef4444"
-                strokeWidth={2}
-                dot={false}
-                strokeDasharray="6 3"
-              />
+              {ocupacao.length > 1 && (
+                <Line
+                  type="monotone"
+                  dataKey="taxaMedia"
+                  name="Taxa Média"
+                  stroke="#ef4444"
+                  strokeWidth={2}
+                  dot={false}
+                  strokeDasharray="6 3"
+                />
+              )}
             </ComposedChart>
           </ResponsiveContainer>
         </CardContent>

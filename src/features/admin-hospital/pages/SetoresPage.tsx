@@ -188,9 +188,6 @@ export default function SetoresPage() {
       setGatilho(unidade.gatilho != null ? String(unidade.gatilho) : "");
     } else if (unidade.tipo === "nao-internacao") {
       setDescricao(unidade.descricao || "");
-      setPontuacaoMax(unidade.pontuacao_max != null ? String(unidade.pontuacao_max) : "");
-      setPontuacaoMin(unidade.pontuacao_min != null ? String(unidade.pontuacao_min) : "");
-      setGatilho(unidade.gatilho != null ? String(unidade.gatilho) : "");
     } else if (unidade.tipo === "neutro") {
       setDescricao(unidade.descricao || "");
       setCustoTotal(unidade.custoTotal?.toString() || "0");
@@ -623,41 +620,6 @@ export default function SetoresPage() {
                         rows={3}
                         className="mt-1"
                       />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="pontuacaoMax">Pontuação Máxima (Opcional)</Label>
-                        <Input
-                          id="pontuacaoMax"
-                          type="number"
-                          value={pontuacaoMax}
-                          onChange={(e) => setPontuacaoMax(e.target.value)}
-                          placeholder="ex: 44"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="pontuacaoMin">Pontuação Mínima (Opcional)</Label>
-                        <Input
-                          id="pontuacaoMin"
-                          type="number"
-                          value={pontuacaoMin}
-                          onChange={(e) => setPontuacaoMin(e.target.value)}
-                          placeholder="ex: 12"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="gatilho">Gatilho % (Opcional)</Label>
-                        <Input
-                          id="gatilho"
-                          type="number"
-                          value={gatilho}
-                          onChange={(e) => setGatilho(e.target.value)}
-                          placeholder="ex: 80"
-                          className="mt-1"
-                        />
-                      </div>
                     </div>
                   </div>
                 )}
