@@ -5,9 +5,7 @@ import {
   type Snapshot,
   getControlePeriodoByUnidadeId,
   getAnaliseInternacao,
-  getProjetadoFinalInternacao,
   type AnaliseInternacaoResponse,
-  type SaveProjetadoFinalInternacaoDTO,
 } from "@/lib/api";
 
 const NIVEL_ORDER = [
@@ -63,6 +61,7 @@ export default function QuadroFuncionariosResumo({
   const [periodo, setPeriodo] = useState<{ inicio: string; fim: string } | null>(null);
   const [analise, setAnalise] = useState<AnaliseInternacaoResponse | null>(null);
   const [observacoesMap, setObservacoesMap] = useState<Record<string, string>>({});
+  const [projetadoRaw, setProjetadoRaw] = useState<any>(null);
 
   const safeDate = (iso: string) =>
     new Date(new Date(iso).getTime() + 12 * 60 * 60 * 1000)
@@ -77,10 +76,10 @@ export default function QuadroFuncionariosResumo({
       setError(null);
 
       try {
-        // Fetch snapshot + projetado final in parallel
-        const [snapshotsData, projetadoData] = await Promise.all([
+        // Fetch snapshot + control period in parallel
+        const [snapshotsData, controlePeriodo] = await Promise.all([
           getHospitalSnapshots(hospitalId, 10),
-          getProjetadoFinalInternacao(setorId).catch(() => null as SaveProjetadoFinalInternacaoDTO | null),
+          getControlePeriodoByUnidadeId(setorId).catch(() => null),
         ]);
 
         const snapshotSelecionado = snapshotsData.snapshots?.find(
@@ -96,17 +95,22 @@ export default function QuadroFuncionariosResumo({
           setSnapshotSelecionado(snapshotSelecionado);
         }
 
-        // Build observações map {cargoId → observacao}
-        if (projetadoData?.cargos) {
+        // Extract projetado data directly from snapshot (dados.projetadoFinal.internacao)
+        const projetadoData =
+          snapshotSelecionado?.dados?.projetadoFinal?.internacao?.find(
+            (u: any) => u.unidadeId === setorId
+          ) ?? null;
+
+        if (projetadoData) {
+          setProjetadoRaw(projetadoData);
           const map: Record<string, string> = {};
-          projetadoData.cargos.forEach((c) => {
+          projetadoData.cargos?.forEach((c: any) => {
             if (c.observacao) map[c.cargoId] = c.observacao;
           });
           setObservacoesMap(map);
         }
 
-        // Fetch control period + analise for internação stats
-        const controlePeriodo = await getControlePeriodoByUnidadeId(setorId).catch(() => null);
+        // Fetch analise for internação stats
         const params = controlePeriodo?.dataInicial && controlePeriodo?.dataFinal
           ? { inicio: safeDate(controlePeriodo.dataInicial), fim: safeDate(controlePeriodo.dataFinal) }
           : undefined;
@@ -398,20 +402,17 @@ export default function QuadroFuncionariosResumo({
 
           {analise && (
             <>
-              {(analise.agregados.taxaOcupacaoCustomizada?.taxa != null ||
-                analise.agregados.taxaOcupacaoPeriodoPercent != null) && (
-                <div className="bg-slate-50 border rounded-lg p-3 flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
-                    <BedDouble className="h-3.5 w-3.5" /> Taxa de Ocupação
-                  </div>
-                  <p className="font-bold text-sm text-primary">
-                    {analise.agregados.taxaOcupacaoCustomizada?.taxa != null
-                      ? `${analise.agregados.taxaOcupacaoCustomizada.taxa.toFixed(1)}%`
-                      : `${analise.agregados.taxaOcupacaoPeriodoPercent!.toFixed(1)}%`}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">para fins de cálculo</p>
+              <div className="bg-slate-50 border rounded-lg p-3 flex flex-col gap-1">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                  <BedDouble className="h-3.5 w-3.5" /> Taxa de Ocupação
                 </div>
-              )}
+                <p className="font-bold text-sm text-primary">
+                  {projetadoRaw?.utilizarComoBaseCalculo === true && projetadoRaw?.taxa != null
+                    ? `${Number(projetadoRaw.taxa).toFixed(1)}%`
+                    : "0.0%"}
+                </p>
+                <p className="text-[10px] text-muted-foreground">para fins de cálculo</p>
+              </div>
 
               {analise.agregados.taxaOcupacaoPeriodoPercent != null && (
                 <div className="bg-slate-50 border rounded-lg p-3 flex flex-col gap-1">
@@ -473,15 +474,15 @@ export default function QuadroFuncionariosResumo({
         )}
 
       {/* Níveis de Cuidado Personalizados (quando utilizarComoBaseCalculo = true) */}
-      {analise?.agregados.taxaOcupacaoCustomizada?.utilizarComoBaseCalculo === true &&
-        analise.agregados.taxaOcupacaoCustomizada.distribuicaoClassificacao &&
-        Object.keys(analise.agregados.taxaOcupacaoCustomizada.distribuicaoClassificacao).length > 0 && (
+      {projetadoRaw?.utilizarComoBaseCalculo === true &&
+        projetadoRaw?.distribuicaoPorcentagem &&
+        Object.keys(projetadoRaw.distribuicaoPorcentagem).length > 0 && (
           <div>
             <p className="text-xs text-gray-500 uppercase font-semibold mb-2">
               Níveis de Cuidado Personalizados
             </p>
             <div className="flex flex-wrap gap-2">
-              {sortNiveis(Object.entries(analise.agregados.taxaOcupacaoCustomizada.distribuicaoClassificacao) as [string, number][]).map(
+              {sortNiveis(Object.entries(projetadoRaw.distribuicaoPorcentagem) as [string, number][]).map(
                 ([nivel, pct]) => (
                   <div
                     key={nivel}
