@@ -10,6 +10,19 @@ import {
   type SaveProjetadoFinalInternacaoDTO,
 } from "@/lib/api";
 
+const NIVEL_ORDER = [
+  "MINIMOS", "CUIDADOS_MINIMOS",
+  "INTERMEDIARIOS", "CUIDADOS_INTERMEDIARIOS",
+  "ALTA_DEPENDENCIA",
+  "SEMI_INTENSIVO", "SEMI_INTENSIVOS",
+  "INTENSIVO", "INTENSIVOS",
+];
+
+const sortNiveis = (entries: [string, number][]) =>
+  [...entries].sort(
+    (a, b) => (NIVEL_ORDER.indexOf(a[0]) ?? 99) - (NIVEL_ORDER.indexOf(b[0]) ?? 99)
+  );
+
 const NIVEL_LABELS: Record<string, string> = {
   MINIMOS: "Mínimos",
   CUIDADOS_MINIMOS: "Mínimos",
@@ -440,7 +453,7 @@ export default function QuadroFuncionariosResumo({
               Níveis de Cuidado
             </p>
             <div className="flex flex-wrap gap-2">
-              {Object.entries(analise.agregados.distribuicaoTotalClassificacao).map(
+              {sortNiveis(Object.entries(analise.agregados.distribuicaoTotalClassificacao) as [string, number][]).map(
                 ([nivel, qty]) => (
                   <div
                     key={nivel}
@@ -468,7 +481,7 @@ export default function QuadroFuncionariosResumo({
               Níveis de Cuidado Personalizados
             </p>
             <div className="flex flex-wrap gap-2">
-              {Object.entries(analise.agregados.taxaOcupacaoCustomizada.distribuicaoClassificacao).map(
+              {sortNiveis(Object.entries(analise.agregados.taxaOcupacaoCustomizada.distribuicaoClassificacao) as [string, number][]).map(
                 ([nivel, pct]) => (
                   <div
                     key={nivel}
