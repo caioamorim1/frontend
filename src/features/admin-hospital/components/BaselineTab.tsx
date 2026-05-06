@@ -459,6 +459,34 @@ export default function QuadroFuncionariosResumo({
           </div>
         )}
 
+      {/* Níveis de Cuidado Personalizados (quando utilizarComoBaseCalculo = true) */}
+      {analise?.agregados.taxaOcupacaoCustomizada?.utilizarComoBaseCalculo === true &&
+        analise.agregados.taxaOcupacaoCustomizada.distribuicaoClassificacao &&
+        Object.keys(analise.agregados.taxaOcupacaoCustomizada.distribuicaoClassificacao).length > 0 && (
+          <div>
+            <p className="text-xs text-gray-500 uppercase font-semibold mb-2">
+              Níveis de Cuidado Personalizados
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(analise.agregados.taxaOcupacaoCustomizada.distribuicaoClassificacao).map(
+                ([nivel, pct]) => (
+                  <div
+                    key={nivel}
+                    className="flex items-center gap-1.5 bg-slate-50 border rounded-full px-3 py-1 text-xs font-medium"
+                  >
+                    <span
+                      className={`inline-block w-2.5 h-2.5 rounded-full ${
+                        NIVEL_COLORS[nivel] ?? "bg-gray-400"
+                      }`}
+                    />
+                    {NIVEL_LABELS[nivel] ?? nivel}: {pct}%
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        )}
+
       {/* Tabela com Atual e Projetado */}
       <div className="border rounded-lg overflow-hidden">
         <table className="w-full text-left text-sm">
