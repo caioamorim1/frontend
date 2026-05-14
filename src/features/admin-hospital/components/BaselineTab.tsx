@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useState } from "react";
 import { Briefcase, Users, Calendar, BedDouble, CheckSquare, Activity } from "lucide-react";
 import {
-  getHospitalSnapshots,
+  getSnapshotHospitalSectors,
   type Snapshot,
   getControlePeriodoByUnidadeId,
   getAnaliseInternacao,
@@ -76,28 +76,26 @@ export default function QuadroFuncionariosResumo({
       setError(null);
 
       try {
-        // Fetch snapshot + control period in parallel
-        const [snapshotsData, controlePeriodo] = await Promise.all([
-          getHospitalSnapshots(hospitalId, 10),
+        // Fetch snapshot selecionado + control period in parallel
+        const [snapshotResult, controlePeriodo] = await Promise.all([
+          getSnapshotHospitalSectors(hospitalId),
           getControlePeriodoByUnidadeId(setorId).catch(() => null),
         ]);
 
-        const snapshotSelecionado = snapshotsData.snapshots?.find(
-          (s) => s.selecionado === true
-        );
+        const snapshotData = (snapshotResult as any).snapshot as Snapshot | undefined;
 
-        if (!snapshotSelecionado) {
+        if (!snapshotData) {
           setError(
             "Nenhum baseline selecionado para este hospital. Selecione um baseline na página de Baseline."
           );
           setSnapshotSelecionado(null);
         } else {
-          setSnapshotSelecionado(snapshotSelecionado);
+          setSnapshotSelecionado(snapshotData);
         }
 
         // Extract projetado data directly from snapshot (dados.projetadoFinal.internacao)
         const projetadoData =
-          snapshotSelecionado?.dados?.projetadoFinal?.internacao?.find(
+          snapshotData?.dados?.projetadoFinal?.internacao?.find(
             (u: any) => u.unidadeId === setorId
           ) ?? null;
 
@@ -447,14 +445,14 @@ export default function QuadroFuncionariosResumo({
       )}
 
       {/* Níveis de Cuidado */}
-      {analise?.agregados.distribuicaoTotalClassificacao &&
-        Object.keys(analise.agregados.distribuicaoTotalClassificacao).length > 0 && (
+      {projetadoRaw?.dimensionamento?.distribuicaoClassificacao &&
+        Object.keys(projetadoRaw.dimensionamento.distribuicaoClassificacao).length > 0 && (
           <div>
             <p className="text-xs text-gray-500 uppercase font-semibold mb-2">
               Níveis de Cuidado
             </p>
             <div className="flex flex-wrap gap-2">
-              {sortNiveis(Object.entries(analise.agregados.distribuicaoTotalClassificacao) as [string, number][]).map(
+              {sortNiveis(Object.entries(projetadoRaw.dimensionamento.distribuicaoClassificacao) as [string, number][]).map(
                 ([nivel, qty]) => (
                   <div
                     key={nivel}

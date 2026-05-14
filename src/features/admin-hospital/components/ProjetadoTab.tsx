@@ -720,11 +720,18 @@ export default function ProjetadoTab({
                             <PieChartComp
                               title="Níveis de Cuidado"
                               data={(() => {
-                                const dist = analise?.agregados?.distribuicaoTotalClassificacao || {};
-                                const entries = Object.entries(dist as Record<string, number>);
+                                const ag = analise?.agregados as any;
+                                const customizada = ag?.taxaOcupacaoCustomizada;
                                 const normalize = (k: string) =>
                                   k.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-                                return entries.map(([name, value]) => ({ name: normalize(name), value: Number(value || 0) }));
+                                if (customizada?.utilizarComoBaseCalculo && customizada?.distribuicaoClassificacao) {
+                                  // Valores já em % — usar diretamente
+                                  return Object.entries(customizada.distribuicaoClassificacao as Record<string, number>)
+                                    .map(([name, value]) => ({ name: normalize(name), value: Number(value || 0) }));
+                                }
+                                const dist = ag?.distribuicaoTotalClassificacao || {};
+                                return Object.entries(dist as Record<string, number>)
+                                  .map(([name, value]) => ({ name: normalize(name), value: Number(value || 0) }));
                               })()}
                               labelType="percent"
                               height={300}
@@ -732,7 +739,14 @@ export default function ProjetadoTab({
                               outerRadius={70}
                               className="border-0 shadow-none p-0"
                               totalForPercent={(() => {
-                                const dist = analise?.agregados?.distribuicaoTotalClassificacao || {};
+                                const ag = analise?.agregados as any;
+                                const customizada = ag?.taxaOcupacaoCustomizada;
+                                if (customizada?.utilizarComoBaseCalculo && customizada?.distribuicaoClassificacao) {
+                                  // Já são percentuais — soma deve ser 100
+                                  return Object.values(customizada.distribuicaoClassificacao as Record<string, number>)
+                                    .reduce((sum, val) => sum + (val || 0), 0);
+                                }
+                                const dist = ag?.distribuicaoTotalClassificacao || {};
                                 return Object.values(dist as Record<string, number>).reduce((sum, val) => sum + (val || 0), 0);
                               })()}
                             />
