@@ -22,7 +22,6 @@ export const CategoriesTab: React.FC = () => {
     getListQualitativesCategories()
       .then(setCategories)
       .catch(err => {
-        console.error("Falha ao buscar categorias:", err);
         showAlert("destructive", "Erro", "Falha ao buscar categorias.");
       });
   };
@@ -40,7 +39,6 @@ export const CategoriesTab: React.FC = () => {
         showAlert("success", "Sucesso", "Categoria atualizada com sucesso.");
         loadCategories();
       }).catch(err => {
-        console.error("Falha ao atualizar categoria:", err);
         showAlert("destructive", "Erro", "Falha ao atualizar categoria.");
       });
     } else {
@@ -48,7 +46,6 @@ export const CategoriesTab: React.FC = () => {
         showAlert("success", "Sucesso", "Categoria criada com sucesso.");
         loadCategories();
       }).catch(err => {
-        console.error("Falha ao criar categoria:", err);
         showAlert("destructive", "Erro", "Falha ao criar categoria.");
       });
     }
@@ -79,7 +76,6 @@ export const CategoriesTab: React.FC = () => {
         loadCategories();
       })
       .catch(err => {
-        console.error("Falha ao excluir categoria:", err);
         showAlert("destructive", "Erro", "Falha ao excluir categoria.");
       });
   };

@@ -40,7 +40,6 @@ export default function RegioesPage() {
       setGrupos(gruposData);
     } catch (err) {
       setError("Falha ao carregar dados de regiões e grupos.");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -103,7 +102,6 @@ export default function RegioesPage() {
           ? "Falha ao atualizar a região."
           : "Falha ao criar a região."
       );
-      console.error(err);
     }
   };
 
@@ -123,7 +121,6 @@ export default function RegioesPage() {
         } catch (err) {
           setError("Falha ao excluir a região.");
           showAlert("destructive", "Erro", "Falha ao excluir a região.");
-          console.error(err);
         }
       },
     });

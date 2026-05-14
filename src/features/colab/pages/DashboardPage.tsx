@@ -62,7 +62,6 @@ export default function HospitalDashboardPage() {
       } catch (error: any) {
         // Se o erro for 404, significa que não há snapshot selecionado
         // Qualquer outro erro também resulta em não mostrar a aba baseline
-        console.error("Erro ao verificar baseline:", error);
         setHasBaseline(false);
       } finally {
         setCheckingBaseline(false);
@@ -84,7 +83,6 @@ export default function HospitalDashboardPage() {
         if (error?.response?.status === 403 && user?.hospital) {
           setHospital(user.hospital as any);
         } else {
-          console.error(" Erro ao buscar hospital:", error);
           setHospital(null);
         }
       }
@@ -102,7 +100,6 @@ export default function HospitalDashboardPage() {
         const data = await getHospitalSectors(effectiveHospitalId);
         setAtualData(data);
       } catch (error) {
-        console.error("Erro ao buscar dados atuais:", error);
       }
     };
 

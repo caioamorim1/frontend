@@ -50,7 +50,6 @@ export default function GlobalDashboardPage() {
           setRede(redeEncontrada);
         }
       } catch (error) {
-        console.error("Erro ao buscar rede:", error);
       }
     };
 
@@ -71,7 +70,6 @@ export default function GlobalDashboardPage() {
 
         setBaselineData(dashboard);
       } catch (error) {
-        console.error("Erro ao buscar dados da rede:", error);
         setBaselineData(null);
       }
     };
@@ -128,7 +126,6 @@ export default function GlobalDashboardPage() {
 
         setAtualData(normalizedData);
       } catch (error) {
-        console.error("Erro ao buscar dados atuais da rede:", error);
         setAtualData(null);
       }
     };
@@ -190,7 +187,6 @@ export default function GlobalDashboardPage() {
 
         setProjetadoData(normalizedData);
       } catch (error) {
-        console.error("Erro ao buscar dados projetados da rede:", error);
         setProjetadoData(null);
       }
     };
@@ -213,7 +209,6 @@ export default function GlobalDashboardPage() {
 
         setComparativoData(data);
       } catch (error) {
-        console.error("Erro ao buscar dados comparativos da rede:", error);
         setComparativoData(null);
       }
     };

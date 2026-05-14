@@ -39,7 +39,6 @@ export default function GruposPage() {
       setRedes(redesData);
     } catch (err) {
       setError("Falha ao carregar dados de grupos e redes.");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -93,7 +92,6 @@ export default function GruposPage() {
         "Erro",
         formData.id ? "Falha ao atualizar o grupo." : "Falha ao criar o grupo."
       );
-      console.error(err);
     }
   };
 
@@ -113,7 +111,6 @@ export default function GruposPage() {
         } catch (err) {
           setError("Falha ao excluir o grupo.");
           showAlert("destructive", "Erro", "Falha ao excluir o grupo.");
-          console.error(err);
         }
       },
     });

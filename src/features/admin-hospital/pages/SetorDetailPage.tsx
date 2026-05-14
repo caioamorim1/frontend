@@ -59,7 +59,6 @@ export default function SetorDetailPage() {
         const [sessoesData, controlePeriodo] = await Promise.all([
           getSessoesAtivasByUnidadeId(setorId),
           getControlePeriodoByUnidadeId(setorId).catch((error) => {
-            console.error("Falha ao carregar controle de período:", error);
             return null;
           }),
         ]);

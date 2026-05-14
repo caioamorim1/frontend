@@ -83,7 +83,6 @@ export default function UsuariosPage() {
     } catch (err) {
       setError("Falha ao carregar os usuários.");
       showAlert("destructive", "Erro", "Falha ao carregar os usuários.");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -193,7 +192,6 @@ export default function UsuariosPage() {
           ? "Falha ao atualizar o usuário."
           : "Falha ao criar o usuário."
       );
-      console.error(err);
     }
   };
 
@@ -213,7 +211,6 @@ export default function UsuariosPage() {
         } catch (err) {
           setError("Falha ao excluir o usuário.");
           showAlert("destructive", "Erro", "Falha ao excluir o usuário.");
-          console.error(err);
         }
       },
     });

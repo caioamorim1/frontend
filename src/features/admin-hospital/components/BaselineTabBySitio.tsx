@@ -98,7 +98,6 @@ export default function BaselineTabBySitio({
         }
 
       } catch (err: any) {
-        console.error("[BASELINE BY SITIO] Erro ao buscar snapshot:", err);
         if (err.response?.status === 404) {
           setError(
             "Nenhum snapshot (baseline) encontrado para este hospital. Crie um snapshot primeiro."

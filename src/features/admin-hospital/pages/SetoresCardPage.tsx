@@ -48,7 +48,6 @@ export default function SetoresCardPage() {
         
         setSitiosCounts(sitiosMap);
       } catch (error) {
-        console.error("Erro ao carregar setores:", error);
       } finally {
         setLoading(false);
       }

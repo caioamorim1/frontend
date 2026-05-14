@@ -1187,9 +1187,6 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                 }
 
                 if (Math.abs(cumulative - custoProjetadoMensal) > 0.01) {
-                  console.warn(
-                    "⚠️ AVISO: Waterfall Rede não fecha! Pode haver custos não incluídos nas variações por cargo."
-                  );
                 }
 
                 waterfallData.push({
@@ -1598,9 +1595,6 @@ export const DashboardBaselineDetalhamentoRedeApi: React.FC<{
                 }
 
                 if (Math.abs(cumulative - totalFuncionariosProjetado) > 0.01) {
-                  console.warn(
-                    "⚠️ AVISO: Waterfall Rede (Quantidade) não fecha! Pode haver funcionários não incluídos nas variações por cargo."
-                  );
                 }
 
                 waterfallData.push({

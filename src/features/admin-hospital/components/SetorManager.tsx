@@ -19,7 +19,6 @@
   
 
 //    const handleAddCargo = () => {
-//     console.log("ANTES DE ADICIONAR. Estado atual:", cargos_unidade);
 //     if (!selectedCargoId || quantidadeFuncionarios <= 0) {
 //       alert("Selecione um cargo e informe uma quantidade válida.");
 //       return;

@@ -387,7 +387,6 @@ export default function ProjetadoTab({
           dataFinal,
         });
       } catch (saveError: any) {
-        console.error("Erro ao salvar período:", saveError);
       }
 
       showAlert("success", "Pronto", "Indicadores calculados para o período.");
@@ -548,7 +547,6 @@ export default function ProjetadoTab({
             "Projetado final salvo e período travado automaticamente."
           );
         } catch (error) {
-          console.error("Erro ao travar período:", error);
           showAlert(
             "success",
             "Sucesso",
@@ -568,7 +566,6 @@ export default function ProjetadoTab({
               dataFinal,
             });
           } catch (error) {
-            console.error("Erro ao destravar período:", error);
           }
         }
         showAlert("success", "Sucesso", "Projetado final salvo com sucesso.");
@@ -626,21 +623,6 @@ export default function ProjetadoTab({
     (linha) => !isCargoSCPView(linha.cargoNome)
   );
 
-  // DEBUG: Logs detalhados para analisar classificação e valores projetados
-  try {
-    const isBrowser = typeof window !== "undefined";
-    if (isBrowser) {
-      console.groupCollapsed(
-        "[ProjetadoTab] Classificação de cargos e valores projetados"
-      );
-      linhasUnicas.forEach((l) => {
-        const lower = (l.cargoNome || "").toLowerCase();
-        const isScp = isCargoSCPView(l.cargoNome);
-      });
-
-      console.groupEnd();
-    }
-  } catch {}
 
   // Buscar quantidade atual da unidade para os cargos sem projetado
   const getQuantidadeAtual = (cargoId: string): number => {

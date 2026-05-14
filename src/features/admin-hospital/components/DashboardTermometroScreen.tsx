@@ -695,7 +695,7 @@ function SerieHistoricaSubTab({ hospitalId, setorId, dataInicial, dataFinal, isH
       ...(setorId ? { setorId } : {}),
     })
       .then((res) => { if (!cancelled) setData(res); })
-      .catch((err) => console.error("Erro ao carregar série histórica:", err))
+      .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [hospitalId, setorId, dataInicial, dataFinal]);
@@ -974,7 +974,7 @@ function DetalhamentoTab({ hospitalId }: { hospitalId: string }) {
       dataFinal: appliedFilters.usarPeriodo ? appliedFilters.dataFinal : hoje,
     })
       .then(setD)
-      .catch((err) => console.error("Erro ao carregar detalhamento:", err))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [hospitalId, appliedFilters, hoje]);
 
@@ -1225,7 +1225,7 @@ export const DashboardTermometroScreen: React.FC<
     setLoading(true);
     getTermometroGlobal(hospitalId)
       .then((res) => { if (!cancelled) setGlobalData(res); })
-      .catch((err) => console.error("Erro ao carregar dados globais:", err))
+      .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [hospitalId]);

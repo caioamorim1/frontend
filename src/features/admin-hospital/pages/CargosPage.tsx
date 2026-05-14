@@ -47,7 +47,6 @@ export default function CargosPage() {
     } catch (err) {
       setError("Falha ao carregar os cargos.");
       showAlert("destructive", "Erro", "Falha ao carregar os cargos.");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -138,7 +137,6 @@ export default function CargosPage() {
         "Erro",
         formData.id ? "Falha ao atualizar o cargo." : "Falha ao criar o cargo."
       );
-      console.error(err);
     }
   };
 
@@ -159,7 +157,6 @@ export default function CargosPage() {
         } catch (err) {
           setError("Falha ao excluir o cargo.");
           showAlert("destructive", "Erro", "Falha ao excluir o cargo.");
-          console.error(err);
         }
       },
     });

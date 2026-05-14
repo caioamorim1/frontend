@@ -30,7 +30,6 @@ export function AjustesPage() {
         text: response.data.message || "Processamento concluído com sucesso!",
       });
     } catch (error: any) {
-      console.error("Erro ao processar sessões pendentes:", error);
       setMessage({
         type: "error",
         text:

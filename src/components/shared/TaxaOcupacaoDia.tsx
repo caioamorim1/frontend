@@ -53,7 +53,6 @@ export function TaxaOcupacaoDia({
         setTaxaHospital(data);
       }
     } catch (err: any) {
-      console.error("Erro ao buscar taxa de ocupação:", err);
       setError(
         err.response?.data?.error ||
           "Erro ao buscar taxa de ocupação. Tente novamente."

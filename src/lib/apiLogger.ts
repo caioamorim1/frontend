@@ -77,16 +77,6 @@ export function startApiLogger() {
   // Expõe helpers globais no browser
   (window as any).printApiLog = () => {
     const entries = getLog().sort((a, b) => a.route.localeCompare(b.route));
-    console.group("📡 API Routes Log");
-    console.table(
-      entries.map((e) => ({
-        Method: e.method,
-        Route: e.route,
-        Calls: e.count,
-        "Last Seen": new Date(e.lastSeen).toLocaleTimeString(),
-      }))
-    );
-    console.groupEnd();
     return entries;
   };
 
@@ -97,18 +87,12 @@ export function startApiLogger() {
       .join("\n");
     const markdown = `| Método | Endpoint |\n|---|---|\n${text}`;
     navigator.clipboard.writeText(markdown).then(() => {
-      console.log("✅ Log copiado para o clipboard em formato Markdown!");
     });
     return entries;
   };
 
   (window as any).clearApiLog = () => {
     localStorage.removeItem(STORAGE_KEY);
-    console.log("🗑️ API log limpo.");
   };
 
-  console.log(
-    "%c[apiLogger] Activo. Comandos disponíveis: printApiLog() | exportApiLog() | clearApiLog()",
-    "color: #7c3aed; font-weight: bold;"
-  );
 }

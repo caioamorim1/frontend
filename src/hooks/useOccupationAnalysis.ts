@@ -57,7 +57,6 @@ export function useOccupationAnalysis(
         err.response?.data?.error ||
         err.message ||
         "Erro ao carregar análise de ocupação";
-      console.error("❌ [useOccupationAnalysis] Error:", errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);

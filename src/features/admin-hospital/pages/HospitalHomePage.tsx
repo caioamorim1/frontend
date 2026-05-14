@@ -50,7 +50,6 @@ export default function HospitalHomePage() {
         if (error?.response?.status === 403 && user?.hospital) {
           setHospital(user.hospital as any);
         } else {
-          console.error("Erro ao carregar hospital:", error);
         }
       } finally {
         setLoading(false);

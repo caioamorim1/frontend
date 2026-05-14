@@ -288,7 +288,6 @@ export const DashboardComparativoHospitalScreen: React.FC<{
           setProjectedData(normalizedProjected);
         }
       } catch (err) {
-        console.error("[Comparativo Hospital - NOVA API] Error:", err);
       } finally {
         if (mounted) setLoading(false);
       }

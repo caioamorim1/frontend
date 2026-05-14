@@ -22,7 +22,6 @@ export default function RedesPage() {
       setRedes(data);
     } catch (err) {
       setError("Falha ao carregar as redes.");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -70,7 +69,6 @@ export default function RedesPage() {
         "Erro",
         formData.id ? "Falha ao atualizar a rede." : "Falha ao criar a rede."
       );
-      console.error(err);
     }
   };
 
@@ -90,7 +88,6 @@ export default function RedesPage() {
         } catch (err) {
           setError("Falha ao excluir a rede.");
           showAlert("destructive", "Erro", "Falha ao excluir a rede.");
-          console.error(err);
         }
       },
     });

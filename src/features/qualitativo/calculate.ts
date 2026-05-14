@@ -14,8 +14,5 @@ export function calculateQuestionScoreByCategory(
   totalRate: number;
 } {
   // Função deprecated - retorna valores vazios
-  console.warn(
-    "calculateQuestionScoreByCategory is deprecated. Use organizeByCategoryWithScores from EvaluationForm instead."
-  );
   return { categories: [], totalRate: 0 };
 }

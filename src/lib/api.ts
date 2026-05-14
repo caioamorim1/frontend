@@ -155,13 +155,7 @@ export async function getNetworkProjectedSectors(
     );
     return res.data as HospitalProjectedResponse;
   } catch (error) {
-    console.error(
-      "[API] getNetworkProjectedSectors - Erro capturado:",
-      error
-    );
     if ((error as any).response) {
-      console.error("[API] Status:", (error as any).response.status);
-      console.error(" [API] Data:", (error as any).response.data);
     }
     throw error;
   }
@@ -1207,12 +1201,8 @@ export const getHospitalSectors = async (
 
     return response.data;
   } catch (error) {
-    console.error("❌ [API] getHospitalSectors - Erro capturado:", error);
 
     if ((error as any).response) {
-      console.error("❌ [API] Status:", (error as any).response.status);
-      console.error("❌ [API] Data:", (error as any).response.data);
-      console.error("❌ [API] Headers:", (error as any).response.headers);
     }
 
     throw error; // Re-lança o erro
@@ -1263,10 +1253,7 @@ export const getNetworkSectors = async (
 
     return response.data;
   } catch (error) {
-    console.error("[API] getNetworkSectors - Erro capturado:", error);
     if ((error as any).response) {
-      console.error("[API] Status:", (error as any).response.status);
-      console.error(" [API] Data:", (error as any).response.data);
     }
     throw error;
   }
@@ -1731,10 +1718,6 @@ export const admitirPaciente = async (
     const response = await api.post("/avaliacoes/sessao", payload);
     return response.data;
   } catch (error: any) {
-    console.error("Erro na requisição admitirPaciente:", {
-      payload,
-      error: error.response?.data || error.message,
-    });
     throw error;
   }
 };
@@ -1859,11 +1842,6 @@ export async function saveProjetadoFinalNaoInternacao(
 
     return response.data;
   } catch (error: any) {
-    console.error(
-      "[API] saveProjetadoFinalNaoInternacao -> erro:",
-      error?.response?.status,
-      error?.response?.data || error?.message
-    );
     throw error;
   }
 }
@@ -1902,11 +1880,6 @@ export async function saveProjetadoFinalInternacao(
 
     return response.data;
   } catch (error: any) {
-    console.error(
-      "[API] saveProjetadoFinalInternacao -> erro:",
-      error?.response?.status,
-      error?.response?.data || error?.message
-    );
     throw error;
   }
 }
@@ -2027,7 +2000,6 @@ export const updateSitioFuncional = async (
 
     return response.data;
   } catch (error: any) {
-    console.error(" API - Erro:", error.response?.data || error.message);
     throw error;
   }
 };
@@ -2046,10 +2018,6 @@ export const getSitioDistribuicoes = async (
 
     return response.data;
   } catch (error: any) {
-    console.error(
-      "[API] Erro ao buscar distribuições:",
-      error.response?.data || error.message
-    );
     throw error;
   }
 };
