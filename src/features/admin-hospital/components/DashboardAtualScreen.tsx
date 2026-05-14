@@ -595,7 +595,6 @@ const TabContentInternacao: React.FC<{
           setOccupationHistorical(data);
         }
       } catch (err) {
-        console.error("[TabContentInternacao] Erro ao carregar ocupação:", err);
       } finally {
         setLoadingOccupationHistorical(false);
       }
@@ -1245,7 +1244,6 @@ export const DashboardAtualScreen: React.FC<DashboardAtualScreenProps> = ({
 
         setRadarData(radarChartData);
       } catch (error) {
-        console.error("Erro ao buscar agregados qualitativos:", error);
         setRadarData([]);
         setQualitativeAggregates(null);
       }

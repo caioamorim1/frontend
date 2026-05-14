@@ -436,7 +436,6 @@ export default function ProjetadoNaoInternacaoTab({
                   setAnaliseBase(analiseData.tabela);
                 }
               } catch (error) {
-                console.error("Erro ao recarregar dados:", error);
               } finally {
                 setLoading(false);
               }
@@ -452,7 +451,6 @@ export default function ProjetadoNaoInternacaoTab({
                   setAnaliseBase(analiseData.tabela);
                 }
               } catch (error) {
-                console.error("Erro ao recarregar dados:", error);
               }
             };
             fetchData();

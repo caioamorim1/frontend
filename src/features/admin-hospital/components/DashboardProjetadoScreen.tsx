@@ -614,13 +614,10 @@ export const DashboardProjetadoScreen: React.FC<
 
           setRadarData(radarChartData);
         } catch (error) {
-          console.error("Erro ao buscar avaliações:", error);
           setRadarData([]);
         }
       }
     } catch (error) {
-      console.error("❌ Erro ao carregar dados:", error);
-      console.error("Stack trace:", error);
     }
   };
 

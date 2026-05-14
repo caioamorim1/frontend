@@ -29,7 +29,6 @@ export default function ColetaDetalhesModal({
         const parsed = JSON.parse(coleta.respostas);
         return Array.isArray(parsed) ? parsed : [];
       } catch (e) {
-        console.error("Falha ao fazer parse das respostas JSON:", e);
         return [];
       }
     }

@@ -123,7 +123,6 @@ export default function ParametrosPage() {
               setAnalise(analiseData);
             }
           } catch (err) {
-            console.warn("Não foi possível carregar análise:", err);
           }
         }
 
@@ -210,7 +209,6 @@ export default function ParametrosPage() {
       const analiseData = await getAnaliseInternacao(setorId, params);
       setAnalise(analiseData);
     } catch (err) {
-      console.warn("Não foi possível recarregar análise:", err);
     }
   };
 

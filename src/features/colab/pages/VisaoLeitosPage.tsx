@@ -851,11 +851,6 @@ export default function VisaoLeitosPage() {
         } else {
         }
       } catch (err: any) {
-        console.warn("Erro ao buscar prontuário (continuando sem sugestão):", {
-          leitoId: leito.id,
-          status: err.response?.status,
-          message: err.response?.data?.message || err.message,
-        });
         // Continua normalmente sem prontuário sugerido
       }
     }

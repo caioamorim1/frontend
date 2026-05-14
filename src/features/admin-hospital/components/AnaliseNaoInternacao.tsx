@@ -75,7 +75,6 @@ export default function AnaliseNaoInternacaoTab({
           setTabelaData(data.tabela);
         }
       } catch (err) {
-        console.error("Erro ao buscar análise de não internação:", err);
         setError("Não foi possível carregar os dados da análise financeira.");
         toast({
           title: "Erro",

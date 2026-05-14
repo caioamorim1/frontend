@@ -548,7 +548,6 @@ export const DashboardBaselineScreen: React.FC<DashboardBaselineScreenProps> = (
 
         setSnapshotData(normalizeToSnapshotResponse(data));
       } catch (error) {
-        console.error("Erro ao carregar snapshot:", error);
         setSnapshotData(null);
       } finally {
         setLoading(false);

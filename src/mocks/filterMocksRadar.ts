@@ -82,18 +82,15 @@ export const calcularPerformanceParaGrafico = (
 // Cenário 1: Visão Geral (sem filtro)
 
 const dadosGraficoGeral = calcularPerformanceParaGrafico();
-console.table(dadosGraficoGeral);
 
 // Cenário 2: Filtrando por tipo "Internação"
 
 const dadosGraficoInternacao = calcularPerformanceParaGrafico({
   tipo: "Internacao",
 });
-console.table(dadosGraficoInternacao);
 
 // Cenário 3: Filtrando por setor "UTI Adulto"
 
 const dadosGraficoUtiAdulto = calcularPerformanceParaGrafico({
   setorId: "uti-adulto",
 });
-console.table(dadosGraficoUtiAdulto);

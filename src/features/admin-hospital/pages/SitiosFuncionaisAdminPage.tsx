@@ -101,7 +101,6 @@ export default function SitiosFuncionaisAdminPage() {
       setUnidade(unidadeCompleta);
       setTodosCargosDosHospital(cargosDosHospital);
     } catch (err) {
-      console.error("❌ [fetchData] Erro:", err);
       setError("Falha ao carregar os dados dos sítios funcionais.");
     } finally {
       setLoading(false);

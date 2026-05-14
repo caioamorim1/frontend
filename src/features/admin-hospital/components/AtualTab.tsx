@@ -307,7 +307,6 @@ export default function AtualTab({
       setCargosHospital(lista);
       showAlert("success", "Sucesso", "Cargo criado com sucesso.");
     } catch (e) {
-      console.error("Erro ao criar cargo:", e);
       showAlert(
         "destructive",
         "Erro",
@@ -414,7 +413,6 @@ export default function AtualTab({
           setInitialState(_.cloneDeep(cargosAtuaisFormatados));
         }
       } catch (error) {
-        console.error("❌ Erro ao carregar cargos:", error);
         showAlert(
           "destructive",
           "Erro",
@@ -496,7 +494,6 @@ export default function AtualTab({
           try {
             await deleteCargoDeSitio(cargoSitioId);
           } catch (e) {
-            console.warn("Falha ao excluir cargo do sítio", cargoSitioId, e);
           }
         }
 
@@ -541,13 +538,6 @@ export default function AtualTab({
       showAlert("success", "Sucesso", "Alterações salvas com sucesso.");
       onUpdate(); // Recarrega os dados na página pai
     } catch (error: any) {
-      console.error("❌ ERRO AO SALVAR:", error);
-      console.error("Detalhes do erro:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        stack: error.stack,
-      });
 
       showAlert(
         "destructive",

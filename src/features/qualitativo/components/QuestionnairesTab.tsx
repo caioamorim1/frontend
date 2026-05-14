@@ -36,7 +36,6 @@ export const QuestionnairesTab: React.FC = () => {
       setQuestionnaires(questionnairesResult);
       setCategories(categoriesResult);
     } catch (error) {
-      console.error("Failed to load data:", error);
       showAlert("destructive", "Erro", "Não foi possível carregar os dados necessários.");
     }
   };
@@ -211,7 +210,6 @@ export const QuestionnairesTab: React.FC = () => {
       resetForm();
       loadData();
     } catch (err) {
-      console.error("Falha ao salvar questionário:", err);
       showAlert("destructive", "Erro", `Falha ao ${editingQuestionnaire ? 'atualizar' : 'criar'} questionário.`);
     }
   };
@@ -227,7 +225,6 @@ export const QuestionnairesTab: React.FC = () => {
           showAlert("success", "Sucesso", "Questionário excluído com sucesso.");
           loadData();
         } catch (err) {
-          console.error("Falha ao excluir questionário:", err);
           showAlert("destructive", "Erro", "Falha ao excluir questionário.");
         }
       }

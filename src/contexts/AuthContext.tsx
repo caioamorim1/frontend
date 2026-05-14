@@ -74,7 +74,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Se o token já está expirado
       if (timeUntilExpiration <= 0) {
-        console.warn("Token já expirado. Deslogando...");
         logout();
         return;
       }
@@ -84,7 +83,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (timeUntilWarning > 0) {
         warningTimeoutId = setTimeout(() => {
-          console.warn("Mostrando aviso: 2 minutos para expiração");
           showAlert(
             "destructive",
             "Sessão Expirando",
@@ -105,7 +103,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (timeUntilLogout > 0) {
         logoutTimeoutId = setTimeout(() => {
-          console.warn("Token expirado. Deslogando...");
           showAlert(
             "destructive",
             "Sessão Expirada",
@@ -134,7 +131,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (decoded.exp) {
           const now = Math.floor(Date.now() / 1000);
           if (decoded.exp <= now) {
-            console.warn("Token expirado ao carregar. Limpando sessão...");
             setToken(null);
             setUser(null);
             localStorage.removeItem("authToken");
@@ -168,7 +164,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const finalUser = { ...decoded, appRole: finalRole };
         setUser(finalUser);
       } catch (e) {
-        console.error("Token inválido:", e);
         setToken(null);
         setUser(null);
       }
@@ -220,7 +215,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     } catch (error) {
-      console.error("Falha no login:", error);
       throw new Error(
         "Credenciais inválidas. Verifique o seu email e palavra-passe."
       );

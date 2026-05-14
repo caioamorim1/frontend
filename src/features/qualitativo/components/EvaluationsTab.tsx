@@ -76,7 +76,6 @@ export const EvaluationsTab: React.FC<{
       const data = await getQualitativeAggregatesBySector(sectorId);
       setSectorAggregates(data);
     } catch (error) {
-      console.warn("Erro ao carregar agregados do setor:", error);
     }
   };
 
@@ -152,14 +151,6 @@ export const EvaluationsTab: React.FC<{
           showAlert("success", "Avaliação criada com sucesso!", "success");
         })
         .catch((error) => {
-          console.error(
-            "[handleSaveEvaluation] Erro ao criar avaliação:",
-            error
-          );
-          console.error(
-            "[handleSaveEvaluation] Erro completo:",
-            error.response?.data
-          );
           showAlert(
             "destructive",
             "Erro ao criar avaliação: " +
@@ -200,7 +191,6 @@ export const EvaluationsTab: React.FC<{
         loadEvaluations();
       })
       .catch((err) => {
-        console.error("Falha ao excluir avaliação:", err);
         showAlert("destructive", "Erro", "Falha ao excluir avaliação.");
       });
   };

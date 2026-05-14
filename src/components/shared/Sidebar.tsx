@@ -332,7 +332,6 @@ export default function Sidebar() {
           setRedes(redesData);
         })
         .catch((err) =>
-          console.error("Falha ao carregar dados para o menu:", err)
         )
         .finally(() => setLoading(false));
     } else if (user?.tipo === "GESTOR_ESTRATEGICO_REDE" && user?.redeId) {
@@ -344,7 +343,6 @@ export default function Sidebar() {
           setHospitais(hospitaisData as Hospital[]);
         })
         .catch((err) =>
-          console.error("Falha ao carregar dados da rede:", err)
         )
         .finally(() => setLoading(false));
     } else {

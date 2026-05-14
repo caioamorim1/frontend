@@ -87,10 +87,6 @@ export default function CargoSitioManager({
         } else {
         }
       } catch (error) {
-        console.error(
-          "[CargoSitioManager] Erro ao buscar distribuições:",
-          error
-        );
         // Em caso de erro, mantém as distribuições que vieram do prop
       } finally {
         setLoading(false);
@@ -113,7 +109,6 @@ export default function CargoSitioManager({
       });
       if (onUpdate) onUpdate();
     } catch (err) {
-      console.error("❌ [CargoSitioManager] Erro ao salvar:", err);
       setError("Falha ao salvar distribuições.");
       toast({
         title: "Erro",

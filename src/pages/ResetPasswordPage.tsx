@@ -128,8 +128,6 @@ export default function ResetPasswordPage() {
         setError(response.message || "Erro ao redefinir senha.");
       }
     } catch (err: any) {
-      console.error("[ResetPassword] Erro:", err);
-      console.error("[ResetPassword] Response:", err.response?.data);
       const errorMessage =
         err.response?.data?.message ||
         "Erro ao redefinir senha. O link pode estar expirado.";

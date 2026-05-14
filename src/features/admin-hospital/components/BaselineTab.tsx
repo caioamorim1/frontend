@@ -118,7 +118,6 @@ export default function QuadroFuncionariosResumo({
         if (analiseData) setAnalise(analiseData);
 
       } catch (err: any) {
-        console.error("❌ Erro ao buscar snapshot:", err);
         if (err.response?.status === 404) {
           setError(
             "Nenhum snapshot (baseline) encontrado para este hospital. Crie um snapshot primeiro na página de Baseline."

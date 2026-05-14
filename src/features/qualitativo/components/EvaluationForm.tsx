@@ -590,13 +590,11 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
     getQuestionarios()
       .then(setQuestionnaires)
       .catch((err) => {
-        console.error("Falha ao buscar questionários:", err);
         showAlert("destructive", "Erro", "Falha ao buscar questionários.");
       });
     getListQualitativesCategories()
       .then(setCategories)
       .catch((err) => {
-        console.error("Falha ao buscar categorias:", err);
         showAlert("destructive", "Erro", "Falha ao buscar categorias.");
       });
   };

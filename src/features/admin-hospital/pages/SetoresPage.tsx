@@ -82,7 +82,6 @@ export default function SetoresPage() {
       await fetchData();
       showAlert("success", "Sucesso", "Baseline gerada com sucesso.");
     } catch (error: any) {
-      console.error(" Erro ao criar snapshot:", error);
 
       // Verifica se é o erro de setores pendentes
       if (error?.response?.data?.setoresPendentes) {

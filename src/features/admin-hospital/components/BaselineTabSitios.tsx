@@ -26,7 +26,6 @@ export default function BaselineTabSitios({
         const dados = data.snapshot.dados;
         setSnapshotData(dados);
       } catch (err: any) {
-        console.error("❌ Erro ao buscar snapshot:", err);
         if (err.response?.status === 404) {
           setError("Nenhum snapshot (baseline) encontrado para este hospital.");
         } else {

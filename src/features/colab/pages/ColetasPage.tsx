@@ -77,7 +77,6 @@ export default function ColetasPage() {
         ]);
         setUnidades([...unidadesInternacao, ...unidadesNaoInternacao]);
       } catch (err) {
-        console.error("Falha ao carregar unidades:", err);
         setError("Não foi possível carregar as unidades/setores.");
       }
 
@@ -85,7 +84,6 @@ export default function ColetasPage() {
         const questionariosData = await getQuestionarios();
         setQuestionarios(questionariosData);
       } catch (err) {
-        console.error("Falha ao carregar questionários:", err);
         setError((prev) =>
           prev
             ? `${prev} E não foi possível carregar os questionários.`
@@ -97,10 +95,6 @@ export default function ColetasPage() {
         const coletasData = await getColetasPorHospital(hospitalId);
         setColetas(coletasData);
       } catch (err) {
-        console.error(
-          "Falha ao carregar histórico de coletas (erro 500 esperado):",
-          err
-        );
         setColetasError(true);
       } finally {
         setLoading(false);

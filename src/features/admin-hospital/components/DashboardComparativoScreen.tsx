@@ -100,10 +100,6 @@ export const DashboardComparativoScreen: React.FC<{
 
         setComparativeData(resp);
       } catch (err) {
-        console.error(
-          "[Comparativo - NOVA API] Error fetching comparative data:",
-          err
-        );
       } finally {
         if (mounted) setLoading(false);
       }
