@@ -18,8 +18,8 @@ export type {
   QuestionOption,
 };
 
-//export const API_BASE_URL = "http://localhost:3110";
-export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
+export const API_BASE_URL = "http://localhost:3110";
+//export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/apinode";
 const getApiOrigin = (): string => {
   const base = String(API_BASE_URL || "");
 
@@ -1597,7 +1597,14 @@ export const updateUsuario = async (
   usuarioId: string,
   data: UpdateUsuarioDTO
 ): Promise<Usuario> => {
-  const response = await api.patch(`/colaboradores/${usuarioId}`, data);
+  const url = `/colaboradores/${usuarioId}`;
+  console.log("[API editar usuário]", {
+    method: "PATCH",
+    url,
+    fullUrl: api.getUri({ url }),
+    payload: data,
+  });
+  const response = await api.patch(url, data);
   return response.data;
 };
 export const deleteUsuario = async (usuarioId: string): Promise<void> => {

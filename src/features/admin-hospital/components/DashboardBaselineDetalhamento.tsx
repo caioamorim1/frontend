@@ -450,6 +450,248 @@ export const DashboardBaselineDetalhamento: React.FC<
       ),
     [cargoVariacaoPorSetor, cargoOrderQtd]
   );
+
+  const baselineDateLabel = snapshotData.snapshot.dataHora
+    ? new Date(snapshotData.snapshot.dataHora)
+        .toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "2-digit",
+        })
+        .replace(/\//g, ".")
+    : "";
+
+  const atualProjetadoVariacoesPorCargo = useMemo(() => {
+    const cargoMap = new Map<
+      string,
+      { nome: string; qtdVariacao: number; custoVariacao: number }
+    >();
+    const currentUnits = snapshotData.situacaoAtual?.unidades || [];
+    const processedUnits = new Set<string>();
+
+    const findCurrentUnit = (unitId: string) =>
+      currentUnits.find((u: any) => u.unidadeId === unitId);
+
+    const findBaselineStaff = (unitId: string, cargoId: string) => {
+      const baselineUnit =
+        snapshotData.snapshot.dados.internation?.find(
+          (u: any) => u.id === unitId
+        ) ||
+        snapshotData.snapshot.dados.assistance?.find(
+          (u: any) => u.id === unitId
+        );
+      return baselineUnit?.staff?.find((s: any) => s.id === cargoId);
+    };
+
+    const addVariation = (
+      cargoId: string,
+      nome: string,
+      atualQtd: number,
+      projetadoQtd: number,
+      custoUnitario: number
+    ) => {
+      const qtdVariacao = projetadoQtd - atualQtd;
+      if (qtdVariacao === 0) return;
+
+      const existing = cargoMap.get(cargoId);
+      if (existing) {
+        existing.qtdVariacao += qtdVariacao;
+        existing.custoVariacao += qtdVariacao * custoUnitario;
+        return;
+      }
+
+      cargoMap.set(cargoId, {
+        nome,
+        qtdVariacao,
+        custoVariacao: qtdVariacao * custoUnitario,
+      });
+    };
+
+    const processProjectedCargoMap = (
+      unitId: string,
+      projectedByCargo: Map<string, number>
+    ) => {
+      if (selectedSector !== "all" && unitId !== selectedSector) return;
+      processedUnits.add(unitId);
+
+      const currentUnit = findCurrentUnit(unitId);
+      const currentCargoIds = new Set<string>(
+        currentUnit?.cargos?.map((cargo: any) => cargo.cargoId) || []
+      );
+      const cargoIds = new Set<string>([
+        ...Array.from(projectedByCargo.keys()),
+        ...Array.from(currentCargoIds),
+      ]);
+
+      cargoIds.forEach((cargoId) => {
+        const currentCargo = currentUnit?.cargos?.find(
+          (cargo: any) => cargo.cargoId === cargoId
+        );
+        const baselineStaff = findBaselineStaff(unitId, cargoId);
+        const nome =
+          currentCargo?.cargoNome || baselineStaff?.role || cargoId;
+        const atualQtd = currentCargo?.quantidadeFuncionarios || 0;
+        const projetadoQtd = projectedByCargo.get(cargoId) || 0;
+        const custoUnitario =
+          currentCargo?.custoUnitario || baselineStaff?.unitCost || 0;
+
+        addVariation(cargoId, nome, atualQtd, projetadoQtd, custoUnitario);
+      });
+    };
+
+    snapshotData.snapshot.dados.projetadoFinal?.internacao?.forEach(
+      (unidade: any) => {
+        const projectedByCargo = new Map<string, number>();
+        unidade.cargos?.forEach((cargo: any) => {
+          projectedByCargo.set(cargo.cargoId, cargo.projetadoFinal || 0);
+        });
+        processProjectedCargoMap(unidade.unidadeId, projectedByCargo);
+      }
+    );
+
+    snapshotData.snapshot.dados.projetadoFinal?.naoInternacao?.forEach(
+      (unidade: any) => {
+        const projectedByCargo = new Map<string, number>();
+        unidade.sitios?.forEach((sitio: any) => {
+          sitio.cargos?.forEach((cargo: any) => {
+            projectedByCargo.set(
+              cargo.cargoId,
+              (projectedByCargo.get(cargo.cargoId) || 0) +
+                (cargo.projetadoFinal || 0)
+            );
+          });
+        });
+        processProjectedCargoMap(unidade.unidadeId, projectedByCargo);
+      }
+    );
+
+    currentUnits.forEach((unidade: any) => {
+      if (selectedSector !== "all" && unidade.unidadeId !== selectedSector) {
+        return;
+      }
+      if (processedUnits.has(unidade.unidadeId)) return;
+
+      unidade.cargos?.forEach((cargo: any) => {
+        addVariation(
+          cargo.cargoId,
+          cargo.cargoNome || cargo.cargoId,
+          cargo.quantidadeFuncionarios || 0,
+          0,
+          cargo.custoUnitario || 0
+        );
+      });
+    });
+
+    return Array.from(cargoMap.values()).sort(
+      (a, b) => Math.abs(b.qtdVariacao) - Math.abs(a.qtdVariacao)
+    );
+  }, [snapshotData, selectedSector]);
+
+  const atualProjetadoCustoWaterfallData = useMemo(() => {
+    const waterfallData: any[] = [
+      {
+        name: `Baseline\n(${baselineDateLabel})`,
+        value: custoBaseline,
+        range: [0, custoBaseline],
+        color: "#93C5FD",
+        qtdPessoas: profissionaisBaseline,
+      },
+      {
+        name: "Atual",
+        value: custoAtualReal,
+        range: [0, custoAtualReal],
+        color: "#5CA6DD",
+        qtdPessoas: profissionaisAtuaisReal,
+      },
+    ];
+
+    let acumuladoCusto = custoAtualReal;
+    atualProjetadoVariacoesPorCargo
+      .filter((cargo) => cargo.custoVariacao !== 0)
+      .sort((a, b) => Math.abs(b.custoVariacao) - Math.abs(a.custoVariacao))
+      .forEach((cargo) => {
+        const inicio = acumuladoCusto;
+        acumuladoCusto += cargo.custoVariacao;
+        waterfallData.push({
+          name: cargo.nome,
+          value: cargo.custoVariacao,
+          range: [inicio, acumuladoCusto],
+          color: cargo.custoVariacao < 0 ? "#dc2626" : "#16a34a",
+          qtdPessoas: cargo.qtdVariacao,
+        });
+      });
+
+    waterfallData.push({
+      name: "Projetado",
+      value: custoProjetado,
+      range: [0, custoProjetado],
+      color: "#003151",
+      qtdPessoas: profissionaisProjetados,
+    });
+
+    return waterfallData;
+  }, [
+    atualProjetadoVariacoesPorCargo,
+    baselineDateLabel,
+    custoAtualReal,
+    custoBaseline,
+    custoProjetado,
+    profissionaisAtuaisReal,
+    profissionaisBaseline,
+    profissionaisProjetados,
+  ]);
+
+  const atualProjetadoQtdWaterfallData = useMemo(() => {
+    const waterfallData: any[] = [
+      {
+        name: `Baseline\n(${baselineDateLabel})`,
+        value: profissionaisBaseline,
+        range: [0, profissionaisBaseline],
+        color: "#93C5FD",
+        custoReais: custoBaseline,
+      },
+      {
+        name: "Atual",
+        value: profissionaisAtuaisReal,
+        range: [0, profissionaisAtuaisReal],
+        color: "#5CA6DD",
+        custoReais: custoAtualReal,
+      },
+    ];
+
+    let acumuladoQtd = profissionaisAtuaisReal;
+    atualProjetadoVariacoesPorCargo.forEach((cargo) => {
+      const inicio = acumuladoQtd;
+      acumuladoQtd += cargo.qtdVariacao;
+      waterfallData.push({
+        name: cargo.nome,
+        value: cargo.qtdVariacao,
+        range: [inicio, acumuladoQtd],
+        color: cargo.qtdVariacao < 0 ? "#dc2626" : "#16a34a",
+        custoReais: cargo.custoVariacao,
+      });
+    });
+
+    waterfallData.push({
+      name: "Projetado",
+      value: profissionaisProjetados,
+      range: [0, profissionaisProjetados],
+      color: "#003151",
+      custoReais: custoProjetado,
+    });
+
+    return waterfallData;
+  }, [
+    atualProjetadoVariacoesPorCargo,
+    baselineDateLabel,
+    custoAtualReal,
+    custoBaseline,
+    custoProjetado,
+    profissionaisAtuaisReal,
+    profissionaisBaseline,
+    profissionaisProjetados,
+  ]);
+
   return (
     <TabsContent value="detalhamento" className="space-y-6">
       {/* Cards de informação do Detalhamento */}
@@ -1286,7 +1528,7 @@ export const DashboardBaselineDetalhamento: React.FC<
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">
-                  Variação R$ - Detalhamento
+                  Variação R$ - Detalhamento - Baseline x Projetado
                   <div className="text-xs font-normal text-gray-500">
                     Análise por cargo/função
                   </div>
@@ -1747,6 +1989,84 @@ export const DashboardBaselineDetalhamento: React.FC<
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ));
                       })()}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            {/* Gráfico 6: Variação R$ - Atual x Projetado por cargo/função */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">
+                  Variação R$ - Detalhamento - Atual x Projetado
+                  <div className="text-xs font-normal text-gray-500">
+                    Análise por cargo/função
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={450}>
+                  <BarChart
+                    data={atualProjetadoCustoWaterfallData}
+                    margin={{ top: 8, right: 20, left: 20, bottom: 60 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="name"
+                      tick={<CustomAxisTick />}
+                      interval={0}
+                      height={80}
+                    />
+                    <YAxis
+                      tick={axisTick}
+                      tickFormatter={formatCurrencyAxisTick}
+                      domain={waterfallYAxisDomain}
+                    />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          const custoReais = data.value;
+                          const qtd = data.qtdPessoas;
+                          const isTotal =
+                            label === "Atual" ||
+                            label.includes("Baseline") ||
+                            label === "Projetado";
+                          return (
+                            <div className="bg-background border p-3 rounded-lg shadow-lg text-sm">
+                              <p className="font-bold text-foreground mb-1">
+                                {label}
+                              </p>
+                              <p className="text-muted-foreground">
+                                Custo: R${" "}
+                                {custoReais.toLocaleString("pt-BR", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </p>
+                              <p className="text-muted-foreground">
+                                {isTotal
+                                  ? `Total: ${qtd} ${
+                                      Math.abs(qtd) === 1
+                                        ? "funcionário"
+                                        : "funcionários"
+                                    }`
+                                  : `Variação: ${qtd >= 0 ? "+" : ""}${qtd} ${
+                                      Math.abs(qtd) === 1
+                                        ? "funcionário"
+                                        : "funcionários"
+                                    }`}
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar dataKey="range">
+                      {atualProjetadoCustoWaterfallData.map((entry, index) => (
+                        <Cell key={`atual-projetado-custo-${index}`} fill={entry.color} />
+                      ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -2634,7 +2954,7 @@ export const DashboardBaselineDetalhamento: React.FC<
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">
-                  Variação QTD - Detalhamento
+                  Variação QTD - Detalhamento - Baseline x Projetado
                   <div className="text-xs font-normal text-gray-500">
                     Análise por cargo/função
                   </div>
@@ -3058,6 +3378,79 @@ export const DashboardBaselineDetalhamento: React.FC<
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ));
                       })()}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            {/* Gráfico 6: Variação QTD - Atual x Projetado por cargo/função */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">
+                  Variação QTD - Detalhamento - Atual x Projetado
+                  <div className="text-xs font-normal text-gray-500">
+                    Análise por cargo/função
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={450}>
+                  <BarChart
+                    data={atualProjetadoQtdWaterfallData}
+                    margin={{ top: 8, right: 20, left: 20, bottom: 60 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="name"
+                      tick={<CustomAxisTick />}
+                      interval={0}
+                      height={80}
+                    />
+                    <YAxis tick={axisTick} />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          const qtd = data.value;
+                          const custoReais = data.custoReais || 0;
+                          const isTotal =
+                            label === "Atual" ||
+                            label.includes("Baseline") ||
+                            label === "Projetado";
+                          return (
+                            <div className="bg-background border p-3 rounded-lg shadow-lg text-sm">
+                              <p className="font-bold text-foreground mb-1">
+                                {label}
+                              </p>
+                              <p className="text-muted-foreground">
+                                {isTotal ? "Quantidade: " : "Variação: "}
+                                <span className="font-semibold">
+                                  {Math.abs(qtd)} funcionários
+                                </span>
+                              </p>
+                              <p className="text-muted-foreground">
+                                Custo:{" "}
+                                <span className="font-semibold">
+                                  {custoReais >= 0 ? "" : "-"}R${" "}
+                                  {Math.abs(custoReais).toLocaleString(
+                                    "pt-BR",
+                                    {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    }
+                                  )}
+                                </span>
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar dataKey="range">
+                      {atualProjetadoQtdWaterfallData.map((entry, index) => (
+                        <Cell key={`atual-projetado-qtd-${index}`} fill={entry.color} />
+                      ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
