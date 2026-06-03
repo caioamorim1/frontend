@@ -87,7 +87,7 @@ export default function HospitalHomePage() {
               timestamp: Date.now(),
             },
             {
-              title: "Setores",
+              title: "Dimensionar",
               icon: "Building2",
               href: `${routePrefix}/setores`,
               timestamp: Date.now() - 1000,
@@ -125,7 +125,7 @@ export default function HospitalHomePage() {
             timestamp: Date.now(),
           },
           {
-            title: "Setores",
+            title: "Dimensionar",
             icon: "Building2",
             href: `${routePrefix}/setores`,
             timestamp: Date.now() - 1000,

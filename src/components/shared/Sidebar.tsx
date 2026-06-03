@@ -331,8 +331,9 @@ export default function Sidebar() {
           setHospitais(hospitaisData);
           setRedes(redesData);
         })
-        .catch((err) =>
-        )
+        .catch((err) => {
+          console.error("Erro ao carregar hospitais e redes:", err);
+        })
         .finally(() => setLoading(false));
     } else if (user?.tipo === "GESTOR_ESTRATEGICO_REDE" && user?.redeId) {
       setLoading(true);
@@ -342,8 +343,9 @@ export default function Sidebar() {
           setRedeGestor(redeData);
           setHospitais(hospitaisData as Hospital[]);
         })
-        .catch((err) =>
-        )
+        .catch((err) => {
+          console.error("Erro ao carregar rede e hospitais:", err);
+        })
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
